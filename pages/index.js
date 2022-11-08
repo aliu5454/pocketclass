@@ -65,7 +65,7 @@ export default function Home({ exploreData, cardsData }) {
         </section>
 
         <section>
-          <h2 className="text-4xl font-semibold py-8 pb-5">Learn Anything</h2>
+          <h2 className="text-4xl font-semibold py-8 pb-5">Featured Classes</h2>
           <div className="flex space-x-3 overflow-scroll scrollbar-hide p-3">
             {cardsData?.map(
               ({
@@ -113,7 +113,7 @@ export default function Home({ exploreData, cardsData }) {
   );
 }
 
-export async function getStaticProps() {
+export async function getServerSideProps() {
   var exploreData = [];
   var cardsData = [];
 

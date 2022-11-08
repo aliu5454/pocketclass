@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
-import Map, {Marker,Popup} from 'react-map-gl';
+import Map, { Marker , Popup } from 'react-map-gl';
 import getCenter from "geolib/es/getCenter"
 import "mapbox-gl/dist/mapbox-gl.css"
-import {MapPinIcon} from "@heroicons/react/solid";
+import { MapPinIcon } from "@heroicons/react/solid";
 
 function Mapper({ searchResults }) {
 const [selectedLocation, setSelectedLocation] = useState({});
@@ -20,7 +20,7 @@ const [selectedLocation, setSelectedLocation] = useState({});
     height: '100%',
     longitude: center.longitude,
     latitude: center.latitude,
-    zoom: 11
+    zoom: 10
   });
 
   return (<Map
@@ -31,7 +31,7 @@ const [selectedLocation, setSelectedLocation] = useState({});
     {...viewport}
     //onViewportChange={(viewport) => this.setState({viewport})}
     //onViewportChange={(nextViewport) => setViewport(nextViewport.viewport)}
-    onMove={evt=>setViewport(evt.viewport)}
+    onMove={evt => setViewport(evt.viewport)}
   >
     {searchResults.map((result) => (
       <div key={result.location.longitude}>
@@ -40,6 +40,7 @@ const [selectedLocation, setSelectedLocation] = useState({});
           latitude={result.location.latitude}
           offsetLeft={-20}
           offsetTop={-10}
+          anchor="center"
           >
             <p onClick={() => setSelectedLocation(result.location)} className="cursor-pointer text-2xl animate-bounce" aria-label="location-pin" role="img"> 
             {/* onMouseEnter={() => setSelectedLocation(result.location)} onMouseLeave={()=>setSelectedLocation({})}  */}

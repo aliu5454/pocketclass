@@ -7,16 +7,18 @@ import Header from "../components/Header";
 import { collection, doc, getDoc, getDocs, query } from "firebase/firestore";
 import { db } from "../firebaseConfig";
 import InfoCard from "../components/InfoCard";
+import ClassHeading from "../components/ClassHeading";
 
 export default function Class() {
 
   //const {img, name,  type, description, ratings, address, price, category} = router.params;
 
-
   const [data, setData] = useState([])
   const [loading, setLoading] = useState(false)
-
   const router = useRouter();
+  const { id } = router.query
+
+
   const fetch = async (id) => {
     setLoading(true)
     if (id) {
@@ -26,7 +28,6 @@ export default function Class() {
       setData(data)
       setLoading(false)
     } else {
-      console.log("id null");
       setLoading(false)
     }
 
@@ -37,7 +38,6 @@ export default function Class() {
     const { id } = router.query
     fetch(id)
   }, [router.isReady, router.query])
-
 
   return (
     <div>
@@ -54,59 +54,31 @@ export default function Class() {
         {
           loading ?
             <section>
-              <h1>Loading</h1>
+              <h1 className="font-bold text-2xl text-center">Loading...</h1>
             </section>
             :
-            <>
-              <InfoCard
-                key={data.id} // should have an id
-                type={data.Type}
-                latitude={data.latitude}
-                name={data.Name}
-                images={data.Images}
-                description={data.Description}
-                longitude={data.longitude}
-                ratings={[data.Ratings]}
-                address={data.Address}
-                price={data.Price}
-                category={data.Category}
-              />
-            </>
-          // <section>
-          //   <img className="w-[30%] block mx-auto" src={data.Images} alt="" />
-          //   <h2 className="text-4xl font-semibold py-5">
-          //     {data.Name}
-          //   </h2>
-          //   <div className="small flex">
-          //     <p className="font-bold">{data.Category}</p>
-          //     <p className="font-bold mx-3">{data.Type}</p>
-          //   </div>
-          //   <p className="">
-          //     {data.Description}
-          //   </p>
-          // </section>
+
+            <ClassHeading
+              key={data.id} // should have an id
+              id={id}
+              type={data.Type}
+              name={data.Name}
+              images={data.Images}
+              description={data.Description}
+              ratings={[data.Ratings]}
+              location={data.Location}
+              // longitude={data.Location.toJSON().getLongitude()}
+              // latitude={data.Location.toJSON().getLatitude()}
+              address={data.Address}
+              price={data.Price}
+              category={data.Category}
+              data={data}
+            />
         }
       </main>
       <Footer />
     </div>
   );
 
-
-
   // export default Class;
 }
-
-
-// export async function getStaticProps() {
-//   const router = useRouter();
-//   const { id } = router.query
-//   const docRef = doc(db, "classes", id);
-//   const docSnap = await getDoc(docRef);
-//   const data = docSnap.data()
-
-//   return {
-//     props: {
-//       data
-//     },
-//   };
-// }

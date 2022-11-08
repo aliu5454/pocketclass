@@ -25,8 +25,8 @@ function SmallCard({ img, type, category }) {
 
       {/* Right */}
       <div>
-        <h2>{category}</h2>
-        <h3 className='text-gray-500'>{type}</h3>
+        <h2>{type}</h2>
+        <h3 className='text-gray-500'>{category}</h3>
       </div>
     </div>
   )

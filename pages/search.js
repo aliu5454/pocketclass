@@ -5,6 +5,7 @@ import Header from "../components/Header";
 import { format } from "date-fns";
 import InfoCard from "../components/InfoCard";
 import Mapper from "../components/Mapper";
+import style from '../styles/Search.module.css';
 import { db } from "../firebaseConfig";
 import { collection, getDocs, query, where } from "firebase/firestore";
 
@@ -20,8 +21,8 @@ function Search({ searchResults }) {
         <div>
             <Header placeholder={`${searchInput} | ${range} | ${noOfGuests} guests`} />
 
-            <main className="flex">
-                <section className="flex-grow pt-14 px-6">
+            <main className={`flex ${style.wrapper}`}>
+                <section className={`pt-14 px-6 ${style.cardContainer}`}>
                     <p className="text-xs text-gray-500">
                         300+ Classes | {range} - for {noOfGuests} student(s)
                     </p>
@@ -69,8 +70,8 @@ function Search({ searchResults }) {
                     </div>
                 </section>
 
-                <section className="hidden xl:inline-flex xl:min-w-[600px]">
-                    <Mapper searchResults={searchResults}/>
+                <section className={`hidden xl:inline-flex xl:min-w-[30%] ${style.mapContainer}`}>
+                    <Mapper searchResults={searchResults} />
                 </section>
             </main>
 
@@ -97,7 +98,7 @@ export async function getServerSideProps(context) {
     }
 
 querySnapshot.forEach((doc) => {
-    console.log(doc.data.Type);
+    // console.log(doc.data.Type);
     var dataObj = {
     id: doc.id,
     type: doc.data().Type,

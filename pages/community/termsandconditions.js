@@ -4,7 +4,7 @@ import Header from "/components/Header";
 import Head from "next/head";
 import Image from "next/image";
 
-export default function Class() {
+export default function TermsAndConditions() {
   return (
     <div>
       <Head>
