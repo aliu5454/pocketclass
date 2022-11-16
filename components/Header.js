@@ -5,6 +5,7 @@ import 'react-date-range/dist/styles.css'; // main style file
 import 'react-date-range/dist/theme/default.css'; // theme css file
 import { DateRangePicker } from 'react-date-range';
 import { useRouter } from 'next/router';
+import Link from 'next/link';
 
 function Header({ placeholder }) {
     const [searchInput, setSearchInput] = useState('');
@@ -74,7 +75,8 @@ function Header({ placeholder }) {
 
             {/* right */}
             <div className='flex items-center justify-end text-gray-500 space-x-4'>
-                <p className='text-sm hidden md:inline cursor-pointer hover:bg-gray-100 rounded-full space-x-2 p-3 hover:scale-105 active:scale-90 transition duration-150'>Become an Instructor</p>
+                {/* https://gm81lvnyohz.typeform.com/to/IoLpsf9g */}
+                <p className='text-sm hidden md:inline cursor-pointer hover:bg-gray-100 rounded-full space-x-2 p-3 hover:scale-105 active:scale-90 transition duration-150'><a target='_blank' href='https://gm81lvnyohz.typeform.com/to/IoLpsf9g'>Request a Class</a></p>
                 {/* <GlobeAltIcon className='h-6 cursor-pointer' /> */}
                 <div className='flex items-center space-x-2 border-2 p-2 rounded-full hover:bg-gray-100 cursor-pointer hover:scale-105 transition transform duration-200 ease-out active:scale-90 transition duration-150' onClick={login}>
                     <MenuIcon className='h-6 cursor-pointer' />
