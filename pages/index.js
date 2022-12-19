@@ -13,6 +13,7 @@ import { Router } from "next/router";
 
 export default function Home({ exploreData, cardsData }) {
   const uniqueCategory = [];
+  const featuredClasses = cardsData.slice(0, 5);
   exploreData.map((item) => {
     var findItem = uniqueCategory.find((x) => x.type === item.type);
     if (!findItem) uniqueCategory.push(item);
@@ -67,7 +68,7 @@ export default function Home({ exploreData, cardsData }) {
         <section>
           <h2 className="text-4xl font-semibold py-8 pb-5">Featured Classes</h2>
           <div className="flex space-x-3 overflow-scroll scrollbar-hide p-3">
-            {cardsData?.map(
+            {featuredClasses?.map(
               ({
                 id,
                 type,

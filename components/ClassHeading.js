@@ -23,14 +23,15 @@ const ClassHeading = ({
     data,
     classID
 }) => {
-
+    //console.log(location?.longitude)
+    const getLongitude = location?.longitude;
+    const getLatitude = location?.latitude;
+    const addresslink = `https://www.google.com/maps/search/?api=1&query=${getLatitude}%2C${getLongitude}`;
     const [recommend, setRecommend] = useState(0)
     const [quality, setQuality] = useState(0)
     const [safety, setSafety] = useState(0)
     const [loading, setLoading] = useState(false)
     const [reviews, setReviews] = useState([])
-
-    //let googlelinkaddress = `https://www.google.com/maps/search/?api=1&query=${location}`;
 
     let currentClassReview = reviews.filter((rev) => rev[0].classID === id)
     let avgReview = 0;
@@ -125,13 +126,13 @@ const ClassHeading = ({
                     <section className={`ml-10`}>
                         <div className="icon m-3 flex gap-2">
                             <span>
-                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6">
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="#E73F2B" className="w-6 h-6">
                                     <path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" />
                                     <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" />
                                 </svg>
                             </span>
                             {/* <p>Lorem, ipsum.</p> */}
-                            <p>{address}</p>
+                            <p className='hover:text-logo-red'><a target='_blank' href={addresslink}>{address}</a></p>
                         </div>
                         <div className="icon m-3 flex gap-2">
                             <span>
@@ -140,7 +141,7 @@ const ClassHeading = ({
                                 </svg>
 
                             </span>
-                            <p>+1 xxx xxx</p>
+                            <p>+1 xxx xxx (released after sign up)</p>
                         </div>
                         <div className="icon m-3 flex gap-2">
                             <span>
@@ -149,7 +150,7 @@ const ClassHeading = ({
                                 </svg>
 
                             </span>
-                            <p>example@gmail.com</p>
+                            <p>xxx@gmail.com (released after sign up)</p>
                         </div>
                         {/* <div className="icon m-3 flex gap-2">
                             <span>
