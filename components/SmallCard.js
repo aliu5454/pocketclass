@@ -20,7 +20,7 @@ function SmallCard({ img, type, category }) {
     <div className='flex items-center m-2 mt-5 rounded-xl cursor-pointer space-x-4 hover:bg-gray-100 hover:scale-105 transition transform duration-200 ease-out' onClick={() => handleSmallCardClick()}>
       {/* Left */}
       <div className='relative h-16 w-16'>
-        <Image src={img} layout="fill" className='rounded-lg' />
+        <Image src={img} layout="fill" className='rounded-lg' unoptimized />
       </div>
 
       {/* Right */}

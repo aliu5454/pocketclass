@@ -39,6 +39,9 @@ export default function Class() {
     fetch(id)
   }, [router.isReady, router.query])
 
+
+
+
   return (
     <div>
       <Head>

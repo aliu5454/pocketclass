@@ -3,7 +3,8 @@ const nextConfig = {
   reactStrictMode: true,
   swcMinify: true,
   images: {
-    domains: ["images.unsplash.com", "links.papareact.com","content.active.com","plus.unsplash.com"],
+    domains: ["images.unsplash.com", "links.papareact.com", "content.active.com", "plus.unsplash.com",
+      "lh3.googleusercontent.com"],
   },
   env: {
     mapbox_key:

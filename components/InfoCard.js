@@ -12,7 +12,7 @@ function InfoCard({
   images,
   description,
   longitude,
-  ratings,
+  reviews,
   address,
   price,
   category,
@@ -27,15 +27,27 @@ function InfoCard({
     });
   }
 
+  let currentClassReview = reviews.filter((rev) => rev[0].classID === id)
+  let averageReview = 0;
+
+  if (currentClassReview.length !== 0) {
+    currentClassReview.map(rv => {
+      averageReview = averageReview + rv[0].qualityRating + rv[0].recommendRating + rv[0].safetyRating
+    })
+
+    averageReview = averageReview / (currentClassReview.length * 3)
+
+  }
 
   return (
-    <div className="flex py-7 px-2 border-b cursor-pointer hover:opacity-80 hover:shadow-lg pr-4 transition duration-200 ease-out first:border-t"
+    <div className="flex py-7 px-2 border-b cursor-pointer hover:opacity-80 hover:shadow-lg pr-4 transition duration-200 ease-out first:border-t min-w-[100%] "
       onClick={() => handleSmallCardClick()}
     >
       <div className="relative h-24 w-40 md:h-52 md:w-80 flex-shrink-0">
         <Image
           src={images?.length ? images[0] : images}
           layout="fill"
+          unoptimized
           objectFit="cover"
           className="rounded-xl"
         />
@@ -109,7 +121,9 @@ function InfoCard({
         <div className="flex justify-between items-end pt-5">
           <p className="flex">
             <StarIcon className="h-5 text-logo-red" />
-            {ratings[0]}
+            {
+              currentClassReview.length !== 0 ? Math.round(averageReview) + ".0" : "N/A"
+            }
           </p>
 
           <div>

@@ -29,10 +29,10 @@ function MediumCard({
       className="cursor-pointer hover:scale-105 transform transition duration-300 ease-out"
     >
       <div className="relative h-80 w-80">
-        <Image src={img} layout="fill" className="rounded-xl" />
+        <Image src={img} layout="fill" className="rounded-xl" unoptimized />
       </div>
       <div>
-        
+
         <div className="flex mt-3">
           <svg
             class="mr-1.5 h-5 w-5 flex-shrink-0 text-gray-400"
