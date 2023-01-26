@@ -103,7 +103,7 @@ function Register() {
         <div className='px-10 py-20 rounded-3xl flex flex-col justify-center items-center h-[100vh]'>
             <Head>
             <title>pocketclass:register</title>
-            <meta name="pocketclass" content="All the extracurriculars in your fingertips!" />
+            <meta name="pocketclass" content="Register for an account at pocketclass!" />
             <link rel="icon" href="/pc_favicon.ico" />
             </Head>
 

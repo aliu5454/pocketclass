@@ -144,7 +144,7 @@ function Login() {
         <div className="flex w-full h-screen">
             <Head>
             <title>pocketclass:login</title>
-            <meta name="pocketclass" content="All the extracurriculars in your fingertips!" />
+            <meta name="pocketclass" content="Login to pocketclass!" />
             <link rel="icon" href="/pc_favicon.ico" />
             </Head>
             

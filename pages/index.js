@@ -20,10 +20,12 @@ export default function Home({ exploreData, cardsData }) {
   });
 
   return (
+    
     <div className="">
       <Head>
         <title>pocketclass</title>
-        <meta name="pocketclass" content="All the extracurriculars in your fingertips!" />
+        <meta name="pocketclass" content="A one-stop shop for all your extracurriculars!" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
         <link rel="icon" href="/pc_favicon.ico" />
       </Head>
       {/* header */}
