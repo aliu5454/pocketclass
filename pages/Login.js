@@ -5,8 +5,7 @@
 // import LoginForm from "./LoginForm";
 
 import * as React from 'react';
-
-
+import Head from "next/head";
 import { useRouter } from 'next/router';
 import { useSendPasswordResetEmail, useSignInWithEmailAndPassword, useSignInWithGoogle, useSignOut } from 'react-firebase-hooks/auth';
 import { auth } from "/firebaseConfig"
@@ -143,6 +142,11 @@ function Login() {
     // console.count("Login");
     return (
         <div className="flex w-full h-screen">
+            <Head>
+            <title>pocketclass:login</title>
+            <meta name="pocketclass" content="All the extracurriculars in your fingertips!" />
+            <link rel="icon" href="/pc_favicon.ico" />
+            </Head>
             
             <div className="w-full flex items-center justify-center lg:w-1/2">
                 <div className=' w-11/12 max-w-[700px] px-10 py-20 rounded-3xl bg-white border-2 border-gray-100'>

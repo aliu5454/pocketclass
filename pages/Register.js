@@ -1,3 +1,4 @@
+import Head from "next/head";
 import * as React from 'react';
 import { auth } from "/firebaseConfig"
 // import {auth} from 'firebase/auth';
@@ -100,6 +101,11 @@ function Register() {
 
     return (
         <div className='px-10 py-20 rounded-3xl flex flex-col justify-center items-center h-[100vh]'>
+            <Head>
+            <title>pocketclass:register</title>
+            <meta name="pocketclass" content="All the extracurriculars in your fingertips!" />
+            <link rel="icon" href="/pc_favicon.ico" />
+            </Head>
 
             <div className="registrationContainer w-[50%] ">
                 <h1 className='text-5xl font-semibold'>Sign Up</h1>
