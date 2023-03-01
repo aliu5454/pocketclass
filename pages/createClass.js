@@ -36,6 +36,9 @@ export default function CreateClass() {
         const latitude = e.target.latitude.value
         const longitude = e.target.longitude.value
         const description = e.target.description.value
+        const funfact = e.target.funfact.value
+        const experience = e.target.experience.value
+        const about = e.target.about.value
         const category = e.target.category.value
 
         for (let i = 0; i < e.target.images.files.length; i++) {
@@ -49,6 +52,9 @@ export default function CreateClass() {
             Address: address,
             Category: category,
             Description: description,
+            FunFact: funfact,
+            Experience: experience,
+            About:about,
             Name: className,
             Price: price,
             Type: classType,
@@ -79,6 +85,9 @@ export default function CreateClass() {
                             e.target.latitude.value = " "
                             e.target.longitude.value = " "
                             e.target.description.value = " "
+                            e.target.funfact.value = " "
+                            e.target.experience.value = " "
+                            e.target.about.value = " "
                             e.target.category.value = " "
 
                             setTimeout(() => {
@@ -214,12 +223,39 @@ export default function CreateClass() {
                                 />
                             </div>
                             <div className="col-span-12">
+                                <label className='text-lg font-medium'>About</label>
+                                <textarea
+                                    name='about'
+                                    className='w-full border-2 border-gray-100 rounded-xl p-3 mt-1 bg-transparent focus:outline-none focus:border-logo-red focus:ring-1 focus:ring-logo-red'
+                                    placeholder="Tell your students a little big about yourself!"
+                                    type={"text"}
+                                />
+                            </div>
+                            <div className="col-span-12">
+                                <label className='text-lg font-medium'>Experience</label>
+                                <textarea
+                                    name='experience'
+                                    className='w-full border-2 border-gray-100 rounded-xl p-3 mt-1 bg-transparent focus:outline-none focus:border-logo-red focus:ring-1 focus:ring-logo-red'
+                                    placeholder="Impress students with your experience!"
+                                    type={"text"}
+                                />
+                            </div>
+                            <div className="col-span-12">
                                 <label className='text-lg font-medium'>Description</label>
                                 <textarea
                                     required
                                     name='description'
                                     className='w-full border-2 border-gray-100 rounded-xl p-3 mt-1 bg-transparent focus:outline-none focus:border-logo-red focus:ring-1 focus:ring-logo-red'
                                     placeholder="Enter a description"
+                                    type={"text"}
+                                />
+                            </div>
+                            <div className="col-span-12">
+                                <label className='text-lg font-medium'>Fun Fact</label>
+                                <textarea
+                                    name='funfact'
+                                    className='w-full border-2 border-gray-100 rounded-xl p-3 mt-1 bg-transparent focus:outline-none focus:border-logo-red focus:ring-1 focus:ring-logo-red'
+                                    placeholder="Tell your students a fun fact about yourself!"
                                     type={"text"}
                                 />
                             </div>
