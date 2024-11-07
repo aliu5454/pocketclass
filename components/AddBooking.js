@@ -175,7 +175,7 @@ const AddBooking = ({
 				});
 
 				// bandaid solution to notify contact@pocketclass.ca
-					const bandaidText = `There has been a booking by ${newAppointment.title} \n\n Followings are the details:\n\nClass Id: ${newAppointment.class
+					const bandaidText = `There has been a booking by ${newAppointment.title} \n\n Followings are the details:\n\nUser Email: ${uEmail} \n\n Class Id: ${newAppointment.class
 					}\n\nStart Time: ${moment(newAppointment.start).format(
 						"DD-MM-YY / hh:mm A"
 					)}\n\nEnd Time: ${moment(newAppointment.end).format(
@@ -201,7 +201,7 @@ const AddBooking = ({
 				await sendEmail(uEmail, "Thank You for Booking Your Class with Pocketclass!", targetText);
 
 				// bandaid solution to notify contact@pocketclass.ca
-				const bandaidText = `There has been a booking for ${newAppointment.title} by ${newAppointment.owner} \n\n Followings are the details:\n\nClass Id: ${newAppointment.class
+				const bandaidText = `There has been a booking for ${newAppointment.title} by ${newAppointment.owner} \n\n Followings are the details:\n\nUser Email: ${uEmail} \n\nClass Id: ${newAppointment.class
 				}\n\nStart Time: ${moment(newAppointment.start).format(
 					"DD-MM-YY / hh:mm A"
 				)}\n\nEnd Time: ${moment(newAppointment.end).format(
@@ -363,7 +363,7 @@ const AddBooking = ({
 									{groupType === "group" && (
 										<div className="flex flex-col mt-6">
 											<label htmlFor="voucher" className="font-bold text-center">
-												Booking Seats
+												# of Seats You'd Like to Book
 											</label>
 											<input
 												type="number"

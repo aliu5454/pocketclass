@@ -53,6 +53,7 @@ function Login() {
 				}
 			} else {
 				await shouldRedirectToStripe(googleSignIn.user);
+				// router.push("/");
 				 if (router.query.redirect) {
 					router.push(router.query.redirect);
 				} else {

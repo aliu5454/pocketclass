@@ -297,7 +297,7 @@ export default function Booking({ component = false }) {
 			.length === 0 ? (
 		<>
 			<p className="text-center text-xl text-gray-700 my-20">
-				No upcomming availability
+				No upcomming availability provided by instructor. Chat with instructor to request availability!
 			</p>
 		</>
 	) : (

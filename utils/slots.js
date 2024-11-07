@@ -91,10 +91,10 @@ export const getFlatList = (list) => {
 
 export const getDateList = (list) => {
 	const finalList = list?.map?.((a) => ({
-		...a,
-		start: a.start.toDate(),
-		end: a.end.toDate(),
+	  ...a,
+	  start: a?.start?.toDate ? a?.start?.toDate() : new Date(a?.start),
+	  end: a?.end?.toDate ? a?.end?.toDate() : new Date(a?.end),
 	}));
-
+  
 	return finalList;
-};
+  };
