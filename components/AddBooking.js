@@ -81,8 +81,14 @@ const AddBooking = ({
   const modalRef = useRef();
   onClickOutside(modalRef, closeModal);
 
-  const getOptions = async (newPrice = null) => {
+  const getOptions = async (newPrice) => {
     try {
+      let finalPrice;
+      if (newPrice != null) { 
+        finalPrice = newPrice;
+      } else {
+        finalPrice = newAppointment.price;
+      }
       setLoading(true);
       const checkoutSession = await fetch("/api/create-stripe-session", {
         method: "POST",
@@ -95,7 +101,7 @@ const AddBooking = ({
           uName,
           classId,
           insId,
-          price: newAppointment.price,
+          price: finalPrice,
         }),
       });
       const data = await checkoutSession.json();
