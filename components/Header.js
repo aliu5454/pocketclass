@@ -99,21 +99,22 @@ function Header({ placeholder }) {
   return (
     <header className="sticky top-0 z-50 grid grid-cols-12 bg-white shadow-sm p-5 md:px-10">
       {/* left */}
-	  <div
-  onClick={() => router.push("/")}
-  className="relative flex items-center h-10 cursor-pointer my-auto col-span-3"
->
-  <Image
-    priority={true}
-    src="/pc_logo3.png"
-    layout="fill"
-    objectFit="contain"
-    objectPosition="left"
-  />
-  <span className="absolute -top-2 left-0 bg-logo-red text-white px-1.5 py-0.5 rounded-sm text-[7px] font-bold transform rounded-full">
-    BETA
-  </span>
-</div>
+      <div
+        onClick={() => router.push("/")}
+        className="relative flex items-center h-10 cursor-pointer my-auto col-span-3"
+      >
+        <Image
+          priority={true}
+          src="/pc_logo3.png"
+          layout="fill"
+          objectFit="contain"
+          objectPosition="left"
+        />
+        <span className="absolute -top-2 left-0 bg-logo-red text-white px-1.5 py-0.5  text-[7px] font-bold transform rounded-full">
+          {/*  in the above className rounded-sm and rounded-full both were added which result in a Css conflict */}
+          BETA
+        </span>
+      </div>
 
       {/* middle - search*/}
       <div className="searchContainer col-span-5 md:col-span-6 flex justify-center items-center">
