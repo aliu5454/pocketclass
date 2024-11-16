@@ -5,7 +5,7 @@ import Footer from "../components/Footer";
 import Header from "../components/Header";
 import dynamic from "next/dynamic";
 const MapCoordinates = dynamic(() => import("../components/MapCoordinates"), {
-	ssr: false,
+  ssr: false,
 });
 
 import { useRouter } from "next/router";
@@ -13,432 +13,432 @@ import { auth, db, storage } from "../firebaseConfig";
 import { getDownloadURL, ref, uploadBytes } from "firebase/storage";
 import { useEffect, useState } from "react";
 import {
-	addDoc,
-	arrayUnion,
-	collection,
-	doc,
-	GeoPoint,
-	updateDoc,
+  addDoc,
+  arrayUnion,
+  collection,
+  doc,
+  GeoPoint,
+  updateDoc,
 } from "firebase/firestore";
 import { toast, ToastContainer } from "react-toastify";
 import { useAuthState } from "react-firebase-hooks/auth";
 import Image from "next/image";
 
 export default function CreateClass() {
-	const router = useRouter();
-	const [loading, setLoading] = useState(false);
-	const [user, userLoading] = useAuthState(auth);
-	const [groupFlag, setGroupFlag] = useState(false);
+  const router = useRouter();
+  const [loading, setLoading] = useState(false);
+  const [user, userLoading] = useAuthState(auth);
+  const [groupFlag, setGroupFlag] = useState(false);
 
-	// Map state and handlers
-	const [address, setAddress] = useState("");
-	const [longitude, setLongitude] = useState("");
-	const [latitude, setLatitude] = useState("");
-	const [showMap, setShowMap] = useState(false);
-	const handleCoordinates = (lng, lat, address) => {
-		setLongitude(lng);
-		setLatitude(lat);
-		setAddress(address);
-	};
+  // Map state and handlers
+  const [address, setAddress] = useState("");
+  const [longitude, setLongitude] = useState("");
+  const [latitude, setLatitude] = useState("");
+  const [showMap, setShowMap] = useState(false);
+  const handleCoordinates = (lng, lat, address) => {
+    setLongitude(lng);
+    setLatitude(lat);
+    setAddress(address);
+  };
 
-	let images = [];
-	let imagesURL = [];
+  let images = [];
+  let imagesURL = [];
 
-	// Redirect to main page if user is not authenticated
-	const goToMainPage = () => router.push("/");
+  // Redirect to main page if user is not authenticated
+  const goToMainPage = () => router.push("/");
 
-	useEffect(() => {
-		if (!userLoading && !user) goToMainPage();
-	}, [userLoading, user]);
+  useEffect(() => {
+    if (!userLoading && !user) goToMainPage();
+  }, [userLoading, user]);
 
-	
-	const handleFormSubmit = async (e) => {
-		e.preventDefault();
-	
-		try {
-			const className = e.target.className.value;
-			const classType = e.target.classType.value;
-			const groupType = e.target.groupType.value;
-			const classStudents = e.target?.classStudents?.value || 0;
-			const add = address;
-			const lat = latitude;
-			const lng = longitude;
-			const price = e.target.price.value;
-			const description = e.target.description.value;
-			const pricing = e.target.pricing.value;
-			const funfact = e.target.funfact.value;
-			const experience = e.target.experience.value;
-			const about = e.target.about.value;
-			const category = e.target.category.value;
-	
-			if (groupType === "group" && classStudents == 0) {
-				toast.error("Class must have at least one student");
-				return;
-			}
-	
-			for (let i = 0; i < e.target.images.files.length; i++) {
-				images.push({
-					file: e.target.images.files[i],
-					type: e.target.images.files[i].type,
-				});
-			}
-	
-			setLoading(true);
-	
-			const addingClass = await addDoc(collection(db, "classes"), {
-				Address: add,
-				Category: category,
-				Description: description,
-				Pricing: pricing,
-				FunFact: funfact,
-				Experience: experience,
-				About: about,
-				Name: className,
-				Price: price,
-				Type: classType,
-				groupType: groupType,
-				classStudents: classStudents,
-				remainingSeats: classStudents,
-				latitude: lat,
-				longitude: lng,
-				Location: new GeoPoint(lat, lng),
-				Images: imagesURL,
-				classCreator: user?.uid,
-				status: 'active', 
-			});
+  const handleFormSubmit = async (e) => {
+    e.preventDefault();
 
-	
-			images.map(({ file: img, type }) => {
-				const fileRef = ref(
-					storage,
-					`images/${
-						Math.floor(Math.random() * (9999999 - 1000000 + 1) + 1000000) +
-						"-" +
-						img.name
-					}`
-				);
-				uploadBytes(fileRef, img).then(async (res) => {
-					getDownloadURL(ref(storage, res.metadata.fullPath)).then(
-						async (url) => {
-							await updateDoc(doc(db, "classes", addingClass.id), {
-								Images: arrayUnion({ url: url, type: type }),
-							});
-							toast.success("Class Added", {
-								toastId: "success66",
-							});
-							setTimeout(() => {
-								setLoading(false);
-								router.push({
-									pathname: "/classes",
-									query: {
-										id: addingClass.id,
-									},
-								});
-							}, 4000);
-						}
-					);
-				});
-			});
-	
-			handleCoordinates(null, null, "");
-		} catch (error) {
-			console.warn(error);
-			setLoading(false);
-			toast.error("Something went wrong", {
-				toastId: "error66",
-			});
-		}
-	};
+    try {
+      const className = e.target.className.value;
+      const classType = e.target.classType.value;
+      const groupType = e.target.groupType.value;
+      const classStudents = e.target?.classStudents?.value || 0;
+      const add = address;
+      const lat = latitude;
+      const lng = longitude;
+      const price = e.target.price.value;
+      const description = e.target.description.value;
+      const pricing = e.target.pricing.value;
+      const funfact = e.target.funfact.value;
+      const experience = e.target.experience.value;
+      const about = e.target.about.value;
+      const category = e.target.category.value;
 
-	return userLoading || !user ? (
-		<section className="flex justify-center items-center min-h-[100vh]">
-			<Image
-				priority={true}
-				src="/Rolling-1s-200px.svg"
-				width={"60px"}
-				height={"60px"}
-				alt="Loading"
-			/>
-		</section>
-	) : (
-		<div className="mx-auto">
-			<Head>
-				<title>Create Class</title>
-				<meta name="description" content="Generated by create next app" />
-				<link rel="icon" href="/pc_favicon.ico" />
-			</Head>
-			{/* Header */}
-			<Header />
-			{/* Form Section */}
-			<div className="max-w-7xl mx-auto px-8 py-8 min-h-[80vh] sm:px-16">
-				<h1 className="text-3xl font-extrabold text-center py-5">
-					Create Class
-				</h1>
+      if (groupType === "group" && classStudents == 0) {
+        toast.error("Class must have at least one student");
+        return;
+      }
 
-				<div className="formContainer mt-10">
-					<form
-						onSubmit={(e) => {
-							handleFormSubmit(e);
-						}}
-					>
-						<div className="grid gap-2 grid-cols-2">
-							<div className="grid-cols-6">
-								<label className="text-lg font-medium">Class Name</label>
-								<input
-									required
-									name="className"
-									className="w-full border-2 border-gray-100 rounded-xl p-3 mt-1 bg-transparent focus:outline-none focus:border-logo-red focus:ring-1 focus:ring-logo-red"
-									placeholder="Example: Professional Music Lessons by Tony"
-									type={"text"}
-								/>
-							</div>
-							<div className="grid-cols-6">
-								<label className="text-lg font-medium">Category</label>
-								<input
-									required
-									name="category"
-									className="w-full border-2 border-gray-100 rounded-xl p-3 mt-1 bg-transparent focus:outline-none focus:border-logo-red focus:ring-1 focus:ring-logo-red"
-									placeholder="Example: Music"
-									type={"text"}
-								/>
-							</div>
+      for (let i = 0; i < e.target.images.files.length; i++) {
+        images.push({
+          file: e.target.images.files[i],
+          type: e.target.images.files[i].type,
+        });
+      }
 
-							<div className="grid-cols-6">
-								<label className="text-lg font-medium">Address</label>
-								<input
-									required
-									name="address"
-									className="w-full border-2 border-gray-100 rounded-xl p-3 mt-1 bg-transparent focus:outline-none focus:border-logo-red focus:ring-1 focus:ring-logo-red"
-									placeholder="Example: 121 Richmond St W, Toronto"
-									type={"text"}
-									value={address}
-									onChange={(e) => setAddress(e.target.value)}
-								/>
-							</div>
-							<div className="grid-cols-6">
-								<button
-									type="button"
-									className="w-full border-2 border-gray-200 rounded-xl px-3 py-3 mt-8 bg-transparent bg-gray-100"
-									onClick={() => setShowMap(true)}
-								>
-									Get Coordinates
-								</button>
-							</div>
+      setLoading(true);
 
-							<div className="grid-cols-6">
-								<label className="text-lg font-medium">Class Type</label>
-								<input
-									required
-									name="classType"
-									className="w-full border-2 border-gray-100 rounded-xl p-3 mt-1 bg-transparent focus:outline-none focus:border-logo-red focus:ring-1 focus:ring-logo-red"
-									placeholder="Example: Piano"
-									type={"text"}
-								/>
-							</div>
-							<div className="grid-cols-6">
-								<label className="text-lg font-medium">Class Group Type</label>
-								<select
-									required
-									name="groupType"
-									className="w-full border-2 border-gray-100 rounded-xl p-3 mt-1 bg-transparent focus:outline-none focus:border-logo-red focus:ring-1 focus:ring-logo-red"
-									defaultValue="single"
-									onChange={(e) =>
-										e.target.value === "group"
-											? setGroupFlag(true)
-											: setGroupFlag(false)
-									}
-								>
-									<option value="single">Single</option>
-									<option value="group">Group</option>
-								</select>
-							</div>
-							<div className="grid-cols-6">
-								<label className="text-lg font-medium">
-									{groupFlag ? "Price Per Student" : "Price"}
-								</label>
-								<input
-									required
-									name="price"
-									className="w-full border-2 border-gray-100 rounded-xl p-3 mt-1 bg-transparent focus:outline-none focus:border-logo-red focus:ring-1 focus:ring-logo-red"
-									placeholder="Example: 100"
-									type={"number"}
-								/>
-							</div>
-							{groupFlag && (
-								<div className="grid-cols-6">
-									<label className="text-lg font-medium">Class Students</label>
-									<input
-										required
-										name="classStudents"
-										className="w-full border-2 border-gray-100 rounded-xl p-3 mt-1 bg-transparent focus:outline-none focus:border-logo-red focus:ring-1 focus:ring-logo-red"
-										placeholder="Example: 100"
-										type={"number"}
-									/>
-								</div>
-							)}
-						</div>
+      const addingClass = await addDoc(collection(db, "classes"), {
+        Address: add,
+        Category: category,
+        Description: description,
+        Pricing: pricing,
+        FunFact: funfact,
+        Experience: experience,
+        About: about,
+        Name: className,
+        Price: price,
+        Type: classType,
+        groupType: groupType,
+        classStudents: classStudents,
+        remainingSeats: classStudents,
+        latitude: lat,
+        longitude: lng,
+        Location: new GeoPoint(lat, lng),
+        Images: imagesURL,
+        classCreator: user?.uid,
+        status: "active",
+      });
 
-						{/* Map */}
-						{showMap && (
-							<div className="py-4 mx-auto aspect-square w-full md:w-2/3">
-								<MapCoordinates
-									setCoordinates={handleCoordinates}
-									setShowMap={setShowMap}
-								/>
-							</div>
-						)}
+      images.map(({ file: img, type }) => {
+        const fileRef = ref(
+          storage,
+          `images/${
+            Math.floor(Math.random() * (9999999 - 1000000 + 1) + 1000000) +
+            "-" +
+            img.name
+          }`
+        );
+        uploadBytes(fileRef, img).then(async (res) => {
+          getDownloadURL(ref(storage, res.metadata.fullPath)).then(
+            async (url) => {
+              await updateDoc(doc(db, "classes", addingClass.id), {
+                Images: arrayUnion({ url: url, type: type }),
+              });
+              toast.success("Class Added", {
+                toastId: "success66",
+              });
+              setTimeout(() => {
+                setLoading(false);
+                router.push({
+                  pathname: "/classes",
+                  query: {
+                    id: addingClass.id,
+                  },
+                });
+              }, 4000);
+            }
+          );
+        });
+      });
 
-						{/* Coordinates */}
-						<div className="grid grid-cols-2 gap-3 mt-2">
-							<div className="grid-cols-6">
-								<label className="text-lg font-medium">Latitude</label>
-								<input
-									required
-									name="latitude"
-									className="w-full border-2 border-gray-100 rounded-xl p-3 mt-1 bg-transparent focus:outline-none focus:border-logo-red focus:ring-1 focus:ring-logo-red"
-									placeholder="Example: 43.84914"
-									step="any"
-									type={"number"}
-									value={latitude}
-									onChange={(e) => setLatitude(e.target.value)}
-								/>
-							</div>
-							<div className="grid-cols-6">
-								<label className="text-lg font-medium">Longitude</label>
-								<input
-									required
-									name="longitude"
-									className="w-full border-2 border-gray-100 rounded-xl p-3 mt-1 bg-transparent focus:outline-none focus:border-logo-red focus:ring-1 focus:ring-logo-red"
-									placeholder="Example: -79.32399"
-									step="any"
-									type={"number"}
-									value={longitude}
-									onChange={(e) => setLongitude(e.target.value)}
-								/>
-							</div>
-						</div>
+      handleCoordinates(null, null, "");
+    } catch (error) {
+      console.warn(error);
+      setLoading(false);
+      toast.error("Something went wrong", {
+        toastId: "error66",
+      });
+    }
+  };
 
-						{/* Additional Information */}
-						<div className="grid grid-cols-1 gap-3 mt-2">
-							<div className="col-span-12">
-								<label className="text-lg font-medium">Media (png, jpg, mp4)</label>
-								<input
-									required
-									name="images"
-									className="w-full border-2 border-gray-100 rounded-xl p-3 mt-1 bg-transparent focus:outline-none focus:border-logo-red focus:ring-1 focus:ring-logo-red"
-									multiple
-									accept="image/png, image/jpeg, image/jpg, video/mp4"
-									type={"file"}
-								/>
-							</div>
-							<div className="col-span-12">
-								<label className="text-lg font-medium">About</label>
-								<textarea
-									required
-									name="about"
-									className="w-full border-2 border-gray-100 rounded-xl p-3 mt-1 bg-transparent focus:outline-none focus:border-logo-red focus:ring-1 focus:ring-logo-red"
-									placeholder="Tell your students a little bit about yourself!"
-									type={"text"}
-								/>
-							</div>
-							<div className="col-span-12">
-								<label className="text-lg font-medium">Experience</label>
-								<textarea
-									required
-									name="experience"
-									className="w-full border-2 border-gray-100 rounded-xl p-3 mt-1 bg-transparent focus:outline-none focus:border-logo-red focus:ring-1 focus:ring-logo-red"
-									placeholder="Impress students with your experience!"
-									type={"text"}
-								/>
-							</div>
-							<div className="col-span-12">
-								<label className="text-lg font-medium">Description</label>
-								<textarea
-									required
-									name="description"
-									className="w-full border-2 border-gray-100 rounded-xl p-3 mt-1 bg-transparent focus:outline-none focus:border-logo-red focus:ring-1 focus:ring-logo-red"
-									placeholder="Enter a description"
-									type={"text"}
-								/>
-							</div>
-							<div className="col-span-12">
-								<label className="text-lg font-medium">Pricing</label>
-								<textarea
-									required
-									name="pricing"
-									className="w-full border-2 border-gray-100 rounded-xl p-3 mt-1 bg-transparent focus:outline-none focus:border-logo-red focus:ring-1 focus:ring-logo-red"
-									placeholder="Explain your pricing packages!"
-									type={"text"}
-								/>
-							</div>
-							<div className="col-span-12">
-								<label className="text-lg font-medium">Fun Fact</label>
-								<textarea
-									required
-									name="funfact"
-									className="w-full border-2 border-gray-100 rounded-xl p-3 mt-1 bg-transparent focus:outline-none focus:border-logo-red focus:ring-1 focus:ring-logo-red"
-									placeholder="Tell your students a fun fact about yourself!"
-									type={"text"}
-								/>
-							</div>
+  return userLoading || !user ? (
+    <section className="flex justify-center items-center min-h-[100vh]">
+      <Image
+        priority={true}
+        src="/Rolling-1s-200px.svg"
+        width={"60px"}
+        height={"60px"}
+        alt="Loading"
+      />
+    </section>
+  ) : (
+    <div className="mx-auto">
+      <Head>
+        <title>Create Class</title>
+        <meta name="description" content="Generated by create next app" />
+        <link rel="icon" href="/pc_favicon.ico" />
+      </Head>
+      {/* Header */}
+      <Header />
+      {/* Form Section */}
+      <div className="max-w-7xl mx-auto px-8 py-8 min-h-[80vh] sm:px-16">
+        <h1 className="text-3xl font-extrabold text-center py-5">
+          Create Class
+        </h1>
 
-							<div className="col-span-12">
-								{!loading ? (
-									<button
-										type="submit"
-										className="active:scale-[.98] w-full active:duration-75 transition-all hover:scale-[1.01] ease-in-out transform py-4 bg-logo-red rounded-xl text-white font-bold text-lg"
-									>
-										Create
-									</button>
-								) : (
-									<div className="flex items-center justify-center">
-										<button
-											type="button"
-											className="inline-flex items-center justify-center py-4 text-sm font-semibold leading-6 text-white transition duration-150 w-full ease-in-out bg-logo-red rounded-xl shadow cursor-not-allowed hover:bg-logo-red"
-											disabled=""
-										>
-											<svg
-												className="w-5 h-5 mr-3 -ml-1 text-white animate-spin"
-												xmlns="http://www.w3.org/2000/svg"
-												fill="none"
-												viewBox="0 0 24 24"
-											>
-												<circle
-													className="opacity-25"
-													cx="12"
-													cy="12"
-													r="10"
-													stroke="currentColor"
-													strokeWidth="4"
-												></circle>
-												<path
-													className="opacity-75"
-													fill="currentColor"
-													d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-												></path>
-											</svg>
-											Uploading...
-										</button>
-									</div>
-								)}
-							</div>
-						</div>
-					</form>
-				</div>
-			</div>
-			<Footer />
-			<ToastContainer
-				position="top-center"
-				autoClose={2000}
-				hideProgressBar={false}
-				newestOnTop
-				closeOnClick
-				rtl={false}
-				pauseOnFocusLoss
-				draggable
-				pauseOnHover
-				theme="light"
-			/>
-		</div>
-	);
+        <div className="formContainer mt-10">
+          <form
+            onSubmit={(e) => {
+              handleFormSubmit(e);
+            }}
+          >
+            <div className="grid gap-2 grid-cols-2">
+              <div className="grid-cols-6">
+                <label className="text-lg font-medium">Class Name</label>
+                <input
+                  required
+                  name="className"
+                  className="w-full border-2 border-gray-100 rounded-xl p-3 mt-1 bg-transparent focus:outline-none focus:border-logo-red focus:ring-1 focus:ring-logo-red"
+                  placeholder="Example: Professional Music Lessons by Tony"
+                  type={"text"}
+                />
+              </div>
+              <div className="grid-cols-6">
+                <label className="text-lg font-medium">Category</label>
+                <input
+                  required
+                  name="category"
+                  className="w-full border-2 border-gray-100 rounded-xl p-3 mt-1 bg-transparent focus:outline-none focus:border-logo-red focus:ring-1 focus:ring-logo-red"
+                  placeholder="Example: Music"
+                  type={"text"}
+                />
+              </div>
+
+              <div className="grid-cols-6">
+                <label className="text-lg font-medium">Address</label>
+                <input
+                  required
+                  name="address"
+                  className="w-full border-2 border-gray-100 rounded-xl p-3 mt-1 bg-transparent focus:outline-none focus:border-logo-red focus:ring-1 focus:ring-logo-red"
+                  placeholder="Example: 121 Richmond St W, Toronto"
+                  type={"text"}
+                  value={address}
+                  onChange={(e) => setAddress(e.target.value)}
+                />
+              </div>
+              <div className="grid-cols-6">
+                <button
+                  type="button"
+                  className="w-full border-2 border-gray-200 rounded-xl px-3 py-3 mt-8 bg-transparent bg-gray-100"
+                  onClick={() => setShowMap(true)}
+                >
+                  Get Coordinates
+                </button>
+              </div>
+
+              <div className="grid-cols-6">
+                <label className="text-lg font-medium">Class Type</label>
+                <input
+                  required
+                  name="classType"
+                  className="w-full border-2 border-gray-100 rounded-xl p-3 mt-1 bg-transparent focus:outline-none focus:border-logo-red focus:ring-1 focus:ring-logo-red"
+                  placeholder="Example: Piano"
+                  type={"text"}
+                />
+              </div>
+              <div className="grid-cols-6">
+                <label className="text-lg font-medium">Class Group Type</label>
+                <select
+                  required
+                  name="groupType"
+                  className="w-full border-2 border-gray-100 rounded-xl p-3 mt-1 bg-transparent focus:outline-none focus:border-logo-red focus:ring-1 focus:ring-logo-red"
+                  defaultValue="single"
+                  onChange={(e) =>
+                    e.target.value === "group"
+                      ? setGroupFlag(true)
+                      : setGroupFlag(false)
+                  }
+                >
+                  <option value="single">Single</option>
+                  <option value="group">Group</option>
+                </select>
+              </div>
+              <div className="grid-cols-6">
+                <label className="text-lg font-medium">
+                  {groupFlag ? "Price Per Student" : "Price"}
+                </label>
+                <input
+                  required
+                  name="price"
+                  className="w-full border-2 border-gray-100 rounded-xl p-3 mt-1 bg-transparent focus:outline-none focus:border-logo-red focus:ring-1 focus:ring-logo-red"
+                  placeholder="Example: 100"
+                  type={"number"}
+                />
+              </div>
+              {groupFlag && (
+                <div className="grid-cols-6">
+                  <label className="text-lg font-medium">Class Students</label>
+                  <input
+                    required
+                    name="classStudents"
+                    className="w-full border-2 border-gray-100 rounded-xl p-3 mt-1 bg-transparent focus:outline-none focus:border-logo-red focus:ring-1 focus:ring-logo-red"
+                    placeholder="Example: 100"
+                    type={"number"}
+                  />
+                </div>
+              )}
+            </div>
+
+            {/* Map */}
+            {showMap && (
+              <div className="py-4 mx-auto aspect-square w-full md:w-2/3">
+                <MapCoordinates
+                  setCoordinates={handleCoordinates}
+                  setShowMap={setShowMap}
+                />
+              </div>
+            )}
+
+            {/* Coordinates */}
+            <div className="grid grid-cols-2 gap-3 mt-2">
+              <div className="grid-cols-6">
+                <label className="text-lg font-medium">Latitude</label>
+                <input
+                  required
+                  name="latitude"
+                  className="w-full border-2 border-gray-100 rounded-xl p-3 mt-1 bg-transparent focus:outline-none focus:border-logo-red focus:ring-1 focus:ring-logo-red"
+                  placeholder="Example: 43.84914"
+                  step="any"
+                  type={"number"}
+                  value={latitude}
+                  onChange={(e) => setLatitude(e.target.value)}
+                />
+              </div>
+              <div className="grid-cols-6">
+                <label className="text-lg font-medium">Longitude</label>
+                <input
+                  required
+                  name="longitude"
+                  className="w-full border-2 border-gray-100 rounded-xl p-3 mt-1 bg-transparent focus:outline-none focus:border-logo-red focus:ring-1 focus:ring-logo-red"
+                  placeholder="Example: -79.32399"
+                  step="any"
+                  type={"number"}
+                  value={longitude}
+                  onChange={(e) => setLongitude(e.target.value)}
+                />
+              </div>
+            </div>
+
+            {/* Additional Information */}
+            <div className="grid grid-cols-1 gap-3 mt-2">
+              <div className="col-span-12">
+                <label className="text-lg font-medium">
+                  Media (png, jpg, mp4)
+                </label>
+                <input
+                  required
+                  name="images"
+                  className="w-full border-2 border-gray-100 rounded-xl p-3 mt-1 bg-transparent focus:outline-none focus:border-logo-red focus:ring-1 focus:ring-logo-red"
+                  multiple
+                  accept="image/png, image/jpeg, image/jpg, video/mp4"
+                  type={"file"}
+                />
+              </div>
+              <div className="col-span-12">
+                <label className="text-lg font-medium">About</label>
+                <textarea
+                  required
+                  name="about"
+                  className="w-full border-2 border-gray-100 rounded-xl p-3 mt-1 bg-transparent focus:outline-none focus:border-logo-red focus:ring-1 focus:ring-logo-red"
+                  placeholder="Tell your students a little bit about yourself!"
+                  type={"text"}
+                />
+              </div>
+              <div className="col-span-12">
+                <label className="text-lg font-medium">Experience</label>
+                <textarea
+                  required
+                  name="experience"
+                  className="w-full border-2 border-gray-100 rounded-xl p-3 mt-1 bg-transparent focus:outline-none focus:border-logo-red focus:ring-1 focus:ring-logo-red resize-y min-h-[5rem]"
+                  placeholder="Impress students with your experience!"
+                  type={"text"}
+                />
+              </div>
+              <div className="col-span-12">
+                <label className="text-lg font-medium">Description</label>
+                <textarea
+                  required
+                  name="description"
+                  className="w-full border-2 border-gray-100 rounded-xl p-3 mt-1 bg-transparent focus:outline-none focus:border-logo-red focus:ring-1 focus:ring-logo-red"
+                  placeholder="Enter a description"
+                  type={"text"}
+                />
+              </div>
+              <div className="col-span-12">
+                <label className="text-lg font-medium">Pricing</label>
+                <textarea
+                  required
+                  name="pricing"
+                  className="w-full border-2 border-gray-100 rounded-xl p-3 mt-1 bg-transparent focus:outline-none focus:border-logo-red focus:ring-1 focus:ring-logo-red"
+                  placeholder="Explain your pricing packages!"
+                  type={"text"}
+                />
+              </div>
+              <div className="col-span-12">
+                <label className="text-lg font-medium">Fun Fact</label>
+                <textarea
+                  required
+                  name="funfact"
+                  className="w-full border-2 border-gray-100 rounded-xl p-3 mt-1 bg-transparent focus:outline-none focus:border-logo-red focus:ring-1 focus:ring-logo-red"
+                  placeholder="Tell your students a fun fact about yourself!"
+                  type={"text"}
+                />
+              </div>
+
+              <div className="col-span-12">
+                {!loading ? (
+                  <button
+                    type="submit"
+                    className="active:scale-[.98] w-full active:duration-75 transition-all hover:scale-[1.01] ease-in-out transform py-4 bg-logo-red rounded-xl text-white font-bold text-lg"
+                  >
+                    Create
+                  </button>
+                ) : (
+                  <div className="flex items-center justify-center">
+                    <button
+                      type="button"
+                      className="inline-flex items-center justify-center py-4 text-sm font-semibold leading-6 text-white transition duration-150 w-full ease-in-out bg-logo-red rounded-xl shadow cursor-not-allowed hover:bg-logo-red"
+                      disabled=""
+                    >
+                      <svg
+                        className="w-5 h-5 mr-3 -ml-1 text-white animate-spin"
+                        xmlns="http://www.w3.org/2000/svg"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                      >
+                        <circle
+                          className="opacity-25"
+                          cx="12"
+                          cy="12"
+                          r="10"
+                          stroke="currentColor"
+                          strokeWidth="4"
+                        ></circle>
+                        <path
+                          className="opacity-75"
+                          fill="currentColor"
+                          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                        ></path>
+                      </svg>
+                      Uploading...
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+          </form>
+        </div>
+      </div>
+      <Footer />
+      <ToastContainer
+        position="top-center"
+        autoClose={2000}
+        hideProgressBar={false}
+        newestOnTop
+        closeOnClick
+        rtl={false}
+        pauseOnFocusLoss
+        draggable
+        pauseOnHover
+        theme="light"
+      />
+    </div>
+  );
 }
