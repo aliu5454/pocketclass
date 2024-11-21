@@ -5,6 +5,7 @@ import ProgressTrackerWidget from "../ProgressTrackerWidget";
 import Link from "next/link";
 
 function DynamicContentLayout() {
+  // How PocketClass Works
   return (
     <div className="flex justify-start items-stretch flex-col w-[100.00%] box-border mt-10">
       <div className="flex flex-col md:flex-row justify-between items-start gap-[30px] grow-0 shrink-0 basis-auto">
