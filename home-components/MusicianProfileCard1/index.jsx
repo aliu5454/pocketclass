@@ -7,11 +7,15 @@ import { categories } from "../../utils/categories";
 function MusicianProfileCard1({ instructor }) {
   // console.log(instructor);
   // Default values if data is missing
-  const fullName = `${instructor?.name?.split(" ").slice(0, 4).join(" ") || "N/A"}`.trim();
+  const fullName = `${
+    instructor?.name?.split(" ").slice(0, 4).join(" ") || "N/A"
+  }`.trim();
   const rating = instructor?.averageRating; // Static as not in DB
   const reviews = instructor?.reviewCount; // Static as not in DB
   const price = instructor?.Price; // Static as not in DB
-  const specialization = instructor?.SubCategory?(instructor?.SubCategory):(instructor?.Type); // Static as not in DB
+  const specialization = instructor?.SubCategory
+    ? instructor?.SubCategory
+    : instructor?.Type; // Static as not in DB
   const groupPrice = instructor?.groupPrice; // Static as not in DB
 
   const getCategoryIcon = (category, type) => {
@@ -33,9 +37,15 @@ function MusicianProfileCard1({ instructor }) {
           </p>
           <div className="flex justify-start items-center flex-row">
             <div className="flex justify-start items-center flex-row grow-0 shrink-0 basis-auto">
-              {getCategoryIcon(instructor.category, instructor.Type) && (
+              {getCategoryIcon(
+                instructor?.Category,
+                instructor?.SubCategory || instructor?.Type
+              ) && (
                 <img
-                  src={getCategoryIcon(instructor.category, instructor.Type)}
+                  src={getCategoryIcon(
+                    instructor?.Category,
+                    instructor?.SubCategory || instructor?.Type
+                  )}
                   alt={instructor.Type}
                   className="w-4 h-4 flex grow-0 shrink-0 basis-auto"
                 />
@@ -62,14 +72,18 @@ function MusicianProfileCard1({ instructor }) {
                 {rating.toFixed(1)}
               </p>
               <p className="[font-family:'DM_Sans',sans-serif] text-base font-normal text-[#261f22] grow-0 shrink-0 basis-auto ml-1.5 m-0 p-0">
-                {`${reviews} ${reviews === 1 || reviews === 0  ? "(review)" : "(reviews)"}`}
+                {`${reviews} ${
+                  reviews === 1 || reviews === 0 ? "(review)" : "(reviews)"
+                }`}
               </p>{" "}
             </div>
           </div>
         </div>
         <div className="flex justify-start items-end flex-col grow-0 shrink-0 basis-auto">
           <p className="[font-family:'DM_Sans',sans-serif] text-xl font-bold leading-6 text-[#261f22] grow-0 shrink-0 basis-auto m-0 pl-[21px] p-0">
-            ${groupPrice}{groupPrice?"-$":""}{price}
+            ${groupPrice}
+            {groupPrice ? "-$" : ""}
+            {price}
           </p>
           <p className="[font-family:'DM_Sans',sans-serif] text-base font-normal text-[#261f22] grow-0 shrink-0 basis-auto m-0 p-0">
             per hour

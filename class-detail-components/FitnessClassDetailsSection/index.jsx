@@ -184,8 +184,8 @@ function FitnessClassDetailsSection({
                       src={
                         getCategoryIcons(
                           classData?.Category,
-                          classData?.SubCategory
-                        ).categoryIcon
+                          (classData?.SubCategory || classData?.Type)
+                        ).subcategoryIcon
                       }
                       className="w-4 h-4 flex grow-0 shrink-0 basis-auto object-contain"
                       alt={classData?.Category || "category"}

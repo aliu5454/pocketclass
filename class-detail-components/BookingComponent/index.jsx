@@ -515,7 +515,7 @@ export default function index({ instructorId, classId, classData }) {
   };
 
   return (
-    <div className="relative flex flex-col my-6 mb-10">
+    <div className="relative flex flex-col my-6 mb-10" id="booking">
       {/* <h1 className="text-3xl font-bold text-[#E73F2B] mb-4">Book a Slot</h1> */}
 
       <div className="flex flex-wrap-reverse gap-2 flex-row items-center justify-between mb-4">
