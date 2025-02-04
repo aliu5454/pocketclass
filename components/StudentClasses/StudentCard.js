@@ -5,6 +5,7 @@ import { StarIcon } from "@heroicons/react/solid";
 import { TrashIcon } from "@heroicons/react/outline";
 import { PencilIcon } from "@heroicons/react/outline";
 import { useRouter } from "next/router";
+import RescheduleClass from "../RescheduleClass";
 import {
   addDoc,
   collection,
@@ -16,7 +17,7 @@ import {
 } from "firebase/firestore";
 import { toast } from "react-toastify";
 import { db } from "../../firebaseConfig";
-import moment from "moment";
+import moment from "moment-timezone";
 
 import { loadStripe } from "@stripe/stripe-js";
 import {
@@ -50,13 +51,17 @@ function StudentCard({
   classCreator,
   paymentIntentId,
   studentName,
+  timezone,
+  rescheduleBooking = false,
+  cancelBooking = false,
 }) {
   const router = useRouter();
   const [refundAmnt, setRefundAmnt] = useState(0);
   const [refundReason, setRefundReason] = useState("");
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isModalOpen, setIsModalOpen] = useState(cancelBooking);
   const [refundLoading, setRefundLoading] = useState(false);
 
+  const [rescheduleModal, setRescheduleModal] = useState(rescheduleBooking);
   const deleteClass = async () => {
     const classRef = doc(db, "classes", id);
     await deleteDoc(classRef);
@@ -112,15 +117,22 @@ function StudentCard({
   };
 
   const handleReschedule = () => {
-    router.push({
-      pathname: "/classes/id=" + id,
-    });
+    const now = moment().tz(timezone).add(24, "hours");
+    const bookingStartDate = moment.utc(start, "YYYY-MM-DD HH:mm");
+
+    if (bookingStartDate.isBefore(now)) {
+      toast.error(
+        "You cannot reschedule an appointment less than 24 hours away."
+      );
+      return;
+    }
+    setRescheduleModal(true);
   };
 
   const handleCancel = async () => {
-    const now = moment.utc();
-    const startTime = moment.utc(start);
-    const diff = startTime.diff(now, "hours");
+    const now = moment().tz(timezone).add(24, "hours");
+    const bookingStartDate = moment.utc(start, "YYYY-MM-DD HH:mm");
+    const diff = bookingStartDate.diff(now, "hours");
 
     if (diff >= 24) {
       fetch("/api/retrieve-stripe", {
@@ -148,6 +160,13 @@ function StudentCard({
   };
 
   const handleRefund = async () => {
+    const now = moment().tz(timezone).add(24, "hours");
+    const bookingStartDate = moment.utc(start, "YYYY-MM-DD HH:mm");
+    const diff = bookingStartDate.diff(now, "hours");
+    if (diff < 24) {
+      toast.error("You cannot refund an appointment less than 24 hours away.");
+      return;
+    }
     setRefundLoading(true);
     const refund = await fetch("/api/refund", {
       method: "POST",
@@ -347,7 +366,10 @@ function StudentCard({
             className="flex flex-col items-center"
             onClick={(e) => e.stopPropagation()}
           >
-            {moment.utc(start).isBefore(moment.utc()) ? (
+            {moment.utc(start).format("YYYY-MM-DD HH:mm") <
+            moment
+              .tz(timezone || "America/Toronto")
+              .format("YYYY-MM-DD HH:mm") ? (
               <button
                 onClick={() => handleBookAgain()}
                 className="px-4 py-1 border-solid border border-logo-red text-logo-red rounded-md hover:bg-logo-red hover:text-white hover:opacity-80 transition duration-200 ease-out"
@@ -362,6 +384,12 @@ function StudentCard({
                     className="px-4 py-1 border-solid border border-logo-red text-logo-red rounded-md hover:bg-logo-red hover:text-white hover:opacity-80 transition duration-200 ease-out"
                   >
                     Cancel
+                  </button>
+                  <button
+                    onClick={() => handleReschedule()}
+                    className="px-4 py-1 border-solid border border-logo-red text-logo-red rounded-md hover:bg-logo-red hover:text-white hover:opacity-80 transition duration-200 ease-out"
+                  >
+                    Reschedule
                   </button>
                   <button
                     onClick={() => handleMessageInstructor()}
@@ -409,6 +437,24 @@ function StudentCard({
               onClick={() => {
                 setIsModalOpen(false);
               }}
+              className="mt-4 w-full p-2 hover:bg-logo-red text-logo-red border hover:text-white border-logo-red border-solid rounded"
+            >
+              Go Back
+            </button>
+          </div>
+        </div>
+      )}
+      {rescheduleModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+          <div className="bg-white p-8 pt-2 pb-4 rounded shadow-lg max-h-[80vh] overflow-y-auto">
+            <RescheduleClass
+              classId={id}
+              setRescheduleModal={setRescheduleModal}
+              instructorId={classCreator}
+              bookingId={appointmentId}
+            />
+            <button
+              onClick={() => setRescheduleModal(false)}
               className="mt-4 w-full p-2 hover:bg-logo-red text-logo-red border hover:text-white border-logo-red border-solid rounded"
             >
               Go Back

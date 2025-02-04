@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Chevron, DayPicker } from "react-day-picker";
+import { DayPicker } from "react-day-picker";
 import "react-day-picker/dist/style.css";
 import { useRouter } from "next/router";
 import { toast } from "react-toastify";
@@ -16,33 +16,27 @@ import {
   where,
   getDocs,
   deleteDoc,
-  Timestamp,
 } from "firebase/firestore";
 import moment from "moment-timezone";
 import { loadStripe } from "@stripe/stripe-js";
-import {
-  Elements,
-  PaymentElement,
-  useStripe,
-  useElements,
-  AddressElement,
-} from "@stripe/react-stripe-js";
 import { useAuthState } from "react-firebase-hooks/auth";
-import { use } from "react";
 import {
   ChevronLeftIcon,
   ChevronRightIcon,
-  UserIcon,
   MinusIcon,
   PlusIcon,
 } from "@heroicons/react/solid";
-import { set } from "date-fns";
 
 const stripePromise = loadStripe(
   process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
 );
 
-export default function index({ instructorId, classId, classData }) {
+export default function index({
+  instructorId,
+  classId,
+  bookingId,
+  setRescheduleModal,
+}) {
   const router = useRouter();
   const [timer, setTimer] = useState(null);
 
@@ -54,6 +48,7 @@ export default function index({ instructorId, classId, classData }) {
   const [displayConfirmation, setDisplayConfirmation] = useState(false);
   const [isSelfBooking, setIsSelfBooking] = useState(false);
   const [studentEmail, setStudentEmail] = useState("");
+  const [rescheduleLoading, setRescheduleLoading] = useState(false);
   const [groupEmails, setGroupEmails] = useState([""]);
   const [numberOfGroupMembers, setNumberOfGroupMembers] = useState(1);
   const [mode, setMode] = useState("Individual");
@@ -66,12 +61,36 @@ export default function index({ instructorId, classId, classData }) {
   const [stripeLoading, setStripeLoading] = useState(false);
   const [bookedSlots, setBookedSlots] = useState([]);
   const [user, userLoading] = useAuthState(auth);
+  const [bookingData, setBookingData] = useState(null);
   const studentId = user?.uid;
   const studentName = user?.displayName;
   const today = new Date();
   const [daysWithNoSlots, setDaysWithNoSlots] = useState([]);
   const [minDays, setMinDays] = useState(0);
   const [maxDays, setMaxDays] = useState(30);
+  const [classData, setClassData] = useState(null);
+
+  useEffect(() => {
+    const fetchClassData = async () => {
+      try {
+        const docRef = doc(db, "classes", classId);
+        const docSnap = await getDoc(docRef);
+        if (docSnap.exists()) {
+          setClassData(docSnap.data());
+        } else {
+          console.error("No such document!");
+          toast.error("Class not found");
+        }
+      } catch (error) {
+        console.error("Error fetching class data:", error);
+        toast.error("Failed to fetch class data");
+      }
+    };
+
+    if (classId) {
+      fetchClassData();
+    }
+  }, [classId]);
 
   const hasSlots = (date, schedule, bookedSlots, appointmentDuration) => {
     const dateStr = moment(date).format("YYYY-MM-DD");
@@ -141,7 +160,7 @@ export default function index({ instructorId, classId, classData }) {
         )
         .map((booking) => (booking.groupSize ? booking.groupSize : 1));
       const remainingSlots =
-        classData.groupSize - bookingSizes.reduce((a, b) => a + b, 0);
+        classData?.groupSize - bookingSizes.reduce((a, b) => a + b, 0);
       if (isGroup && remainingSlots > 0) {
         return true;
       }
@@ -175,7 +194,7 @@ export default function index({ instructorId, classId, classData }) {
           day.slots.forEach((slot) => {
             if (slot.groupSlot) {
               slot.classId = classId;
-              slot.groupSize = classData.groupSize;
+              slot.groupSize = classData?.groupSize;
             }
           });
         });
@@ -183,7 +202,7 @@ export default function index({ instructorId, classId, classData }) {
           day.slots.forEach((slot) => {
             if (slot.groupSlot) {
               slot.classId = classId;
-              slot.groupSize = classData.groupSize;
+              slot.groupSize = classData?.groupSize;
             }
           });
         });
@@ -239,6 +258,38 @@ export default function index({ instructorId, classId, classData }) {
     fetchData();
   }, [instructorId, classId]);
 
+  useEffect(() => {
+    const fetchBookingData = async () => {
+      try {
+        console.log(bookingId);
+        const bookingRef = doc(db, "Bookings", bookingId);
+        const bookingRefSnapshot = await getDoc(bookingRef);
+        if (!bookingRefSnapshot.exists()) {
+          toast.error("Booking not found");
+          return;
+        }
+        const bookingDataa = bookingRefSnapshot.data();
+        setBookingData(bookingDataa);
+        if (!bookingDataa) {
+          toast.error("Booking not found");
+          return;
+        }
+        if (bookingDataa.mode === "group") {
+          setIndividualSlots([]);
+        } else {
+          setGroupedSlots([]);
+        }
+      } catch (error) {
+        console.error("Error fetching booking data:", error);
+        toast.error("Failed to fetch booking data");
+      }
+    };
+
+    if (bookingId) {
+      fetchBookingData();
+    }
+  }, [bookingId]);
+
   const calculateRemainingGroupedClassSlots = () => {
     const selected = moment
       .utc(`${selectedSlot.date} ${selectedSlot.startTime}`, "YYYY-MM-DD HH:mm")
@@ -253,7 +304,7 @@ export default function index({ instructorId, classId, classData }) {
       booking.groupSize ? booking.groupSize : 1
     );
     const remainingSlots =
-      classData.groupSize - bookingSizes.reduce((a, b) => a + b, 0);
+      classData?.groupSize - bookingSizes.reduce((a, b) => a + b, 0);
 
     return remainingSlots;
   };
@@ -340,8 +391,11 @@ export default function index({ instructorId, classId, classData }) {
       groupSlots.sort((a, b) => a.startTime.localeCompare(b.startTime));
       individualSlots.sort((a, b) => a.startTime.localeCompare(b.startTime));
 
-      setGroupedSlots(groupSlots);
-      setIndividualSlots(individualSlots);
+      if (bookingData.mode === "group") {
+        setGroupedSlots(groupSlots);
+      } else {
+        setIndividualSlots(individualSlots);
+      }
     };
 
     const splitSlots = (start, end, dateStr, classId) => {
@@ -373,7 +427,7 @@ export default function index({ instructorId, classId, classData }) {
         ) {
         } else if (
           !isBooked ||
-          (classId && groupBookedSize < classData.groupSize)
+          (classId && groupBookedSize < classData?.groupSize)
         ) {
           slots.push({
             startTime: slotStart.format("HH:mm"),
@@ -396,6 +450,27 @@ export default function index({ instructorId, classId, classData }) {
       generateSlots();
   }, [selectedDate, schedule, appointmentDuration, bookedSlots, mode]);
 
+  useEffect(() => {
+    let intervalId;
+    if (timer > 0) {
+      intervalId = setInterval(() => {
+        setTimer((prev) => {
+          if (prev > 0) return prev - 1;
+          clearInterval(intervalId);
+          setStripeOptions(null);
+          toast.error("Booking session expired. Please try again.");
+          return 0;
+        });
+      }, 1000);
+    }
+
+    return () => {
+      if (intervalId) {
+        clearInterval(intervalId);
+      }
+    };
+  }, [timer]);
+
   const handleSlotClick = (date, slot) => {
     setSelectedSlot({ date, ...slot });
   };
@@ -404,19 +479,20 @@ export default function index({ instructorId, classId, classData }) {
     const nextDate = moment(selectedDate).add(1, "day");
     const maxDate = moment().add(maxDays, "days").endOf("day");
     while (
-      !hasSlots(nextDate, schedule, bookedSlots, appointmentDuration, mode) &&
+      !hasSlots(nextDate, schedule, bookedSlots, appointmentDuration) &&
       nextDate.isBefore(maxDate)
     ) {
       nextDate.add(1, "day");
     }
 
-    if (!hasSlots(nextDate, schedule, bookedSlots, appointmentDuration, mode)) {
+    if (!hasSlots(nextDate, schedule, bookedSlots, appointmentDuration)) {
       toast.error("No slots available after this date.");
 
       return;
     }
     setSelectedDate(nextDate);
   };
+
   const initializeStripe = async () => {
     const now = moment.utc();
     if (selectedSlot.classId) {
@@ -446,18 +522,6 @@ export default function index({ instructorId, classId, classData }) {
     const expiry = now.clone().add(5, "minutes").toISOString();
     setTimer(300);
 
-    const interval = setInterval(() => {
-      setTimer((prev) => {
-        if (prev > 0) return prev - 1;
-        else {
-          clearInterval(interval);
-          setStripeOptions(null);
-          toast.error("Booking session expired. Please try again.");
-        }
-        return 0;
-      });
-    }, 1000);
-
     const bookingData = {
       student_id: studentId,
       instructor_id: instructorId,
@@ -476,7 +540,6 @@ export default function index({ instructorId, classId, classData }) {
       groupEmails: groupEmails,
       groupSize: numberOfGroupMembers,
       expiry,
-      mode: selectedSlot.classId ? "group" : "individual",
     };
 
     const bookingsRef = collection(db, "Bookings");
@@ -545,8 +608,8 @@ export default function index({ instructorId, classId, classData }) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         price: isGroup
-          ? classData.groupPrice * numberOfGroupMembers
-          : classData.Price,
+          ? classData?.groupPrice * numberOfGroupMembers
+          : classData?.Price,
       }),
     });
 
@@ -563,9 +626,324 @@ export default function index({ instructorId, classId, classData }) {
     setStripeLoading(false);
   };
 
-  const handleBookSlot = () => {
-    initializeStripe();
+  const sendEmail = async (
+    targetEmails,
+    targetSubject,
+    targetHtmlContent,
+    attachments = []
+  ) => {
+    try {
+      const res = await fetch("/api/sendEmail", {
+        method: "POST",
+        headers: {
+          Accept: "application/json, text/plain, */*",
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          subject: targetSubject,
+          html: targetHtmlContent,
+          to: targetEmails,
+          attachments,
+        }),
+      });
+
+      if (res.status === 200) {
+        console.log("Email sent successfully");
+      } else {
+        toast.error("Failed to send email. Please try again.");
+      }
+    } catch (error) {
+      console.warn("Error sending email: ", error);
+    }
   };
+
+  const handleBookSlot = async () => {
+    setRescheduleLoading(true);
+    const bookingRef = doc(db, "Bookings", bookingId);
+    const classRef = doc(db, "classes", bookingData.class_id);
+    const classSnapshot = await getDoc(classRef);
+    const classData = classSnapshot.data();
+
+    const now = moment().tz(timeZone).add(24, "hours");
+    const bookingStartDate = moment.utc(
+      `${bookingData.startTime}`,
+      "YYYY-MM-DD HH:mm"
+    );
+
+    if (bookingStartDate.isBefore(now)) {
+      setRescheduleLoading(false);
+      toast.error(
+        "Cannot reschedule to a date and time within the next 24 hours."
+      );
+      return;
+    }
+
+    const bookingsRef = collection(db, "Bookings");
+    const slotQuery = query(
+      bookingsRef,
+      where("instructor_id", "==", instructorId),
+      where(
+        "startTime",
+        "==",
+        moment
+          .utc(
+            `${selectedSlot.date} ${selectedSlot.startTime}`,
+            "YYYY-MM-DD HH:mm"
+          )
+          .toISOString()
+      )
+    );
+
+    const querySnapshot = await getDocs(slotQuery);
+
+    const isGroup = !!selectedSlot.classId;
+
+    if (isGroup) {
+      const existingGroupBookings = querySnapshot.docs;
+
+      const numberOfExistingBookings = existingGroupBookings.map((doc) => {
+        const data = doc.data();
+        return data.groupSize ? data.groupSize : 1;
+      });
+
+      const totalBookings =
+        numberOfExistingBookings.reduce((sum, size) => sum + size, 0) +
+        bookingData.groupSize;
+
+      if (totalBookings > classData?.groupSize) {
+        toast.error(
+          "This slot is fully booked for the group class. Please select a different time."
+        );
+        setStripeLoading(false);
+        return;
+      }
+    } else {
+      const isSlotBooked = querySnapshot.docs.some((doc) =>
+        moment
+          .utc(doc.data().startTime)
+          .isSame(
+            moment.utc(
+              `${selectedSlot.date} ${selectedSlot.startTime}`,
+              "YYYY-MM-DD HH:mm"
+            )
+          )
+      );
+
+      if (isSlotBooked) {
+        toast.error(
+          "This slot is already booked. Please select a different time."
+        );
+        setStripeLoading(false);
+        return;
+      }
+    }
+    const instructorRef = doc(db, "Users", bookingData.instructor_id);
+    const instructorSnapshot = await getDoc(instructorRef);
+    const instructorData = instructorSnapshot.data();
+
+    const startTime = moment
+      .utc(`${selectedSlot.date} ${selectedSlot.startTime}`, "YYYY-MM-DD HH:mm")
+      .toISOString();
+    const endTime = moment
+      .utc(`${selectedSlot.date} ${selectedSlot.endTime}`, "YYYY-MM-DD HH:mm")
+      .toISOString();
+
+    const startDateTime = moment
+      .utc(`${selectedSlot.date} ${selectedSlot.startTime}`)
+      .format("YYYY-MM-DDTHH:mm:ss");
+    const endDateTime = moment
+      .utc(`${selectedSlot.date} ${selectedSlot.endTime}`)
+      .format("YYYY-MM-DDTHH:mm:ss");
+    let meetingLink;
+    if (classData.Mode === "Online") {
+      const mode = bookingData.mode;
+      if (mode === "group") {
+        const querySnapshot = await getDocs(
+          query(
+            collection(db, "Bookings"),
+            where("class_id", "==", bookingData.class_id),
+            where(
+              "startTime",
+              "==",
+              moment
+                .utc(
+                  `${selectedSlot.date} ${selectedSlot.startTime}`,
+                  "YYYY-MM-DD HH:mm"
+                )
+                .toISOString()
+            ),
+            where(
+              "endTime",
+              "==",
+              moment
+                .utc(
+                  `${selectedSlot.date} ${selectedSlot.endTime}`,
+                  "YYYY-MM-DD HH:mm"
+                )
+                .toISOString()
+            )
+          )
+        );
+        if (querySnapshot.size > 0) {
+          const otherBookings = querySnapshot.docs.map((doc) => doc.data());
+          meetingLink = otherBookings[0]?.meetingLink;
+        }
+      }
+      if (!meetingLink) {
+        try {
+          meetingLink = await fetch("/api/generateMeetLink", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              className: classData.Name,
+              startTime: startDateTime,
+              endTime: endDateTime,
+              instructorEmail: instructorData?.email,
+              studentEmail: user?.email,
+              timeZone: timeZone,
+            }),
+          })
+            .then((response) => {
+              if (!response.ok) {
+                throw new Error("Failed to generate meeting link");
+              }
+              return response.json();
+            })
+            .then((data) => data?.meetLink);
+        } catch (error) {
+          console.error("Error generating meeting link:", error);
+        }
+      }
+    }
+    const updateData = {
+      startTime,
+      endTime,
+      meetingLink: meetingLink ? meetingLink : "",
+    };
+    updateDoc(bookingRef, updateData);
+    const organizer = instructorData.email;
+    const recipientEmails = `${user?.email}, ${instructorData.email}, ${
+      bookingData.mode === "group" ? groupEmails.join(",") : ""
+    }`;
+    const icsContent = `BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//Pocketclass//NONSGML v1.0//EN
+CALSCALE:GREGORIAN
+BEGIN:VEVENT
+SUMMARY:${classData.Name}
+DESCRIPTION:Booking confirmed for the class ${classData.Name}
+TZID:${timeZone || "America/Toronto"}
+DTSTAMP:${new Date().toISOString().replace(/[-:]|\.\d+/g, "")}
+X-LIC-LOCATION:${timeZone || "America/Toronto"}
+DTSTART;TZID=${timeZone || "America/Toronto"}:${formatDateTime(startDateTime)}
+DTEND;TZID=${timeZone || "America/Toronto"}:${formatDateTime(endDateTime)}
+LOCATION:${classData.Address}
+ORGANIZER;CN=${instructorData.firstName} ${
+      instructorData.lastName
+    }:MAILTO:${organizer}
+STATUS:CONFIRMED
+${meetingLink ? `X-GOOGLE-CONFERENCE:${meetingLink}` : ""}
+END:VEVENT
+END:VCALENDAR`.trim();
+
+    const mode = bookingData.mode;
+    const htmlContent = `
+  <div style="font-family: Arial, sans-serif;">
+      ${
+        meetingLink
+          ? `<div style="margin-top: 20px; padding: 6px 34px; box-sizing: border-box; border: 1px solid #ddd; background-color: #ffffff; border-radius: 8px; display: inline-block; width: 100%;">
+              <p style="font-size: 16px; color: #333; margin-bottom: 10px;">
+                Join the rescheduled meeting for your class <strong>${classData.Name}</strong> with <strong>${instructorData.firstName} ${instructorData.lastName}</strong>.
+              </p>
+              <p style="font-size: 14px; color: #5f5f5f; margin-bottom: 10px;">Meeting Link: <a href="${meetingLink}" style="color: #007bff; text-decoration: none;">${meetingLink}</a></p>
+              <a href="${meetingLink}" style="text-decoration: none; display: inline-block; background-color: #E73F2B; color: white; padding: 10px 20px; border-radius: 5px; font-size: 14px; margin-top: 5px; margin-bottom: 5px;">Join Rescheduled Meeting</a>
+              <p style="font-size: 14px; color: black; font-weight: bold; margin-bottom: 8px; margin-top: 10px;">Guest List:</p>
+              <ul style="list-style-type: disc; margin-left: 20px; padding-left: 0;">
+                <li style="font-size: 14px; color: #5f5f5f; margin-bottom: 5px;">Instructor: ${instructorData.firstName} ${instructorData.lastName} (${instructorData.email})</li>
+                <li style="font-size: 14px; color: #5f5f5f; margin-bottom: 5px;">Student: ${user?.email}</li>
+              </ul>
+            </div>`
+          : ""
+      }
+    <div style="font-family: Arial, sans-serif; color: #333;">
+      <h2 style="color: #E73F2B;">Booking Reschedule Confirmation</h2>
+      <p>Hello,</p>
+      <p>We would like to inform you that your booking for the class <strong>${
+        classData.Name
+      }</strong> has been successfully rescheduled.</p>
+      <h3>Updated Booking Details:</h3>
+      <table style="width: 100%; border-collapse: collapse; margin: 20px 0;" border="1">
+        <tr>
+          <td style="padding: 12px; background-color: #f8f9fa;"><strong>User Email:</strong></td>
+          <td style="padding: 12px;">${user?.email}</td>
+        </tr>
+        <tr>
+          <td style="padding: 12px; background-color: #f8f9fa;"><strong>Class Name:</strong></td>
+          <td style="padding: 12px;">${classData.Name}</td>
+        </tr>
+        <tr>
+          <td style="padding: 12px; background-color: #f8f9fa;"><strong>New Start Time:</strong></td>
+          <td style="padding: 12px;">${
+            selectedSlot.date + "@" + selectedSlot.startTime
+          }</td>
+        </tr>
+        <tr>
+          <td style="padding: 12px; background-color: #f8f9fa;"><strong>New End Time:</strong></td>
+          <td style="padding: 12px;">${
+            selectedSlot.date + "@" + selectedSlot.endTime
+          }</td>
+        </tr>
+        <tr>
+          <td style="padding: 12px; background-color: #f8f9fa;"><strong>Time Zone:</strong></td>
+          <td style="padding: 12px;">${timeZone || "America/Toronto"}</td>
+        </tr>
+        <tr>
+          <td style="padding: 12px; background-color: #f8f9fa;"><strong>Price:</strong></td>
+          <td style="padding: 12px;">$${
+            mode === "Group" ? classData?.groupPrice : classData?.Price
+          }</td>
+        </tr>
+        ${
+          meetingLink
+            ? `<tr>
+                <td style="padding: 12px; background-color: #f8f9fa;"><strong>New Meeting Link:</strong></td>
+                <td style="padding: 12px;"><a href="${meetingLink}" style="color: #007bff; text-decoration: none;">${meetingLink}</a></td>
+              </tr>`
+            : ""
+        }
+      </table>
+      <p>Thank you for choosing <strong>Pocketclass</strong>!</p>
+      <p style="color: #555; margin-top: 20px;">Best Regards,<br>Pocketclass Team</p>
+    </div>
+  </div>
+`;
+
+    function formatDateTime(dateTimeString) {
+      const date = moment.utc(dateTimeString);
+      const formattedDate = date.format("YYYYMMDD");
+      const formattedTime = date.format("HHmmss");
+      return `${formattedDate}T${formattedTime}`;
+    }
+
+    await sendEmail(
+      recipientEmails,
+      `Booking Rescheduled for ${classData.Name} with Pocketclass!`,
+      htmlContent,
+      [
+        {
+          filename: "booking-invite.ics",
+          content: icsContent,
+          type: "text/calendar",
+        },
+      ]
+    );
+    setRescheduleLoading(false);
+    toast.success("Booking rescheduled successfully");
+    setRescheduleModal(false);
+  };
+
   const handlePrev = () => {
     setSelectedDate((prevDate) => {
       const date = new Date(prevDate); // Ensure prevDate is a Date object
@@ -584,18 +962,15 @@ export default function index({ instructorId, classId, classData }) {
 
   return (
     <div className="relative flex flex-col my-6 mb-10" id="booking">
-      {/* <h1 className="text-3xl font-bold text-[#E73F2B] mb-4">Book a Slot</h1> */}
-
       <div className="flex flex-wrap-reverse gap-2 flex-row items-center justify-between mb-4">
         <div className="text-2xl font-bold text-[#E73F2B]">
-          Booking Schedule
+          Reschedule Schedule
         </div>
-        <div className="text-base text-gray-600 font-bold ">
-          Timezone: {timeZone ? timeZone : "America/Toronto"}
+        <div className="text-base text-gray-600 font-bold">
+          Timezone: {timeZone || "America/Toronto"}
         </div>
       </div>
       <div className="flex flex-grow flex-col lg:flex-row">
-        {/* Calendar Section */}
         <div className="p-4 pb-8 max-h-min border-gray-100 rounded-md bg-gray-50 flex-shrink-0 overflow-y-auto">
           <h2 className="text-xl font-bold text-[#E73F2B] mb-4">
             Select a Date
@@ -628,10 +1003,8 @@ export default function index({ instructorId, classId, classData }) {
           />
         </div>
 
-        {/* Time Slots Section */}
         <div className="flex-grow p-4 flex flex-col bg-white overflow-y-auto">
           <div className="flex-grow mb-3">
-            {/* Display Time slots ONLY of Selected Date without using Grouped slot, just selected Dtae*/}
             <div className="flex flex-row mb-3 items-center justify-center">
               <button
                 onClick={() => handlePrev()}
@@ -673,7 +1046,7 @@ export default function index({ instructorId, classId, classData }) {
             </div>
             {groupedSlots.length > 0 && (
               <div className="text-gray-700 font-semibold pb-3 rounded">
-                Grouped Class (Max. Num. of Students: {classData.groupSize})
+                Grouped Class (Max. Num. of Students: {classData?.groupSize})
               </div>
             )}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
@@ -705,48 +1078,8 @@ export default function index({ instructorId, classId, classData }) {
                 </button>
               </div>
             )}
-
-            {/* {groupedSlots.map((group, index) => (
-              <div key={index} className="mb-6">
-                <div className="flex flex-row items-center">
-                  {/* Add Prev and Next Buttons to navigate date */}
-            {/* <button
-                    onClick={() => handlePrev()}
-                    className="p-2 bg-[#E73F2B] text-white rounded mr-2"
-                  >
-                    Prev
-                  </button>
-                  <button
-                    onClick={() => handleNext()}
-                    className="p-2 bg-[#E73F2B] text-white rounded"
-                  >
-                    Next
-                  </button>
-                  <h3 className="font-bold text-lg mb-2">
-                    {moment(group.date).format("dddd, Do MMMM YYYY")}
-                  </h3>
-                </div>
-                <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-                  {group.slots.map((slot, i) => (
-                    <button
-                      key={i}
-                      onClick={() => handleSlotClick(group.date, slot)}
-                      className={`p-3 border rounded cursor-pointer ${
-                        selectedSlot?.startTime === slot.startTime &&
-                        selectedSlot?.date === group.date
-                          ? "bg-[#E73F2B] text-white"
-                          : "bg-gray-100 hover:bg-[#E73F2B] hover:text-white"
-                      }`}
-                    >
-                      {slot.startTime} - {slot.endTime}
-                    </button>
-                  ))}
-                </div>
-              </div> */}
-            {/* ))}  */}
           </div>
 
-          {/* Sticky Booking Div */}
           {selectedSlot && (
             <div className="bg-gray-50 border-2 border-red-300 rounded p-4 ">
               <div className=" flex justify-between items-center min-[450px]:flex-row flex-col gap-4">
@@ -766,23 +1099,11 @@ export default function index({ instructorId, classId, classData }) {
                   )}
                 </div>
                 <button
-                  onClick={() => {
-                    if (selectedSlot.classId) {
-                      if (!user) {
-                        setGroupEmails([""]);
-                      }
-                      else{
-                        setGroupEmails([user.email]);
-                      }
-                      setNumberOfGroupMembers(1);
-                      setDisplayConfirmation(true);
-                    } else {
-                      handleBookSlot();
-                    }
-                  }}
+                  onClick={() => handleBookSlot()}
                   className="bg-[#E73F2B] text-white max-[450px]:w-full p-2 rounded"
+                  disabled={rescheduleLoading}
                 >
-                  Book Now
+                  {rescheduleLoading ? "Loading..." : "Reschedule Now"}
                 </button>
               </div>
             </div>
@@ -826,7 +1147,6 @@ export default function index({ instructorId, classId, classData }) {
                   </div>
                 </div>
                 {!isSelfBooking && (
-                  // Ask them to write email of usee
                   <div className="mt-4">
                     <label className="block text-gray-700 font-semibold mb-2">
                       Email
@@ -841,7 +1161,6 @@ export default function index({ instructorId, classId, classData }) {
                 )}
               </div>
             )}
-            {/* If Class Id exists, Ask Number of Students(As Input box from 1 to Remaining Seats), and their emails */}
             {selectedSlot.classId && (
               <div>
                 <div className="mt-4 flex items-center w-full">
@@ -919,413 +1238,6 @@ export default function index({ instructorId, classId, classData }) {
           </div>
         </div>
       )}
-      {/* Centered Stripe Checkout */}
-      {stripeLoading && <CheckoutSkeleton />}
-      {stripeOptions && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-          <Elements stripe={stripePromise} options={stripeOptions}>
-            <CheckoutForm
-              bookingRef={stripeOptions.bookingRef}
-              setStripeOptions={setStripeOptions}
-              timer={timer}
-              price={
-                selectedSlot.classId
-                  ? classData.groupPrice * numberOfGroupMembers
-                  : classData.Price
-              }
-              startTime={selectedSlot.startTime}
-              endTime={selectedSlot.endTime}
-              date={selectedSlot.date}
-              setTimer={setTimer}
-              mode={selectedSlot.classId ? "Group" : "Individual"}
-              classData={classData}
-              timeZone={timeZone}
-              groupEmails={groupEmails}
-              numberOfGroupMembers={numberOfGroupMembers}
-              selectedSlot={selectedSlot}
-            />
-          </Elements>
-        </div>
-      )}
     </div>
   );
 }
-
-const CheckoutSkeleton = () => {
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center min-h-screen  bg-black bg-opacity-50">
-      <div className="bg-white p-8 rounded shadow-lg w-96 max-h-[80vh] overflow-y-auto animate-pulse">
-        {/* Go Back Button Skeleton */}
-        <div className="flex flex-row justify-end text-gray-300 mb-2">
-          <div className="h-4 w-16 bg-gray-300 rounded"></div>
-        </div>
-
-        {/* Header Section Skeleton */}
-        <div className="flex flex-row items-center justify-between mb-4">
-          <div className="h-6 w-40 bg-gray-300 rounded"></div>
-
-          <div className="flex items-center">
-            <div className="h-4 w-20 bg-gray-300 rounded mr-2"></div>
-            <div className="h-4 w-12 bg-gray-300 rounded"></div>
-          </div>
-        </div>
-
-        {/* Address Element Skeleton */}
-        <div className="h-14 w-full bg-gray-300 rounded mb-4"></div>
-
-        {/* Payment Element Skeleton */}
-        <div className="h-14 w-full bg-gray-300 rounded mb-4"></div>
-        <div className="h-14 w-full bg-gray-300 rounded mb-4"></div>
-
-        {/* Pay Button Skeleton */}
-        <div className="mt-4 p-2 bg-gray-400 text-white rounded w-full text-center">
-          Processing...
-        </div>
-      </div>
-    </div>
-  );
-};
-
-const CheckoutForm = ({
-  bookingRef,
-  timer,
-  setStripeOptions,
-  startTime,
-  endTime,
-  date,
-  setTimer,
-  mode,
-  classData,
-  timeZone,
-  groupEmails,
-  numberOfGroupMembers,
-  selectedSlot,
-  price,
-}) => {
-  const stripe = useStripe();
-  const [user, userLoading] = useAuthState(auth);
-  const elements = useElements();
-  const [loading, setLoading] = useState(false);
-  const router = useRouter();
-  const sendEmail = async (
-    targetEmails,
-    targetSubject,
-    targetHtmlContent,
-    attachments = []
-  ) => {
-    try {
-      const res = await fetch("/api/sendEmail", {
-        method: "POST",
-        headers: {
-          Accept: "application/json, text/plain, */*",
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          subject: targetSubject,
-          html: targetHtmlContent,
-          to: targetEmails,
-          attachments,
-        }),
-      });
-
-      if (res.status === 200) {
-        console.log("Email sent successfully");
-      } else {
-        toast.error("Failed to send email. Please try again.");
-      }
-    } catch (error) {
-      console.warn("Error sending email: ", error);
-    }
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setLoading(true);
-
-    const { error, paymentIntent } = await stripe.confirmPayment({
-      elements,
-      confirmParams: {
-        payment_method_data: {
-          billing_details: {
-            name: user?.displayName,
-            email: user?.email,
-          },
-        },
-      },
-      redirect: "if_required",
-    });
-
-    if (!error && paymentIntent?.status === "succeeded") {
-      // Get Meeting Link, if Mode is Online
-      const bookingDocRef = doc(db, "Bookings", bookingRef);
-
-      const bookingSnapshot = await getDoc(bookingDocRef);
-      const bookingData = bookingSnapshot.data();
-      const classRef = doc(db, "classes", bookingData.class_id);
-      const classSnapshot = await getDoc(classRef);
-      const classData = classSnapshot.data();
-
-      const instructorRef = doc(db, "Users", bookingData.instructor_id);
-      const instructorSnapshot = await getDoc(instructorRef);
-      const instructorData = instructorSnapshot.data();
-      let meetingLink = null;
-
-      const startDateTime = moment
-        .utc(`${date} ${startTime}`)
-        .format("YYYY-MM-DDTHH:mm:ss");
-      const organizer = instructorData.email;
-      const location = classData.Address || "Online";
-      const endDateTime = moment
-        .utc(`${date} ${endTime}`)
-        .format("YYYY-MM-DDTHH:mm:ss");
-      if (classData.Mode === "Online") {
-        if (mode === "Group") {
-          const querySnapshot = await getDocs(
-            query(
-              collection(db, "Bookings"),
-              where("class_id", "==", bookingData.class_id),
-              where(
-                "startTime",
-                "==",
-                moment
-                  .utc(
-                    `${selectedSlot.date} ${selectedSlot.startTime}`,
-                    "YYYY-MM-DD HH:mm"
-                  )
-                  .toISOString()
-              ),
-              where(
-                "endTime",
-                "==",
-                moment
-                  .utc(
-                    `${selectedSlot.date} ${selectedSlot.endTime}`,
-                    "YYYY-MM-DD HH:mm"
-                  )
-                  .toISOString()
-              )
-            )
-          );
-          if (querySnapshot.size > 0) {
-            const otherBookings = querySnapshot.docs.map((doc) => doc.data());
-            meetingLink = otherBookings[0]?.meetingLink;
-          }
-        }
-        if (!meetingLink) {
-          try {
-            meetingLink = await fetch("/api/generateMeetLink", {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-              },
-              body: JSON.stringify({
-                className: classData.Name,
-                startTime: startDateTime,
-                endTime: endDateTime,
-                instructorEmail: instructorData?.email,
-                studentEmail: user?.email,
-                timeZone: timeZone,
-              }),
-            })
-              .then((response) => {
-                if (!response.ok) {
-                  throw new Error("Failed to generate meeting link");
-                }
-                return response.json();
-              })
-              .then((data) => data?.meetLink);
-          } catch (error) {
-            console.error("Error generating meeting link:", error);
-          }
-        }
-      }
-      await updateDoc(bookingDocRef, {
-        status: "Confirmed",
-        expiry: null,
-        paymentIntentId: paymentIntent.id,
-        meetingLink: meetingLink ? meetingLink : "",
-        paymentStatus: "Paid",
-        timeZone: timeZone ? timeZone : "America/Toronto",
-      });
-
-      const recipientEmails = `${user?.email}, ${instructorData.email}, ${
-        mode === "Group" ? groupEmails.join(",") : ""
-      }`;
-      const icsContent = `BEGIN:VCALENDAR
-VERSION:2.0
-PRODID:-//Pocketclass//NONSGML v1.0//EN
-CALSCALE:GREGORIAN
-BEGIN:VEVENT
-SUMMARY:${classData.Name}
-DESCRIPTION:Booking confirmed for the class ${classData.Name}
-TZID:${timeZone || "America/Toronto"}
-DTSTAMP:${new Date().toISOString().replace(/[-:]|\.\d+/g, "")}
-X-LIC-LOCATION:${timeZone || "America/Toronto"}
-DTSTART;TZID=${timeZone || "America/Toronto"}:${formatDateTime(startDateTime)}
-DTEND;TZID=${timeZone || "America/Toronto"}:${formatDateTime(endDateTime)}
-LOCATION:${location}
-ORGANIZER;CN=${instructorData.firstName} ${
-        instructorData.lastName
-      }:MAILTO:${organizer}
-STATUS:CONFIRMED
-${meetingLink ? `X-GOOGLE-CONFERENCE:${meetingLink}` : ""}
-END:VEVENT
-END:VCALENDAR`.trim();
-
-      function formatDateTime(dateTimeString) {
-        const date = moment.utc(dateTimeString);
-        const formattedDate = date.format("YYYYMMDD");
-        const formattedTime = date.format("HHmmss");
-        return `${formattedDate}T${formattedTime}`;
-      }
-      // HTML content for the email
-      const htmlContent = `
-      <div>
-
-      ${
-        meetingLink
-          ? `<div style="margin-top: 20px; padding: 6px 34px; box-sizing: border-box; border: 1px solid #ddd; background-color: #ffffff; border-radius: 8px; display: inline-block; width: 100%;">
-              <p style="font-size: 16px; color: #333; margin-bottom: 10px;">
-                Join the meeting for your class <strong>${classData.Name}</strong> with <strong>${instructorData.firstName} ${instructorData.lastName}</strong>.
-              </p>
-              <p style="font-size: 14px; color: #5f5f5f; margin-bottom: 10px;">Meeting Link: <a href="${meetingLink}" style="color: #5f5f5f; text-decoration: none;">${meetingLink}</a></p>
-              <a href="${meetingLink}" style="text-decoration: none; display: inline-block; background-color: #E73F2B; color: white; padding: 10px 20px; border-radius: 5px; font-size: 14px; margin-top: 5px; margin-bottom: 5px;">Join Meeting</a>
-              <p style="font-size: 14px; color: black; font-weight: bold; margin-bottom: 8px; margin-top: 10px;">Guest List:</p>
-              <ul style="list-style-type: disc; margin-left: 20px; padding-left: 0;">
-                <li style="font-size: 14px; color: #5f5f5f; margin-bottom: 5px;">Instructor: ${instructorData.firstName} ${instructorData.lastName} (${instructorData.email})</li>
-                <li style="font-size: 14px; color: #5f5f5f; margin-bottom: 5px;">Student: ${user?.email}</li>
-              </ul>
-            </div>`
-          : ""
-      }
-      <div style="font-family: Arial, sans-serif; color: #333;">
-        <h2 style="color: #E73F2B;">New Booking Confirmation</h2>
-        <p>Hello,</p>
-        <p>We are excited to confirm a new booking for the class <strong>${
-          classData.Name
-        }</strong>!</p>
-        <h3>Booking Details:</h3>
-        <table style="width: 100%; border-collapse: collapse;" border="1">
-          <tr>
-            <td style="padding: 8px;"><strong>User Email:</strong></td>
-            <td style="padding: 8px;">${user?.email}</td>
-          </tr>
-          <tr>
-            <td style="padding: 8px;"><strong>Class Name:</strong></td>
-            <td style="padding: 8px;">${classData.Name}</td>
-          </tr>
-          <tr>
-            <td style="padding: 8px;"><strong>Start Time:</strong></td>
-            <td style="padding: 8px;">${date + "@" + startTime}</td>
-          </tr>
-          <tr>
-            <td style="padding: 8px;"><strong>End Time:</strong></td>
-            <td style="padding: 8px;">${date + "@" + endTime}</td>
-          </tr>
-          <tr>
-            <td style="padding: 8px;"><strong>Time Zone:</strong></td>
-            <td style="padding: 8px;">${
-              timeZone ? timeZone : "America/Toronto"
-            }</td>
-          </tr>
-          <tr>
-            <td style="padding: 8px;"><strong>Price:</strong></td>
-            <td style="padding: 8px;">${
-              mode === "Group" ? classData.groupPrice : classData.Price
-            }</td>
-          </tr>
-          ${
-            meetingLink
-              ? `<tr>
-            <td style="padding: 8px;"><strong>Meeting Link:</strong></td>
-            <td style="padding: 8px;"><a href="${meetingLink}">${meetingLink}</a></td>
-          </tr>`
-              : ""
-          }
-        </table>
-        <p>Thank you for choosing <strong>Pocketclass</strong>!</p>
-        <p style="color: #555;">Best Regards,<br>Pocketclass Team</p>
-      </div>
-      </div>
-    `;
-
-      const notificationRef = collection(db, "notifications");
-
-      const now = Timestamp?.now();
-      const notificationData = {
-        user: bookingData.instructor_id,
-        type: "booking",
-        title: "New Booking",
-        text: `New booking for ${classData.Name} on ${date} at ${startTime}`,
-        isRead: false,
-        bookingId: bookingRef,
-        createdAt: now,
-      };
-      await addDoc(notificationRef, notificationData);
-
-      await sendEmail(
-        recipientEmails,
-        `New Booking for ${classData.Name} with Pocketclass!`,
-        htmlContent,
-        [
-          {
-            filename: "booking-invite.ics",
-            content: icsContent,
-            type: "text/calendar",
-          },
-        ]
-      );
-
-      setStripeOptions(null);
-      setLoading(false);
-      toast.success("Booking confirmed!");
-      router.push(`/confirmBooking/${bookingRef}`);
-    } else {
-      toast.error(error?.message || "Payment failed!");
-    }
-
-    setLoading(false);
-  };
-
-  return (
-    <form
-      onSubmit={handleSubmit}
-      className="bg-white p-8 rounded shadow-lg w-96 max-h-[80vh] overflow-y-auto"
-    >
-      <div className="flex flex-row justify-between text-[#E73F2B] mb-2">
-        <div className="text-base font-semibold text-[#E73F2B]">
-          Paying: ${price}
-        </div>
-        <button
-          className="top-4 right- flex flex-row items-center gap-1 text-center"
-          onClick={() => {
-            setStripeOptions(null);
-            setTimer(null);
-          }}
-        >
-          <ChevronLeftIcon className="h-4 w-4 mt-1" />
-          Go Back
-        </button>
-      </div>
-      <div className="flex flex-row items-center justify-between mb-4">
-        <h1 className="text-lg font-bold">Complete Payment</h1>
-
-        <div className="flex items-center">
-          <p className="text-sm text-gray-500 mr-2">Expires in:</p>
-          <p className="text-sm text-[#E73F2B] font-bold">
-            {Math.floor(timer / 60)}:{timer % 60 < 10 ? "0" : ""}
-            {timer % 60}
-          </p>
-        </div>
-      </div>
-      <AddressElement options={{ mode: "billing" }} />
-      <PaymentElement />
-      <button
-        className="mt-4 p-2 bg-[#E73F2B] text-white rounded w-full"
-        disabled={loading}
-      >
-        {loading ? "Processing..." : "Pay"}
-      </button>
-    </form>
-  );
-};

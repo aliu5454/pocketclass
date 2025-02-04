@@ -51,7 +51,6 @@ const MyClass = () => {
     }));
     // Filter appointments to remove ones that are pending
     appointmentsData = appointmentsData.filter((a) => a.status !== "Pending");
-    console.log(appointmentsData);
     setAppointments(appointmentsData);
     fetchClassDetails(appointmentsData);
   };

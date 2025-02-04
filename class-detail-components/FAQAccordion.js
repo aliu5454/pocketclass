@@ -129,8 +129,8 @@ const FAQAccordion = ({ instructorId, classId}) => {
               </span>
             </button>
             <div
-              className={`overflow-hidden transition-[max-height] duration-300 ease-in-out ${
-                openIndex === index ? "max-h-40" : "max-h-0"
+              className={`overflow-hidden transition-all duration-300 ease-in-out ${
+                openIndex === index ? "max-h-96" : "max-h-0"
               }`}
             >
               <p className="px-4 py-2 text-gray-700">{faq.answer}</p>
