@@ -213,10 +213,12 @@ export default function Results() {
       });
     }
     
-    map.current.fitBounds(bounds, {
-      padding: 50,
-      maxZoom: 12,
-    });
+    if (location){
+      map.current.fitBounds(bounds, {
+        padding: 50,
+        maxZoom: 12,
+      });
+    }
   }, [filteredClasses]);
   const [location, setLocation] = useState(null);
   useEffect(() => {
