@@ -318,8 +318,9 @@ function FitnessClassDetailsSection({
             classId={classId}
             instructorId={classCreatorData?.userUid}
             classData={classData}
+            classPackages={classData?.Packages}
           />
-          <FitnessScheduleMindfulnessDisplay
+          {/* <FitnessScheduleMindfulnessDisplay
             classData={classData}
             timeSlotOptions={timeSlotOptions}
             mindfulClassCardOptions={mindfulClassCardOptions}
@@ -328,7 +329,7 @@ function FitnessClassDetailsSection({
             dynamicReviewCountsArray1={dynamicReviewCountsArray1}
             reviewCountsArray={reviewCountsArray}
             classId={classId}
-          />
+          /> */}
           <FitnessReviewSectionWidget
             classTitle={classData?.Name}
             classId={classId}

@@ -43,7 +43,12 @@ const stripePromise = loadStripe(
   process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
 );
 
-export default function index({ instructorId, classId, classData }) {
+export default function index({
+  instructorId,
+  classId,
+  classData,
+  classPackages,
+}) {
   const router = useRouter();
   const [timer, setTimer] = useState(null);
 
@@ -52,6 +57,7 @@ export default function index({ instructorId, classId, classData }) {
     generalAvailability: [],
     adjustedAvailability: [],
   });
+  const [selectedPackage, setSelectedPackage] = useState(null);
   const [bookLoading, setBookLoading] = useState(false);
   const [displayConfirmation, setDisplayConfirmation] = useState(false);
   const [isSelfBooking, setIsSelfBooking] = useState(false);
@@ -814,8 +820,7 @@ END:VCALENDAR`.trim();
       return;
     }
 
-    if (packageClasses > 0) {
-      // Get the user packages from firebase where class_id is equal to classId and user_id is equal to user.uid
+    if (packageClasses > 0 && selectedPackage === "Credits") {
       setBookLoading(true);
       const packagesRef = collection(db, "Packages");
       const q = query(
@@ -955,11 +960,23 @@ END:VCALENDAR`.trim();
     }
 
     const bookingRef = await addDoc(collection(db, "Bookings"), bookingData);
+    const packagePrice = selectedPackage?.num_sessions
+      ? selectedPackage?.Price -
+        ((selectedPackage?.Discount
+          ? selectedPackage.Discount
+          : selectedPackage?.discountPercentage) *
+          selectedPackage?.Price) /
+          100
+      : selectedSlot.classId
+      ? classData.groupPrice
+      : classData.Price;
     const response = await fetch("/api/create-stripe-session", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        price: isGroup
+        price: selectedPackage?.num_sessions
+          ? packagePrice
+          : isGroup
           ? classData.groupPrice * numberOfGroupMembers
           : classData.Price,
       }),
@@ -1163,17 +1180,131 @@ END:VCALENDAR`.trim();
               </div> */}
             {/* ))}  */}
           </div>
+        </div>
+      </div>
+      {selectedSlot && (
+        <div className="mt-3">
+          <div className="bg-gray-50 border-2 border-red-300 rounded p-4 ">
+            <div className="flex flex-col justify-start gap-3 items-center overflow-x-auto mb-3 md:flex-row">
+              <button
+                onClick={() => setSelectedPackage(null)}
+                className={`bg-white min-w-max flex-grow font-bold w-full md:w-max px-6 py-2 border border-gray-300 hover:border-logo-red hover:bg-logo-red/5 text-black rounded ${
+                  selectedPackage === null && "border-logo-red bg-logo-red/5"
+                }`}
+              >
+                Single Lesson
+                <div className="font-normal">
+                  {/* Price per session */}
+                  <p>
+                    {selectedSlot.classId
+                      ? classData.groupPrice
+                      : classData.Price}{" "}
+                    / lesson
+                  </p>
+                </div>
+              </button>
+              {packageClasses > 0 && (
+                <button
+                  onClick={() => setSelectedPackage("Credits")}
+                  className={`bg-white min-w-max flex-grow font-bold w-full md:w-max px-6 py-2 border border-gray-300 hover:border-logo-red hover:bg-logo-red/5 text-black rounded ${
+                    selectedPackage === "Credits" &&
+                    "border-logo-red bg-logo-red/5"
+                  }`}
+                >
+                  Credits
+                  <div className="font-normal">
+                    {/* Price per session */}
+                    <p>Credits Left: {packageClasses}</p>
+                  </div>
+                </button>
+              )}
 
-          {/* Sticky Booking Div */}
-          {selectedSlot && (
-            <div className="bg-gray-50 border-2 border-red-300 rounded p-4 ">
-              <div className=" flex justify-between items-center min-[450px]:flex-row flex-col gap-4">
-                <div>
+              {classPackages.length > 0 &&
+                classPackages.map((pkg, i) => (
+                  <button
+                    onClick={() => setSelectedPackage(pkg)}
+                    className={`bg-white min-w-max flex-grow font-bold w-full md:w-max px-6 py-2 border border-gray-300 hover:border-logo-red hover:bg-logo-red/5 text-black rounded ${
+                      selectedPackage === pkg && "border-logo-red bg-logo-red/5"
+                    }`}
+                  >
+                    {pkg.num_sessions ? pkg.num_sessions : "0"} Lesson Package
+                    <div className="font-normal">
+                      <p>
+                        {(pkg.Price -
+                          (pkg.Price *
+                            (pkg.Discount
+                              ? pkg.Discount
+                              : pkg.discountPercentage)) /
+                            100) /
+                          (pkg.num_sessions ? pkg.num_sessions : 1)}{" "}
+                        / lesson
+                      </p>
+                    </div>
+                  </button>
+                ))}
+            </div>
+            <div className="flex hg w-full justify-between items-center md:flex-row flex-col gap-8 mt-8">
+              <div className="w-full md:w-auto flex-col flex-grow gap-1">
+                <div className="flex flex-row w-full justify-between">
+                  <p>
+                    <strong>
+                      {selectedPackage?.num_sessions
+                        ? `${selectedPackage?.num_sessions} Lesson Package`
+                        : `Class Price`}
+                    </strong>
+                  </p>
+                  <p>
+                    {selectedPackage?.Price
+                      ? selectedPackage.Price
+                      : selectedSlot.classId
+                      ? selectedSlot.classId
+                        ? classData.groupPrice
+                        : classData.Price
+                      : classData.Price}
+                  </p>
+                </div>
+
+                <div className="flex flex-row w-full justify-between">
+                  <p>
+                    <strong>Package Discount:</strong>
+                  </p>
+                  <p>
+                    {selectedPackage?.num_sessions
+                      ? ((selectedPackage?.Discount
+                          ? selectedPackage.Discount
+                          : selectedPackage?.discountPercentage) *
+                          (selectedPackage?.Price
+                            ? selectedPackage.Price
+                            : classData.Price)) /
+                        100
+                      : 0}
+                  </p>
+                </div>
+
+                <div className="flex flex-row w-full justify-between">
+                  <p>
+                    <strong>Total:</strong>
+                  </p>
+                  <p>
+                    {selectedPackage?.num_sessions
+                      ? selectedPackage.Price -
+                        ((selectedPackage?.Discount ??
+                          selectedPackage?.discountPercentage) *
+                          selectedPackage?.Price) /
+                          100
+                      : selectedSlot.classId
+                      ? classData.groupPrice
+                      : classData.Price}
+                  </p>
+                </div>
+              </div>
+              <div className="md:h-16 md:w-[1px] h-[1px] w-full  bg-slate-500" />
+              <div className="flex flex-grow flex-col gap-3">
+                <div className="flex flex-col">
                   <p>
                     <strong>Selected: </strong>
-                    {moment(selectedSlot.date).format(
-                      "dddd, MMMM Do YYYY"
-                    )}{" "}
+                    {moment(selectedSlot.date).format("dddd, MMMM Do YYYY")}
+                    {" @ "}
                     {selectedSlot.startTime} - {selectedSlot.endTime}
                   </p>
                   {selectedSlot.classId && (
@@ -1204,9 +1335,9 @@ END:VCALENDAR`.trim();
                 </button>
               </div>
             </div>
-          )}
+          </div>
         </div>
-      </div>
+      )}
 
       {displayConfirmation && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
@@ -1362,6 +1493,8 @@ END:VCALENDAR`.trim();
               groupEmails={groupEmails}
               numberOfGroupMembers={numberOfGroupMembers}
               selectedSlot={selectedSlot}
+              selectedPackage={selectedPackage}
+              classId={classId}
             />
           </Elements>
         </div>
@@ -1420,6 +1553,8 @@ const CheckoutForm = ({
   numberOfGroupMembers,
   selectedSlot,
   price,
+  selectedPackage,
+  classId
 }) => {
   const stripe = useStripe();
   const [user, userLoading] = useAuthState(auth);
@@ -1456,6 +1591,16 @@ const CheckoutForm = ({
       console.warn("Error sending email: ", error);
     }
   };
+  const packagePrice = selectedPackage?.num_sessions
+    ? selectedPackage?.Price -
+      ((selectedPackage?.Discount
+        ? selectedPackage.Discount
+        : selectedPackage?.discountPercentage) *
+        selectedPackage?.Price) /
+        100
+    : selectedSlot.classId
+    ? classData.groupPrice
+    : classData.Price;
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -1475,7 +1620,6 @@ const CheckoutForm = ({
     });
 
     if (!error && paymentIntent?.status === "succeeded") {
-      // Get Meeting Link, if Mode is Online
       const bookingDocRef = doc(db, "Bookings", bookingRef);
 
       const bookingSnapshot = await getDoc(bookingDocRef);
@@ -1564,6 +1708,10 @@ const CheckoutForm = ({
         paymentIntentId: paymentIntent.id,
         meetingLink: meetingLink ? meetingLink : "",
         paymentStatus: "Paid",
+        price: selectedPackage?.num_sessions
+          ? (packagePrice / selectedPackage?.num_sessions) *
+            numberOfGroupMembers
+          : price,
         timeZone: timeZone ? timeZone : "America/Toronto",
       });
 
@@ -1695,6 +1843,18 @@ END:VCALENDAR`.trim();
         ]
       );
 
+      if (selectedPackage?.num_sessions) {
+        const docRef = await addDoc(collection(db, "Packages"), {
+          payment_intent_id: paymentIntent.id,
+          class_id: classId,
+          user_id: user?.uid,
+          num_sessions: selectedPackage?.num_sessions,
+          packagePrice,
+          price_per_session: packagePrice / selectedPackage?.num_sessions,
+          classes_left: parseInt(selectedPackage?.num_sessions, 10) - (numberOfGroupMembers?numberOfGroupMembers:1),
+        });
+      }
+
       setStripeOptions(null);
       setLoading(false);
       toast.success("Booking confirmed!");
@@ -1713,7 +1873,7 @@ END:VCALENDAR`.trim();
     >
       <div className="flex flex-row justify-between text-[#E73F2B] mb-2">
         <div className="text-base font-semibold text-[#E73F2B]">
-          Paying: ${price}
+          Paying: ${selectedPackage?.num_sessions ? packagePrice : price}
         </div>
         <button
           className="top-4 right- flex flex-row items-center gap-1 text-center"

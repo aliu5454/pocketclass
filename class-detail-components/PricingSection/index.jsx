@@ -20,6 +20,10 @@ function PricingSection({ classData }) {
             Individual Price: {classData?.Price}
             <br/>
             Group Price: {classData?.groupPrice}
+            {/* Packages Pricing */}
+            {classData?.Packages.map((pkg, index) => (
+                <p key={index} className="[font-family:'DM_Sans',sans-serif] text-base font-medium text-left leading-6 text-[black] m-0 p-0">{pkg.num_sessions} Lectures Package: {(pkg.Price-pkg.Discount*pkg.Price/100)/pkg.num_sessions}</p>
+            ))}
           </p>
         </div>
       )}
