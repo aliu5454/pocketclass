@@ -45,9 +45,9 @@ function PricingSection({ classData }) {
               like-minded folks. If you're ready to commit to continuous
               improvement, a package is the way to go!
             </p>
-            <div className="flex flex-col dm:flex-row mt-4 gap-2 justify-center dm:justify-start overflow-hidden rounded-2xl dm:w-fit dm:min-w-[100%] dm:max-w-[100%] w-[98%]">
+            <div className="flex flex-col dm:flex-row mt-4 gap-2 justify-center dm:justify-start overflow-hidden rounded-2xl dm:w-fit dm:min-w-[100%] dm:max-w-[100%] w-[98%]" style={{ flexDirection: classData?.Packages.length === 0 ? 'row' : '' }}>
               <div className="dm:h-[100px] px-5 py-3 h-[85px] flex flex-col items-center justify-center bg-gray-100 flex-shrink-0" style={{
-                  width: screenWidth >= 600 ? divWidth : "100%",
+                  width: ((packageCount===0) || (screenWidth>=600))?divWidth:'100%'
                 }}>
                 <div>
                   <p className="font-quicksand tracking-tight text-nowrap text-lg font-semibold text-left text-[#373E45] m-0 p-0">
@@ -59,7 +59,7 @@ function PricingSection({ classData }) {
                 </div>
               </div>
               <div className=" dm:h-[100px] px-5 py-3 h-[85px] flex flex-col items-center justify-center bg-gray-100 flex-shrink-0" style={{
-                  width: screenWidth >= 600 ? divWidth : "100%",
+                  width: ((packageCount===0) || (screenWidth>=600))?divWidth:'100%',
                   borderRadius: ((screenWidth >= 600) && 0===(classData?.Packages.length))?'0px 1rem 1rem 0rem':'0px 0rem 0rem 0px'
                 }}>
                 <div>

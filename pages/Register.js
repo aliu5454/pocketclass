@@ -30,12 +30,19 @@ function Register() {
 		if (category !== "") {
 			const user = await signInWithGoogle();
 
+			const displayName = user?.user?.displayName || "";
+			const nameParts = displayName.split(" ");
+			const firstName = nameParts[0] || "";
+			const lastName = nameParts.slice(1).join(" ") || "";
+
 			const data = {
 				userUid: user?.user?.uid,
 				email: user?.user?.email,
 				category: category,
 				profileImage: user?.user?.photoURL,
 				createdAt: serverTimestamp(),
+				firstName: firstName,
+				lastName: lastName,
 			};
 
 			if (user) {

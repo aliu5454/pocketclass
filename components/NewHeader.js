@@ -293,7 +293,7 @@ const NewHeader = ({ isHome = true }) => {
                               My Messages
                             </Link>
                           </li>
-                          <li className="my-2 hover:text-logo-red">
+                          <li className="my-2 hover:text-logo-red" style={{display: category==="instructor"?"none":"block"}}>
                             <Link href={`/myPackages`}>
                               My Packages
                             </Link>
@@ -301,6 +301,11 @@ const NewHeader = ({ isHome = true }) => {
 
                           {category === "instructor" && (
                             <>
+                              <li>
+                                <p className="my-2  hover:text-logo-red hover:scale-105 transition transform duration-200 ease-out active:scale-90">
+                                  <a href={`/myStudents/${user.uid}`}>My Students</a>
+                                </p>
+                              </li>
                               <li>
                                 <p className="my-2  hover:text-logo-red hover:scale-105 transition transform duration-200 ease-out active:scale-90">
                                   <a href="/schedule">Manage Schedule</a>
