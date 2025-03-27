@@ -100,6 +100,7 @@ function Register() {
 
 			if (signedUpUser) {
 				await setDoc(doc(db, "Users", signedUpUser?.user?.uid), data);
+				console.log('User ID:', signedUpUser?.user?.uid);
 				const verificationSuccess = await sendEmailVerification();
 
 				if (!verificationSuccess) {
@@ -116,7 +117,7 @@ function Register() {
 				);
 
 				setTimeout(() => {
-					router.push("/Login");
+					router.push(`/Login?returnUrl=%2Fprofile%2F${signedUpUser?.user?.uid}`);
 				}, 5000);
 			}
 		} else {
@@ -133,7 +134,7 @@ function Register() {
 	}
 
 	if (googleUser && !googleError) {
-		router.push("/");
+		router.push(`/profile/${googleUser.user.reloadUserInfo.localId}`);
 	}
 
 	return (
