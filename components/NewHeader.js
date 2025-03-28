@@ -232,7 +232,7 @@ const NewHeader = ({ isHome = true }) => {
             {!loading ? (
               user ? (
                 <div className="flex items-center gap-4">
-                  {category !== "" && user ? (
+                  {/* {category !== "" && user ? (
                     category !== "instructor" ? (
                       <p className="text-sm hidden lg:inline cursor-pointer hover:bg-gray-100 rounded-full space-x-2 p-3 hover:scale-105 active:scale-90 transition duration-150">
                         <a
@@ -258,7 +258,7 @@ const NewHeader = ({ isHome = true }) => {
                       height={"30px"}
                       alt="Loading"
                     />
-                  )}
+                  )} */}
 
                   {user && <Notifications user={user} />}
 
@@ -298,12 +298,23 @@ const NewHeader = ({ isHome = true }) => {
                               My Packages
                             </Link>
                           </li>
-
+                          {category !== "instructor" && (
+                            <>
+                              <li className="my-2 hover:text-logo-red">
+                                <Link href={`https://gm81lvnyohz.typeform.com/to/IoLpsf9g`}>Request a Class</Link>
+                              </li>
+                            </>
+                          )}
                           {category === "instructor" && (
                             <>
                               <li>
                                 <p className="my-2  hover:text-logo-red hover:scale-105 transition transform duration-200 ease-out active:scale-90">
                                   <a href={`/myStudents/${user.uid}`}>My Students</a>
+                                </p>
+                              </li>
+                              <li>
+                                <p className="my-2  hover:text-logo-red hover:scale-105 transition transform duration-200 ease-out active:scale-90">
+                                  <a href={`/createClass`}>Create Class</a>
                                 </p>
                               </li>
                               <li>
@@ -345,14 +356,14 @@ const NewHeader = ({ isHome = true }) => {
                 </div>
               ) : (
                 <>
-                  <p className="text-sm hidden md:inline cursor-pointer hover:bg-gray-100 rounded-full space-x-2 p-3 hover:scale-105 active:scale-90 transition duration-150">
+                  {/* <p className="text-sm hidden md:inline cursor-pointer hover:bg-gray-100 rounded-full space-x-2 p-3 hover:scale-105 active:scale-90 transition duration-150">
                     <a
                       target="_blank"
                       href="https://gm81lvnyohz.typeform.com/to/IoLpsf9g"
                     >
                       Request a Class
                     </a>
-                  </p>
+                  </p> */}
                   <Link
                     className="cursor-pointer"
                     href={{
