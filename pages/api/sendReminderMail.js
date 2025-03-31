@@ -135,6 +135,7 @@ export default async function handler(req, res) {
         .add(48, "hours");
       const now1 = moment().tz(appointment.timezone || "America/Toronto");
       return (
+        appointment.status === "Confirmed" &&
         endTime.isSameOrBefore(now) &&
         endTime.isAfter(now1) &&
         !appointment.reminderEmailSent
