@@ -256,7 +256,7 @@ function FitnessClassDetailsSection({
           ) : null}
         </div>
       </div>
-      <div className="flex justify-start items-start flex-col-reverse lg:flex-row gap-7 lg:gap-10 w-full max-w-[1312px] grow-0 shrink-0 basis-auto box-border mt-9">
+      <div className="flex flex-col-reverse lg:flex-row gap-20 lg:gap-10 w-full max-w-[1312px] grow-0 shrink-0 basis-auto box-border mt-9">
         <div className="grow-0 shrink basis-auto xl:max-w-[calc(100vw-500px)]">
           <EnhancedImageGallery images={classData?.Images || []} />
           <div className="flex justify-start items-start gap-2 flex-col md:flex-row w-[100.00%] box-border mt-8">
@@ -342,15 +342,14 @@ function FitnessClassDetailsSection({
             classId={classId}
           />
         </div>
-        <div
-          className="xl:block hidden shadow-[1px_1px_7px_rgba(0,0,0,0.20)] bg-[white] box-border justify-start items-stretch flex-col w-full lg:max-w-[300px] pt-6 px-4 md:px-6 rounded-xl md:rounded-2xl lg:rounded-3x xl:fixed xl:right-[2rem]"
-          style={{ zIndex: 1, bottom: '160px' }}
-        >
-          <DynamicButtonSection
-            classId={classId}
-            classData={classData}
-            instructorId={classCreatorData?.userUid}
-          />
+        <div className="hidden xl:block w-full max-w-[320px]">
+          <div className="sticky top-[90px] bg-white shadow-md rounded-2xl px-6 py-6">
+            <DynamicButtonSection
+              classId={classId}
+              classData={classData}
+              instructorId={classCreatorData?.userUid}
+            />
+          </div>
         </div>
       </div>
     </div>

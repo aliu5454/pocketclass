@@ -689,7 +689,7 @@ const Chat = () => {
                       {booking?.student_name &&
                       booking?.instructor_id == user?.uid
                         ? `${booking?.student_name} - `
-                        : ""}
+                        : `${classData?.instructorName} - `}
                       {classData?.Name}
                     </h1>
                     <div className="flex flex-col space-y-2 mx-2">
