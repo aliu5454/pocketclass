@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import Image from "next/image";
 import { HeartIcon } from "@heroicons/react/outline";
 import { StarIcon } from "@heroicons/react/solid";
@@ -58,6 +58,7 @@ function InstructorCard({
   const [refundReason, setRefundReason] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [refundLoading, setRefundLoading] = useState(false);
+  const [show,setShow] = useState(true);
 
   const deleteClass = async () => {
     const classRef = doc(db, "classes", id);
@@ -170,6 +171,7 @@ function InstructorCard({
       toast.success("Refund initiated successfully");
       setIsModalOpen(false);
       setRefundLoading(false);
+      deleteMultipleClasses(appointmentId);
     } else {
       toast.error("Error initiating refund");
       setIsModalOpen(false);
@@ -201,7 +203,22 @@ function InstructorCard({
     averageReview = averageReview / (currentClassReview.length * 3);
   }
 
-  return (
+  const deleteMultipleClasses = async (ids) => {
+  try {
+    await Promise.all(
+      ids.map(async (id) => {
+        const classRef = doc(db, "Bookings", id);
+        await deleteDoc(classRef);
+      })
+    );
+    setShow(false)
+  } catch (error) {
+    toast.error("Error deleting classes");
+    console.error("Failed to delete some classes:", error);
+  }
+};
+
+  return (show&&(
     <>
       <div
         className="flex py-7 px-2 border-b cursor-pointer hover:opacity-80 hover:shadow-lg pr-4 transition duration-200 ease-out first:border-t min-w-[100%]"
@@ -424,7 +441,7 @@ function InstructorCard({
         </div>
       )}
     </>
-  );
+  ));
 }
 
 export default InstructorCard;
