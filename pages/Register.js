@@ -133,6 +133,10 @@ function Register() {
 	}
 
 	if (googleUser && !googleError) {
+		if(category==="student"){
+			router.push('/')
+			return
+		}
 		router.push(`/profile/${googleUser.user.reloadUserInfo.localId}`);
 	}
 

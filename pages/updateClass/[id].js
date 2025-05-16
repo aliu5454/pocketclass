@@ -7,6 +7,8 @@ import { categories } from "../../utils/categories";
 import { useDropzone } from "react-dropzone";
 import "mapbox-gl/dist/mapbox-gl.css";
 import "@mapbox/mapbox-gl-geocoder/dist/mapbox-gl-geocoder.css";
+import { useFormik } from 'formik';
+import { classSchema } from "../../Validation/createClass";
 
 const LocationMap = dynamic(() => import("../../components/LocationMap"), {
   ssr: false,
@@ -67,6 +69,30 @@ export default function UpdateClass() {
   const router = useRouter();
   const { id } = router.query;
 
+  const formik = useFormik({
+    initialValues: {
+      class_name: '',
+      category: 'Art',
+      sub_category: 'Pickleball',
+      mode_of_class: '',
+      description: '',
+      price: '',
+      pricing: '',
+      groupSize: '',
+      groupPrice: '',
+      experience: '',
+      about: '',
+      funfact: '',
+      name: '',
+      numberOfSessions: '',
+      priceOfCompleteCourse: '',
+      discount: '',
+    },
+    validationSchema: classSchema,  // Use Yup validation schema
+    validateOnChange: true,  // Ensure validation happens on each change
+    validateOnBlur: true,    // Ensure validation happens on blur
+  });
+
   useEffect(() => {
     const fetchClass = async () => {
       if (id) {
@@ -119,10 +145,9 @@ export default function UpdateClass() {
       const uploadPromises = uploadedFiles.map(async (img, index) => {
         const fileRef = ref(
           storage,
-          `images/${
-            Math.floor(Math.random() * (9999999 - 1000000 + 1) + 1000000) +
-            "-" +
-            img.name
+          `images/${Math.floor(Math.random() * (9999999 - 1000000 + 1) + 1000000) +
+          "-" +
+          img.name
           }`
         );
 
@@ -393,8 +418,15 @@ export default function UpdateClass() {
                   placeholder="e.g., Beginner Tennis for Adults"
                   type={"text"}
                   value={form.Name}
-                  onChange={(e) => setForm({ ...form, Name: e.target.value })}
+                  onBlur={formik.handleBlur}
+                  onChange={(e) => {
+                    formik.handleChange(e);
+                    setForm({ ...form, Name: e.target.value })
+                  }}
                 />
+                {!form.Name && (
+                  <div className="text-red-500 text-sm">{formik.errors.className}</div>
+                )}
               </div>
             </div>
             <div className="flex flex-row gap-4 flex-wrap w-full max-w-[750px]">
@@ -405,8 +437,11 @@ export default function UpdateClass() {
                   name="category"
                   className="w-full border-2 border-gray-100 rounded-xl p-3 mt-1 bg-transparent focus:outline-none focus:border-logo-red focus:ring-1 focus:ring-logo-red"
                   value={form.Category}
-                  onChange={(e) =>
+                  onBlur={formik.handleBlur}
+                  onChange={(e) => {
+                    formik.handleChange(e);
                     setForm({ ...form, Category: e.target.value })
+                  }
                   }
                 >
                   <option value="">Select Category</option>
@@ -418,6 +453,9 @@ export default function UpdateClass() {
                       </option>
                     ))}
                 </select>
+                {formik.touched.category && formik.errors.category && (
+                  <div className="text-red-500 text-sm">{formik.errors.category}</div>
+                )}
               </div>
               <div className="flex-grow">
                 <label className="text-lg font-bold">Sub Category</label>
@@ -426,8 +464,11 @@ export default function UpdateClass() {
                   name="subCategory"
                   className="w-full border-2 border-gray-100 rounded-xl p-3 mt-1 bg-transparent focus:outline-none focus:border-logo-red focus:ring-1 focus:ring-logo-red"
                   value={form.SubCategory}
-                  onChange={(e) =>
+                  onBlur={formik.handleBlur}
+                  onChange={(e) => {
+                    formik.handleChange(e);
                     setForm({ ...form, SubCategory: e.target.value })
+                  }
                   }
                 >
                   <option value="">Select Sub Category</option>
@@ -441,6 +482,12 @@ export default function UpdateClass() {
                         </option>
                       ))}
                 </select>
+                {!(
+                  categories.find((category) => category.name === form.Category)
+                    ?.subCategories.some((sub) => sub.name === form.SubCategory)
+                ) && (
+                    <div className="text-red-500 text-sm">Invalid Sub Category selected</div>
+                  )}
               </div>
             </div>
             <div className="flex flex-row gap-4 w-full max-w-[750px]">
@@ -449,11 +496,18 @@ export default function UpdateClass() {
                 <select
                   className="w-full border-2 border-gray-100 rounded-xl p-3 mt-1 bg-transparent focus:outline-none focus:border-logo-red focus:ring-1 focus:ring-logo-red"
                   value={form.Mode}
-                  onChange={(e) => setForm({ ...form, Mode: e.target.value })}
+                  onBlur={formik.handleBlur}
+                  onChange={(e) => {
+                    formik.handleChange(e);
+                    setForm({ ...form, Mode: e.target.value })
+                  }}
                 >
                   <option value="Online">Online</option>
                   <option value="Offline">In Person</option>
                 </select>
+                {formik.touched.mode_of_class && formik.errors.mode_of_class && (
+                  <div className="text-red-500 text-sm">{formik.errors.mode_of_class}</div>
+                )}
               </div>
             </div>
             <div className="flex flex-row gap-4 w-full max-w-[750px]">

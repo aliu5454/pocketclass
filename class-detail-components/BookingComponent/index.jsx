@@ -85,29 +85,52 @@ export default function index({
 
   useEffect(() => {
     const getPackages = async () => {
-      if (user) {
-        // From Packages firebase where user_id = user.uid and class_id = classId
+      if (!user || !user.uid || !classId) return;
+
+      try {
         const packagesref = collection(db, "Packages");
         const q = query(
           packagesref,
           where("user_id", "==", user.uid),
           where("class_id", "==", classId)
         );
+
         const querySnapshot = await getDocs(q);
-        const packages = querySnapshot.docs.map((doc) => doc.data());
+
+        const packages = querySnapshot.docs.map((doc) => {
+          const data = doc.data();
+          // Validate the required fields exist
+          if (
+            typeof data.classes_left === "number" ||
+            typeof data.num_sessions === "number"
+          ) {
+            return data;
+          }
+          return null;
+        }).filter(Boolean); // remove nulls
+
         setPackages(packages);
+
         if (packages.length > 0) {
           const classesLeft = packages.reduce((total, pkg) => {
             const classes =
               pkg.classes_left !== undefined
                 ? Number(pkg.classes_left)
-                : Number(pkg.num_sessions);
+                : Number(pkg.num_sessions ?? 0);
+
             return total + (classes > 0 ? classes : 0);
           }, 0);
+
           setPackageClasses(classesLeft);
+        } else {
+          setPackageClasses(0);
         }
+      } catch (error) {
+        console.error("Error fetching packages:", error);
+        // Optionally set an error state here
       }
     };
+
     getPackages();
   }, [user, classId]);
 
@@ -663,9 +686,8 @@ export default function index({
       timeZone: timeZone ? timeZone : "America/Toronto",
     });
 
-    const recipientEmails = `${user?.email}, ${instructorData.email}, ${
-      mode === "Group" ? groupEmails.join(",") : ""
-    }`;
+    const recipientEmails = `${user?.email}, ${instructorData.email}, ${mode === "Group" ? groupEmails.join(",") : ""
+      }`;
     const icsContent = `BEGIN:VCALENDAR
 VERSION:2.0
 PRODID:-//Pocketclass//NONSGML v1.0//EN
@@ -679,9 +701,8 @@ X-LIC-LOCATION:${timeZone || "America/Toronto"}
 DTSTART;TZID=${timeZone || "America/Toronto"}:${formatDateTime(startDateTime)}
 DTEND;TZID=${timeZone || "America/Toronto"}:${formatDateTime(endDateTime)}
 LOCATION:${location}
-ORGANIZER;CN=${instructorData.firstName} ${
-      instructorData.lastName
-    }:MAILTO:${organizer}
+ORGANIZER;CN=${instructorData.firstName} ${instructorData.lastName
+      }:MAILTO:${organizer}
 STATUS:CONFIRMED
 ${meetingLink ? `X-GOOGLE-CONFERENCE:${meetingLink}` : ""}
 END:VEVENT
@@ -697,9 +718,8 @@ END:VCALENDAR`.trim();
     const htmlContent = `
       <div>
 
-      ${
-        meetingLink
-          ? `<div style="margin-top: 20px; padding: 6px 34px; box-sizing: border-box; border: 1px solid #ddd; background-color: #ffffff; border-radius: 8px; display: inline-block; width: 100%;">
+      ${meetingLink
+        ? `<div style="margin-top: 20px; padding: 6px 34px; box-sizing: border-box; border: 1px solid #ddd; background-color: #ffffff; border-radius: 8px; display: inline-block; width: 100%;">
               <p style="font-size: 16px; color: #333; margin-bottom: 10px;">
                 Join the meeting for your class <strong>${classData.Name}</strong> with <strong>${instructorData.firstName} ${instructorData.lastName}</strong>.
               </p>
@@ -711,14 +731,13 @@ END:VCALENDAR`.trim();
                 <li style="font-size: 14px; color: #5f5f5f; margin-bottom: 5px;">Student: ${user?.email}</li>
               </ul>
             </div>`
-          : ""
+        : ""
       }
       <div style="font-family: Arial, sans-serif; color: #333;">
         <h2 style="color: #E73F2B;">New Booking Confirmation</h2>
         <p>Hello,</p>
-        <p>We are excited to confirm a new booking for the class <strong>${
-          classData.Name
-        }</strong>!</p>
+        <p>We are excited to confirm a new booking for the class <strong>${classData.Name
+      }</strong>!</p>
         <h3>Booking Details:</h3>
         <table style="width: 100%; border-collapse: collapse;" border="1">
           <tr>
@@ -739,22 +758,20 @@ END:VCALENDAR`.trim();
           </tr>
           <tr>
             <td style="padding: 8px;"><strong>Time Zone:</strong></td>
-            <td style="padding: 8px;">${
-              timeZone ? timeZone : "America/Toronto"
-            }</td>
+            <td style="padding: 8px;">${timeZone ? timeZone : "America/Toronto"
+      }</td>
           </tr>
           <tr>
             <td style="padding: 8px;"><strong>Price:</strong></td>
             <td style="padding: 8px;">${price}</td>
           </tr>
-          ${
-            meetingLink
-              ? `<tr>
+          ${meetingLink
+        ? `<tr>
             <td style="padding: 8px;"><strong>Meeting Link:</strong></td>
             <td style="padding: 8px;"><a href="${meetingLink}">${meetingLink}</a></td>
           </tr>`
-              : ""
-          }
+        : ""
+      }
         </table>
         <p>Thank you for choosing <strong>Pocketclass</strong>!</p>
         <p style="color: #555;">Best Regards,<br>Pocketclass Team</p>
@@ -962,14 +979,14 @@ END:VCALENDAR`.trim();
     const bookingRef = await addDoc(collection(db, "Bookings"), bookingData);
     const packagePrice = selectedPackage?.num_sessions
       ? selectedPackage?.Price -
-        ((selectedPackage?.Discount
-          ? selectedPackage.Discount
-          : selectedPackage?.discountPercentage) *
-          selectedPackage?.Price) /
-          100
+      ((selectedPackage?.Discount
+        ? selectedPackage.Discount
+        : selectedPackage?.discountPercentage) *
+        selectedPackage?.Price) /
+      100
       : selectedSlot.classId
-      ? classData.groupPrice
-      : classData.Price;
+        ? classData.groupPrice
+        : classData.Price;
     const response = await fetch("/api/create-stripe-session", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -977,8 +994,8 @@ END:VCALENDAR`.trim();
         price: selectedPackage?.num_sessions
           ? packagePrice
           : isGroup
-          ? classData.groupPrice * numberOfGroupMembers
-          : classData.Price,
+            ? classData.groupPrice * numberOfGroupMembers
+            : classData.Price,
       }),
     });
 
@@ -1095,12 +1112,11 @@ END:VCALENDAR`.trim();
                 <button
                   key={i}
                   onClick={() => handleSlotClick(slot.date, slot)}
-                  className={`p-3 border rounded cursor-pointer ${
-                    selectedSlot?.startTime === slot.startTime &&
+                  className={`p-3 border rounded cursor-pointer ${selectedSlot?.startTime === slot.startTime &&
                     selectedSlot?.date === slot.date
-                      ? "bg-[#E73F2B] text-white"
-                      : "bg-gray-100 hover:bg-[#E73F2B] hover:text-white"
-                  }`}
+                    ? "bg-[#E73F2B] text-white"
+                    : "bg-gray-100 hover:bg-[#E73F2B] hover:text-white"
+                    }`}
                 >
                   {slot.startTime} - {slot.endTime}
                 </button>
@@ -1116,12 +1132,11 @@ END:VCALENDAR`.trim();
                 <button
                   key={i}
                   onClick={() => handleSlotClick(slot.date, slot)}
-                  className={`p-3 border rounded cursor-pointer ${
-                    selectedSlot?.startTime === slot.startTime &&
+                  className={`p-3 border rounded cursor-pointer ${selectedSlot?.startTime === slot.startTime &&
                     selectedSlot?.date === slot.date
-                      ? "bg-[#E73F2B] text-white"
-                      : "bg-gray-100 hover:bg-[#E73F2B] hover:text-white"
-                  }`}
+                    ? "bg-[#E73F2B] text-white"
+                    : "bg-gray-100 hover:bg-[#E73F2B] hover:text-white"
+                    }`}
                 >
                   {slot.startTime} - {slot.endTime}
                 </button>
@@ -1188,9 +1203,8 @@ END:VCALENDAR`.trim();
             <div className="flex flex-col justify-start gap-3 items-center overflow-x-auto mb-3 md:flex-row">
               <button
                 onClick={() => setSelectedPackage(null)}
-                className={`bg-white min-w-max flex-grow font-bold w-full md:w-max px-6 py-2 border border-gray-300 hover:border-logo-red hover:bg-logo-red/5 text-black rounded ${
-                  selectedPackage === null && "border-logo-red bg-logo-red/5"
-                }`}
+                className={`bg-white min-w-max flex-grow font-bold w-full md:w-max px-6 py-2 border border-gray-300 hover:border-logo-red hover:bg-logo-red/5 text-black rounded ${selectedPackage === null && "border-logo-red bg-logo-red/5"
+                  }`}
               >
                 Single Lesson
                 <div className="font-normal">
@@ -1206,10 +1220,9 @@ END:VCALENDAR`.trim();
               {packageClasses > 0 && (
                 <button
                   onClick={() => setSelectedPackage("Credits")}
-                  className={`bg-white min-w-max flex-grow font-bold w-full md:w-max px-6 py-2 border border-gray-300 hover:border-logo-red hover:bg-logo-red/5 text-black rounded ${
-                    selectedPackage === "Credits" &&
+                  className={`bg-white min-w-max flex-grow font-bold w-full md:w-max px-6 py-2 border border-gray-300 hover:border-logo-red hover:bg-logo-red/5 text-black rounded ${selectedPackage === "Credits" &&
                     "border-logo-red bg-logo-red/5"
-                  }`}
+                    }`}
                 >
                   Credits
                   <div className="font-normal">
@@ -1219,13 +1232,12 @@ END:VCALENDAR`.trim();
                 </button>
               )}
 
-              {classPackages.length > 0 &&
+              {Array.isArray(classPackages) && classPackages.length > 0 &&
                 classPackages.map((pkg, i) => (
                   <button
                     onClick={() => setSelectedPackage(pkg)}
-                    className={`bg-white min-w-max flex-grow font-bold w-full md:w-max px-6 py-2 border border-gray-300 hover:border-logo-red hover:bg-logo-red/5 text-black rounded ${
-                      selectedPackage === pkg && "border-logo-red bg-logo-red/5"
-                    }`}
+                    className={`bg-white min-w-max flex-grow font-bold w-full md:w-max px-6 py-2 border border-gray-300 hover:border-logo-red hover:bg-logo-red/5 text-black rounded ${selectedPackage === pkg && "border-logo-red bg-logo-red/5"
+                      }`}
                   >
                     {pkg.num_sessions ? pkg.num_sessions : "0"} Lesson Package
                     <div className="font-normal">
@@ -1235,7 +1247,7 @@ END:VCALENDAR`.trim();
                             (pkg.Discount
                               ? pkg.Discount
                               : pkg.discountPercentage)) /
-                            100) /
+                          100) /
                           (pkg.num_sessions ? pkg.num_sessions : 1)}{" "}
                         / lesson
                       </p>
@@ -1257,10 +1269,10 @@ END:VCALENDAR`.trim();
                     {selectedPackage?.Price
                       ? selectedPackage.Price
                       : selectedSlot.classId
-                      ? selectedSlot.classId
-                        ? classData.groupPrice
-                        : classData.Price
-                      : classData.Price}
+                        ? selectedSlot.classId
+                          ? classData.groupPrice
+                          : classData.Price
+                        : classData.Price}
                   </p>
                 </div>
 
@@ -1271,12 +1283,12 @@ END:VCALENDAR`.trim();
                   <p>
                     {selectedPackage?.num_sessions
                       ? ((selectedPackage?.Discount
-                          ? selectedPackage.Discount
-                          : selectedPackage?.discountPercentage) *
-                          (selectedPackage?.Price
-                            ? selectedPackage.Price
-                            : classData.Price)) /
-                        100
+                        ? selectedPackage.Discount
+                        : selectedPackage?.discountPercentage) *
+                        (selectedPackage?.Price
+                          ? selectedPackage.Price
+                          : classData.Price)) /
+                      100
                       : 0}
                   </p>
                 </div>
@@ -1288,13 +1300,13 @@ END:VCALENDAR`.trim();
                   <p>
                     {selectedPackage?.num_sessions
                       ? selectedPackage.Price -
-                        ((selectedPackage?.Discount ??
-                          selectedPackage?.discountPercentage) *
-                          selectedPackage?.Price) /
-                          100
+                      ((selectedPackage?.Discount ??
+                        selectedPackage?.discountPercentage) *
+                        selectedPackage?.Price) /
+                      100
                       : selectedSlot.classId
-                      ? classData.groupPrice
-                      : classData.Price}
+                        ? classData.groupPrice
+                        : classData.Price}
                   </p>
                 </div>
               </div>
@@ -1358,17 +1370,15 @@ END:VCALENDAR`.trim();
               <div>
                 <div className="flex flex-row gap-3 flex-wrap items-center mt-4">
                   <div
-                    className={`p-2 px-4 text-logo-red border border-1 border-logo-red rounded cursor-pointer hover:bg-logo-red hover:text-white ${
-                      isSelfBooking && "bg-logo-red text-white"
-                    }`}
+                    className={`p-2 px-4 text-logo-red border border-1 border-logo-red rounded cursor-pointer hover:bg-logo-red hover:text-white ${isSelfBooking && "bg-logo-red text-white"
+                      }`}
                     onClick={() => setIsSelfBooking(true)}
                   >
                     Book for Self
                   </div>
                   <div
-                    className={`p-2 px-4 text-logo-red border border-1 border-logo-red rounded cursor-pointer hover:bg-logo-red hover:text-white ${
-                      !isSelfBooking && "bg-logo-red text-white"
-                    }`}
+                    className={`p-2 px-4 text-logo-red border border-1 border-logo-red rounded cursor-pointer hover:bg-logo-red hover:text-white ${!isSelfBooking && "bg-logo-red text-white"
+                      }`}
                     onClick={() => setIsSelfBooking(false)}
                   >
                     Book for someone else
@@ -1554,7 +1564,7 @@ const CheckoutForm = ({
   selectedSlot,
   price,
   selectedPackage,
-  classId
+  classId,
 }) => {
   const stripe = useStripe();
   const [user, userLoading] = useAuthState(auth);
@@ -1593,18 +1603,28 @@ const CheckoutForm = ({
   };
   const packagePrice = selectedPackage?.num_sessions
     ? selectedPackage?.Price -
-      ((selectedPackage?.Discount
-        ? selectedPackage.Discount
-        : selectedPackage?.discountPercentage) *
-        selectedPackage?.Price) /
-        100
+    ((selectedPackage?.Discount
+      ? selectedPackage.Discount
+      : selectedPackage?.discountPercentage) *
+      selectedPackage?.Price) /
+    100
     : selectedSlot.classId
-    ? classData.groupPrice
-    : classData.Price;
+      ? classData.groupPrice
+      : classData.Price;
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
+    if (!stripe || !elements) {
+      toast.error("Stripe is not loaded yet.");
+      return;
+    }
+
+    if (!user?.displayName || !user?.email) {
+      toast.error("Your name and email are required for payment.");
+      setLoading(false);
+      return;
+    }
 
     const { error, paymentIntent } = await stripe.confirmPayment({
       elements,
@@ -1619,7 +1639,7 @@ const CheckoutForm = ({
       redirect: "if_required",
     });
 
-    if (!error && paymentIntent?.status === "succeeded") {
+    if (!error && paymentIntent && paymentIntent?.status === "succeeded") {
       const bookingDocRef = doc(db, "Bookings", bookingRef);
 
       const bookingSnapshot = await getDoc(bookingDocRef);
@@ -1636,6 +1656,11 @@ const CheckoutForm = ({
       const startDateTime = moment
         .utc(`${date} ${startTime}`)
         .format("YYYY-MM-DDTHH:mm:ss");
+      if (!instructorData?.email) {
+        toast.error("Instructor email is missing.");
+        setLoading(false);
+        return;
+      }
       const organizer = instructorData.email;
       const location = classData.Address || "Online";
       const endDateTime = moment
@@ -1669,10 +1694,15 @@ const CheckoutForm = ({
               )
             )
           );
-          if (querySnapshot.size > 0) {
+          if (querySnapshot && querySnapshot.size > 0 && Array.isArray(querySnapshot.docs)) {
             const otherBookings = querySnapshot.docs.map((doc) => doc.data());
             meetingLink = otherBookings[0]?.meetingLink;
           }
+        }
+        else if (!mode) {
+          toast.error("Class mode is not specified.");
+          setLoading(false);
+          return;
         }
         if (!meetingLink) {
           try {
@@ -1701,6 +1731,10 @@ const CheckoutForm = ({
             console.error("Error generating meeting link:", error);
           }
         }
+      } else if (!classData?.Mode) {
+        toast.error("Class mode is not specified.");
+        setLoading(false);
+        return;
       }
       await updateDoc(bookingDocRef, {
         status: "Confirmed",
@@ -1710,14 +1744,13 @@ const CheckoutForm = ({
         paymentStatus: "Paid",
         price: selectedPackage?.num_sessions
           ? (packagePrice / selectedPackage?.num_sessions) *
-            numberOfGroupMembers
+          numberOfGroupMembers
           : price,
         timeZone: timeZone ? timeZone : "America/Toronto",
       });
 
-      const recipientEmails = `${user?.email}, ${instructorData.email}, ${
-        mode === "Group" ? groupEmails.join(",") : ""
-      }`;
+      const recipientEmails = `${user?.email}, ${instructorData.email}, ${mode === "Group" ? groupEmails.join(",") : ""
+        }`;
       const icsContent = `BEGIN:VCALENDAR
 VERSION:2.0
 PRODID:-//Pocketclass//NONSGML v1.0//EN
@@ -1731,9 +1764,8 @@ X-LIC-LOCATION:${timeZone || "America/Toronto"}
 DTSTART;TZID=${timeZone || "America/Toronto"}:${formatDateTime(startDateTime)}
 DTEND;TZID=${timeZone || "America/Toronto"}:${formatDateTime(endDateTime)}
 LOCATION:${location}
-ORGANIZER;CN=${instructorData.firstName} ${
-        instructorData.lastName
-      }:MAILTO:${organizer}
+ORGANIZER;CN=${instructorData.firstName} ${instructorData.lastName
+        }:MAILTO:${organizer}
 STATUS:CONFIRMED
 ${meetingLink ? `X-GOOGLE-CONFERENCE:${meetingLink}` : ""}
 END:VEVENT
@@ -1749,8 +1781,7 @@ END:VCALENDAR`.trim();
       const htmlContent = `
       <div>
 
-      ${
-        meetingLink
+      ${meetingLink
           ? `<div style="margin-top: 20px; padding: 6px 34px; box-sizing: border-box; border: 1px solid #ddd; background-color: #ffffff; border-radius: 8px; display: inline-block; width: 100%;">
               <p style="font-size: 16px; color: #333; margin-bottom: 10px;">
                 Join the meeting for your class <strong>${classData.Name}</strong> with <strong>${instructorData.firstName} ${instructorData.lastName}</strong>.
@@ -1764,12 +1795,11 @@ END:VCALENDAR`.trim();
               </ul>
             </div>`
           : ""
-      }
+        }
       <div style="font-family: Arial, sans-serif; color: #333;">
         <h2 style="color: #E73F2B;">New Booking Confirmation</h2>
         <p>Hello,</p>
-        <p>We are excited to confirm a new booking for the class <strong>${
-          classData.Name
+        <p>We are excited to confirm a new booking for the class <strong>${classData.Name
         }</strong>!</p>
         <h3>Booking Details:</h3>
         <table style="width: 100%; border-collapse: collapse;" border="1">
@@ -1791,24 +1821,21 @@ END:VCALENDAR`.trim();
           </tr>
           <tr>
             <td style="padding: 8px;"><strong>Time Zone:</strong></td>
-            <td style="padding: 8px;">${
-              timeZone ? timeZone : "America/Toronto"
-            }</td>
+            <td style="padding: 8px;">${timeZone ? timeZone : "America/Toronto"
+        }</td>
           </tr>
           <tr>
             <td style="padding: 8px;"><strong>Price:</strong></td>
-            <td style="padding: 8px;">${
-              mode === "Group" ? classData.groupPrice : classData.Price
-            }</td>
+            <td style="padding: 8px;">${mode === "Group" ? classData.groupPrice : classData.Price
+        }</td>
           </tr>
-          ${
-            meetingLink
-              ? `<tr>
+          ${meetingLink
+          ? `<tr>
             <td style="padding: 8px;"><strong>Meeting Link:</strong></td>
             <td style="padding: 8px;"><a href="${meetingLink}">${meetingLink}</a></td>
           </tr>`
-              : ""
-          }
+          : ""
+        }
         </table>
         <p>Thank you for choosing <strong>Pocketclass</strong>!</p>
         <p style="color: #555;">Best Regards,<br>Pocketclass Team</p>
@@ -1851,7 +1878,7 @@ END:VCALENDAR`.trim();
           num_sessions: selectedPackage?.num_sessions,
           packagePrice,
           price_per_session: packagePrice / selectedPackage?.num_sessions,
-          classes_left: parseInt(selectedPackage?.num_sessions, 10) - (numberOfGroupMembers?numberOfGroupMembers:1),
+          classes_left: parseInt(selectedPackage?.num_sessions, 10) - (numberOfGroupMembers ? numberOfGroupMembers : 1),
         });
       }
 

@@ -7,6 +7,7 @@ export function ConfirmBookingDetails({ bookingDetails }) {
   // Get Class Details
   const [classDetails, setClassDetails] = React.useState(null);
   React.useEffect(() => {
+    if (!bookingDetails) return;
     const fetchClassDetails = async () => {
       try {
         const docRef = doc(db, "classes", bookingDetails?.class_id);
@@ -22,6 +23,10 @@ export function ConfirmBookingDetails({ bookingDetails }) {
     console.log(bookingDetails);
     fetchClassDetails();
   }, [bookingDetails]);
+
+  const startTime = bookingDetails?.startTime ? moment.utc(bookingDetails.startTime) : null;
+  const endTime = bookingDetails?.endTime ? moment.utc(bookingDetails.endTime) : null;
+
   return (
     <div className="w-[39%] max-md:w-full">
       <div>
@@ -30,12 +35,11 @@ export function ConfirmBookingDetails({ bookingDetails }) {
         </h2>
         <div className="flex gap-6">
           <div className="w-24 text-base font-bold text-stone-800">
-            {moment.utc(bookingDetails?.startTime).format("DD MMM, YYYY")}
+            {startTime ? startTime.format("DD MMM, YYYY") : "Date not available"}
           </div>
           <div>
             <div className="text-base font-medium text-stone-800">
-              {moment.utc(bookingDetails?.startTime).format("dddd, hh:mm")}-
-              {moment.utc(bookingDetails?.endTime).format("hh:mm A")}
+              {startTime ? startTime.format("dddd, hh:mm A") : "--"} - {endTime ? endTime.format("hh:mm A") : "--"}
             </div>
             <div className="text-base text-stone-800">
               {bookingDetails?.timeZone || "America/Toronto"}

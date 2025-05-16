@@ -23,7 +23,7 @@ const WithdrawTransaction = dynamic(
 );
 import moment from "moment";
 import NewHeader from "../components/NewHeader";
-function Balance({}) {
+function Balance({ }) {
   const [myBalance, setMyBalance] = React.useState(0);
   const [accountBalance, setAccountBalance] = React.useState(0);
   const [withdrawn, setWithdrawn] = React.useState(0);
@@ -48,7 +48,7 @@ function Balance({}) {
   const [isOpen, setIsOpen] = React.useState(false);
   const [currencySelected, setCurrencySelected] = React.useState("cad");
   const [pendingAmount, setPendingAmount] = React.useState(0);
-  const [bookingsData, setBookingsData] = React.useState([]);
+  const [bookingsData, setBookingsData] = React.useState(null);
   const fetchEverthing = async () => {
     toast.loading("Loading Balance and Details...");
     //get account from the firebase
@@ -75,6 +75,10 @@ function Balance({}) {
     });
 
     let validCurrencies = await account.json();
+    if (!Array.isArray(validCurrencies)) {
+      console.error("Expected an array of currencies, but got:", validCurrencies);
+      validCurrencies = ['$'];
+    }
     setPaymentDetails({ ...paymentDetails, accountNumber: accountNumber });
     // console.log(accountNumber);
     //remove duplicates
@@ -107,6 +111,10 @@ function Balance({}) {
       }),
     }).then((res) => {
       res.json().then((payoutsReceived) => {
+        if (!Array.isArray(payoutsReceived)) {
+          console.error("API error:", payoutsReceived.error || "Unexpected response");
+          return; // Or handle error in UI
+        }
         let payoutsReceivedObj = payoutsReceived.map((payout) => {
           return {
             ...payout,
@@ -138,8 +146,19 @@ function Balance({}) {
     });
     getBalanceObject.then((res) => {
       res.json().then((balanceObj) => {
-        setAccountBalance(balanceObj.available[0].amount / 100);
-        setPendingAmount(balanceObj.pending[0].amount / 100);
+        if (Array.isArray(balanceObj.available) && balanceObj.available.length > 0) {
+          setAccountBalance(balanceObj.available[0].amount / 100);
+        } else {
+          // Handle case where available is not an array or is empty
+          setAccountBalance(0); // or some default value
+        }
+
+        if (Array.isArray(balanceObj.pending) && balanceObj.pending.length > 0) {
+          setPendingAmount(balanceObj.pending[0].amount / 100);
+        } else {
+          // Handle case where pending is not an array or is empty
+          setPendingAmount(0); // or some default value
+        }
       });
     });
     let banks = fetch("/api/getApprovedBankAccounts", {
@@ -152,10 +171,12 @@ function Balance({}) {
       }),
     }).then((res) => {
       res.json().then((bankAccountsReceived) => {
-        let finalItems = bankAccountsReceived.data.map((item) => ({
-          ...item,
-          checked: item.checked ? item.checked : false,
-        }));
+        let finalItems = Array.isArray(bankAccountsReceived.data)
+          ? bankAccountsReceived.data.map((item) => ({
+            ...item,
+            checked: item.checked ? item.checked : false,
+          }))
+          : [];
       });
     });
 
@@ -210,7 +231,7 @@ function Balance({}) {
 
       pendingPayment = pendingPayment?.paymentIntent;
 
-       
+
       if (pendingPayment) {
         booking.pendingAmount = pendingPayment.amount;
         if (moment.utc(booking.startTime).format("YY DD MM") === (moment.utc().format("YY DD MM")) && !booking.isTransfered) {
@@ -380,58 +401,59 @@ function Balance({}) {
                 </h4>
               </div>
               <div className="card-body">
-                <div className="my-chart">
-                  {/* Show all Transactions that have occured  */}
-                  {bookingsData?.length > 0 && (
-                    <div className="overflow-x-auto">
-                      <table className="min-w-full table-auto border-collapse border border-gray-200 shadow-md rounded-lg">
-                        <thead className="bg-gray-100">
-                          <tr>
-                            <th className="px-4 py-2 text-left text-sm font-semibold text-gray-600 border border-gray-200">
-                              Date
-                            </th>
-                            <th className="px-4 py-2 text-left text-sm font-semibold text-gray-600 border border-gray-200">
-                              Amount
-                            </th>
-                            <th className="px-4 py-2 text-left text-sm font-semibold text-gray-600 border border-gray-200">
-                              Type
-                            </th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {bookingsData.map((transaction, index) => (
-                            <tr
-                              key={index}
-                              className={`${
-                                index % 2 === 0 ? "bg-white" : "bg-gray-50"
+                {!bookingsData ? (
+                  <div className="space-y-4">
+                    {[...Array(1)].map((_, i) => (
+                      <div key={i} className="flex space-x-4 animate-pulse">
+                        <div className="h-[50vh] w-full bg-gray-300 rounded" />
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="min-w-full table-auto border-collapse border border-gray-200 shadow-md rounded-lg">
+                      <thead className="bg-gray-100">
+                        <tr>
+                          <th className="px-4 py-2 text-left text-sm font-semibold text-gray-600 border border-gray-200">
+                            Date
+                          </th>
+                          <th className="px-4 py-2 text-left text-sm font-semibold text-gray-600 border border-gray-200">
+                            Amount
+                          </th>
+                          <th className="px-4 py-2 text-left text-sm font-semibold text-gray-600 border border-gray-200">
+                            Type
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {bookingsData.map((transaction, index) => (
+                          <tr
+                            key={index}
+                            className={`${index % 2 === 0 ? "bg-white" : "bg-gray-50"
                               } hover:bg-gray-100`}
-                            >
-                              <td className="px-4 py-2 text-sm text-nowrap text-gray-800 border border-gray-200">
-                                {moment(transaction.startTime).format(
-                                  "DD-MM-YY / hh:mm A"
-                                )}
-                              </td>
-                              <td className="px-4 py-2 text-sm text-gray-800 border border-gray-200">
-                                ${(transaction.pendingAmount / 100).toFixed(2)}
-                              </td>
-                              <td className="px-4 py-2 text-sm text-gray-800 border border-gray-200 capitalize">
-                                {moment(transaction.startTime).format("YY DD MM") === (moment().format("YY DD MM")) && !transaction.isTransfered
-                                  ? <div className="bg-green-400 text-white p-2 rounded-lg w-max">Available</div>
-                                  : transaction.isTransfered
+                          >
+                            <td className="px-4 py-2 text-sm text-nowrap text-gray-800 border border-gray-200">
+                              {moment(transaction.startTime).format("DD-MM-YY / hh:mm A")}
+                            </td>
+                            <td className="px-4 py-2 text-sm text-gray-800 border border-gray-200">
+                              ${(transaction.pendingAmount / 100).toFixed(2)}
+                            </td>
+                            <td className="px-4 py-2 text-sm text-gray-800 border border-gray-200 capitalize">
+                              {moment(transaction.startTime).format("YY DD MM") === moment().format("YY DD MM") && !transaction.isTransfered
+                                ? <div className="bg-green-400 text-white p-2 rounded-lg w-max">Available</div>
+                                : transaction.isTransfered
                                   ? <div className="bg-blue-400 text-white p-2 rounded-lg w-max">Sent to Stripe</div>
-                                  : <div className="bg-gray-400 text-white p-2 rounded-lg w-max">Pending</div>}
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  )}
-
-                  {!bookingsData || !bookingsData.length > 0 && (
+                                  : <div className="bg-red-400 text-white p-2 rounded-lg w-max">Pending</div>}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+                {!bookingsData || !bookingsData.length > 0 && (
                     <div className="text-center">No Transactions</div>
                   )}
-                </div>
               </div>
             </div>
           </div>

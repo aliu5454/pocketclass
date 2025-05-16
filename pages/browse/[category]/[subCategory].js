@@ -311,7 +311,7 @@ export default function Results({ category, subCategory }) {
     { value: "", label: "All" },
   ];
   const [selectedDistance, setSelectedDistance] = useState(
-    distanceOptions[2].value
+    distanceOptions[3].value
   );
 
   const sortOptions = [
