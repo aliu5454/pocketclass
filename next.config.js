@@ -2,18 +2,31 @@
 const nextConfig = {
   reactStrictMode: true,
   swcMinify: true,
+  transpilePackages: [
+    'rc-util', 
+    'antd', 
+    '@ant-design', 
+    'rc-pagination', 
+    'rc-picker',
+    'rc-input',
+    'rc-field-form',
+    'rc-tooltip',
+    'rc-dropdown',
+    'rc-menu',
+    'rc-virtual-list',
+    'rc-select',
+    '@rc-component'
+  ],
   images: { 
      remotePatterns: [
     {
       protocol: 'https',
-      
       hostname: '*',
     },
     {
       protocol: 'http',
       hostname: '*',
     },
-  
   ],
   
     domains: ["images.unsplash.com", "links.papareact.com", "content.active.com", "plus.unsplash.com",
