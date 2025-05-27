@@ -25,9 +25,8 @@ export const classSchema = Yup.object().shape({
     .required('Price must be a single amount')
     .positive('Price per class must be a positive number'),
 
-  pricing: Yup.string()
-    .nullable()
-    .notRequired(),
+  Pricing: Yup.string()
+    .required('Price Description is required'),
 
   groupSize: Yup.number()
     .required('Max group size is required')
