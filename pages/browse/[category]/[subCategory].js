@@ -73,9 +73,7 @@ export default function Results({ category, subCategory }) {
   const [startDate, setStartDate] = useState(null);
   const [endDate, setEndDate] = useState(null);
   const [instructorSchedules, setInstructorSchedules] = useState({});
-  const [selectedDistance, setSelectedDistance] = useState(
-    distanceOptions?.[2].value
-  );
+  const [selectedDistance, setSelectedDistance] = useState('');
   const [location, setLocation] = useState(null);
 
   const [selectedSubCategory, setSelectedSubCategory] = useState(
@@ -697,16 +695,21 @@ export default function Results({ category, subCategory }) {
   useEffect(() => {
     let filtered = [...classes];
 
-    if (selectedCategory && selectedCategory !== "All") {
-      filtered = filtered.filter((data) => data.Category === selectedCategory);
-    }
+    if (selectedCategory === 'Smart') {
+      const subCategoriesList = selectedSubCategory.split(',');
+      filtered = filtered.filter((data) => subCategoriesList.includes(data.SubCategory));
+    } else {
+      if (selectedCategory && selectedCategory !== "All") {
+        filtered = filtered.filter((data) => data.Category === selectedCategory);
+      }
 
-    if (selectedSubCategory) {
-      filtered = filtered.filter(
-        (data) =>
-          data.SubCategory === selectedSubCategory ||
-          data.Type === selectedSubCategory
-      );
+      if (selectedSubCategory && selectedSubCategory !== 'All') {
+        filtered = filtered.filter(
+            (data) =>
+                data.SubCategory === selectedSubCategory ||
+                data.Type === selectedSubCategory
+        );
+      }
     }
 
     if (selectedDistance) {
