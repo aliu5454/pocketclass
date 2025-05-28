@@ -233,7 +233,7 @@ export default function CreateClass() {
       ]);
       setPreviewImages([]);
       setUploadedFiles([]);
-      router.push("/classes/id=" + addingClass.id);
+      router.push("/confirmClass/" + addingClass.id);
       toast.success("Class Added");
     } catch (error) {
       console.error("Error adding class:", error);
