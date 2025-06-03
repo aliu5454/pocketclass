@@ -40,7 +40,7 @@ export const getStaticPaths = async () => {
   });
 
   return {
-    paths,
+    paths: [],
     fallback: "blocking", // Or "false" for 404 on unknown paths
   };
 };
@@ -124,51 +124,24 @@ export default function Results({ category, subCategory }) {
   //   }
   // }, [subCategory, category, router.query]);
 
-
   useEffect(() => {
     setSelectedSubCategory(subCategory || "");
     setSelectedCategory(category || "");
-  
+
     if (router.query.distance) {
       setSelectedDistance(router.query.distance);
     }
-  
+
     if (router.query.sortBy) {
       setSortBy(router.query.sortBy);
     }
-  
-    // FIX: Handle multiple subCategory parameters
-    if (router.query.subCategory) {
-      const subCategories = Array.isArray(router.query.subCategory) 
-        ? router.query.subCategory 
-        : [router.query.subCategory];
-      setSelectedSubCategory(subCategories.join(','));
-    }
-  
+
+    // Parse date range from URL
     if (router.query.startDate && router.query.endDate) {
       setStartDate(new Date(router.query.startDate));
       setEndDate(new Date(router.query.endDate));
     }
   }, [subCategory, category, router.query]);
-  // commented temp
-  // useEffect(() => {
-  //   setSelectedSubCategory(subCategory || "");
-  //   setSelectedCategory(category || "");
-
-  //   if (router.query.distance) {
-  //     setSelectedDistance(router.query.distance);
-  //   }
-
-  //   if (router.query.sortBy) {
-  //     setSortBy(router.query.sortBy);
-  //   }
-
-  //   // Parse date range from URL
-  //   if (router.query.startDate && router.query.endDate) {
-  //     setStartDate(new Date(router.query.startDate));
-  //     setEndDate(new Date(router.query.endDate));
-  //   }
-  // }, [subCategory, category, router.query]);
 
   // will be live later
 
