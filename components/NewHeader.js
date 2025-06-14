@@ -34,7 +34,6 @@ const NewHeader = ({ isHome = true, activeCategory, handleCategorySelection }) =
   const [classCreated, setClassCreated] = useState(true);
   const [scheduleCreated, setScheduleCreated] = useState(true);
 
-
   const [activeKey, setActiveKey] = useState("sport");
 
   const handleCategoryClick = (category) => {
@@ -131,12 +130,13 @@ const NewHeader = ({ isHome = true, activeCategory, handleCategorySelection }) =
 
   const [scrollPosition, setScrollPosition] = useState(0);
   const [isMenuShrunk, setIsMenuShrunk] = useState(false);
+  const [isMenuSmall, setMenuSmall] = useState(false);
   const [isSearchExpanded, setIsSearchExpanded] = useState(false);
 
   useEffect(() => {
     const handleScroll = () => {
       if (window.innerWidth < 768) return;
-      setScrollPosition(window.scrollY);
+        setScrollPosition(window.scrollY);
       if (window.scrollY > 5 && !isSearchExpanded) {
         setIsMenuShrunk(true);
       } else if (window.scrollY <= 5 && !isSearchExpanded) {
@@ -144,8 +144,11 @@ const NewHeader = ({ isHome = true, activeCategory, handleCategorySelection }) =
       }
     };
 
-    if (router.pathname.includes('/browse')) setIsMenuShrunk(true);
-    else window.addEventListener('scroll', handleScroll);
+    if (router.pathname === '/') window.addEventListener('scroll', handleScroll);
+    else {
+      setIsMenuShrunk(false);
+      setMenuSmall(true);
+    }
 
     return () => {
       window.removeEventListener('scroll', handleScroll);
@@ -254,20 +257,19 @@ const NewHeader = ({ isHome = true, activeCategory, handleCategorySelection }) =
           </div>
         )}
 
-      <div className={`flex flex-col gap-1 bg-white pb-[2rem] sticky top-0 w-full z-50 transition-all duration-500 ${isMenuShrunk ? 'h-[100px]':'h-auto'}`}>
+      <div className={`flex flex-col md:gap-1 bg-white pb-4 md:pb-[2rem] sticky top-0 w-full z-50 transition-all duration-500 ${isMenuShrunk ? 'h-[90px] md:h-[100px]': (`${isMenuSmall ? 'h-auto md:h-[100px]' : 'h-auto'}`)}`}>
         {/*NavBar Top Part*/}
-        <div className="top-0 py-6 z-40 box-border flex justify-between items-center flex-row gap-2 w-[100.00%] section-spacing">
+        <div className="top-0 max-md:pt-4 max-md:pb-3 py-6 z-40 box-border flex justify-between items-center flex-row gap-2 w-[100.00%] section-spacing">
           <Link className="cursor-pointer" href="/">
             <img
               src="/assets/image_5c0480a2.png"
               className="cursor-pointer h-12 object-contain w-[117px] md:w-36 lg:w-44 box-border block border-[none]"
             />
           </Link>
-             {/* Adding the TeacherSearch component here */}
-             <div className="hidden md:block">
 
-             {/* Category Buttons */}
-               <div className={`transition duration-500 ${isMenuShrunk ? '-translate-y-[200%]' : ''}`}>
+          {/* Category Buttons */}
+             <div className="hidden md:block">
+               <div className={`transition duration-500 ${isMenuShrunk || isMenuSmall ? '-translate-y-[200%]' : ''}`}>
                  <div className="flex space-x-2.5 items-center">
                    {categoryData.map((category) => (
                        <div key={category.name}>
@@ -466,12 +468,11 @@ const NewHeader = ({ isHome = true, activeCategory, handleCategorySelection }) =
         </div>
 
         {/*NavBar Search Part*/}
-        {/* <div className="flex justify-center"> */}
-          <TeacherSearch
-              isShrunk={isMenuShrunk}
-              expandMenu={() => setIsMenuShrunk(false)}
-          />
-        {/* </div> */}
+        <TeacherSearch
+            isShrunk={isMenuShrunk}
+            isMenuSmall={isMenuSmall}
+            expandMenu={() => setIsMenuShrunk(false)}
+        />
       </div>
     </>
   );
