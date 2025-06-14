@@ -27,6 +27,7 @@ const MyClass = () => {
   const [myClass, setMyClass] = useState([]);
   const [classDetails, setClassDetails] = useState({});
   const [bookings, setBookings] = useState([]);
+  const [bookingsByMe, setBookingsByMe] = useState([]);
   const [reviews, setReviews] = useState([]);
   const [user, loading] = useAuthState(auth);
 
@@ -113,7 +114,6 @@ const MyClass = () => {
             ...docSnap.data(),
             id: docSnap.id,
           }));
-          console.log("temp", temp);
           setBookings(temp);
         } catch (error) {
           console.error("Error fetching bookings:", error);
@@ -123,6 +123,58 @@ const MyClass = () => {
 
     fetchBookings();
   }, [id, userData]);
+
+  useEffect(() => {
+  const fetchBookingsAndClasses = async () => {
+    if (id && userData?.category === "instructor") {
+      try {
+        const q = query(
+          collection(db, "Bookings"),
+          where("student_id", "==", id)
+        );
+        const querySnapshot = await getDocs(q);
+        const tempBookings = querySnapshot.docs.map((docSnap) => ({
+          ...docSnap.data(),
+          id: docSnap.id,
+        }));
+
+        setBookingsByMe(tempBookings);
+
+        // Now fetch class details from class_id
+        const uniqueClassIds = [
+          ...new Set(tempBookings.map((b) => b.class_id)),
+        ];
+
+        const classPromises = uniqueClassIds.map(async (classId) => {
+          const classRef = doc(db, "classes", classId);
+          const classSnap = await getDoc(classRef);
+          if (classSnap.exists()) {
+            return { id: classSnap.id, ...classSnap.data() };
+          }
+          return null;
+        });
+
+        const classesFromBookings = (await Promise.all(classPromises)).filter(
+          (cls) => cls !== null
+        );
+
+        // Merge with existing myClass, avoiding duplicates
+        setMyClass((prev) => {
+          const existingIds = new Set(prev.map((c) => c.id));
+          const newClasses = classesFromBookings.filter(
+            (cls) => !existingIds.has(cls.id)
+          );
+          return [...prev, ...newClasses];
+        });
+      } catch (error) {
+        console.error("Error fetching bookings or class details:", error);
+      }
+    }
+  };
+
+  fetchBookingsAndClasses();
+}, [id, userData]);
+
 
   useEffect(() => {
     return onSnapshot(collection(db, "Reviews"), (snapshot) => {
@@ -181,6 +233,7 @@ const MyClass = () => {
         <InstructorClasses
           classes={myClass}
           bookings={bookings}
+          bookingsByMe={bookingsByMe}
           reviews={reviews}
         />
       )}
