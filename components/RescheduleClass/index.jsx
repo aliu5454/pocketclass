@@ -825,6 +825,61 @@ export default function index({
       updatedAt: serverTimestamp(),
     };
     updateDoc(bookingRef, updateData);
+    if (
+      instructorData?.googleCalendar &&
+      instructorData?.googleCalendar.accessToken
+    ) {
+      const oldstartDateTime = moment
+        .utc(bookingData.startTime)
+        .format("YYYY-MM-DDTHH:mm:ss");
+      const oldendDateTime = moment
+        .utc(bookingData.endTime)
+        .format("YYYY-MM-DDTHH:mm:ss");
+      const cancelResponse = await fetch("/api/calendar/delete-event", {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          userEmails: [user?.email, ...bookingData.groupEmails],
+          classId: bookingData.class_id,
+          start: oldstartDateTime,
+          end: oldendDateTime,
+          timeZone: timeZone || "America/Toronto",
+          instructorId: instructorId,
+        }),
+      });
+      if (!cancelResponse.ok) {
+        console.error("Failed to cancel the event in Google Calendar");
+      }
+
+      const createResponse = await fetch("/api/calendar/create-event", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          userId: instructorId,
+          timeZone: timeZone || "America/Toronto",
+          booking: {
+            title: classData.Name,
+            class: classId,
+            start: startDateTime,
+            end: endDateTime,
+            location: location,
+            meetingLink: meetingLink,
+            userEmails: [
+              user?.email,
+              ...(mode === "Group" ? bookingData.groupEmails : []),
+            ],
+            timeZone: timeZone ? timeZone : "America/Toronto",
+          },
+        }),
+      });
+      if (!createResponse.ok) {
+        console.error("Failed to create the event in Google Calendar");
+      }
+    }
     const organizer = instructorData.email;
     const recipientEmails = `${user?.email}, ${instructorData.email}, ${
       bookingData.mode === "group" ? groupEmails.join(",") : ""
