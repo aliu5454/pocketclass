@@ -18,6 +18,7 @@ import {
   deleteDoc,
   Timestamp,
   serverTimestamp,
+  increment
 } from "firebase/firestore";
 import moment from "moment-timezone";
 import { loadStripe } from "@stripe/stripe-js";
@@ -953,8 +954,54 @@ END:VCALENDAR`.trim();
       }
     }
     if (!user && !userLoading) {
-      toast.error("Please login to book a slot.");
-      return;
+      setStripeLoading(true);
+      const packagePrice1 = selectedPackage?.num_sessions
+      ? selectedPackage?.Price -
+      ((selectedPackage?.Discount
+        ? selectedPackage.Discount
+        : selectedPackage?.discountPercentage) *
+        selectedPackage?.Price) /
+      100
+      : selectedSlot.classId
+        ? classData.groupPrice
+        : classData.Price;
+
+    const actualPrice1 = selectedPackage?.num_sessions
+      ? packagePrice1
+      : isGroup
+        ? classData.groupPrice * numberOfGroupMembers
+        : classData.Price;
+
+    let finalPrice1 = actualPrice1;
+
+    if (discountType === "percentage") {
+      const discountAmount = ((finalPrice1 * discount) / 100).toFixed(2);
+      finalPrice1 -= discountAmount;
+    } else if (discountType === "Fixed") {
+      finalPrice1 -= discount;
+    }
+
+    const response1 = await fetch("/api/create-stripe-session", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        price: finalPrice1,
+      }),
+    });
+
+    const data1 = await response1.json();
+
+    if (data1?.clientSecret) {
+      setStripeLoading(false);
+
+      setStripeOptions({
+        clientSecret: data1.clientSecret,
+        bookingRef: bookingRef?.id,
+      });
+    }
+    setStripeLoading(false);
+    setBookLoading(true);
+    return
     }
 
     if (packageClasses > 0 && selectedPackage === "Credits") {
@@ -1788,6 +1835,8 @@ END:VCALENDAR`.trim();
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
           <Elements stripe={stripePromise} options={stripeOptions}>
             <CheckoutForm
+              setBookLoading = {setBookLoading}
+              agreeToTerms={agreeToTerms}
               bookingRef={stripeOptions.bookingRef}
               setStripeOptions={setStripeOptions}
               timer={timer}
@@ -1885,6 +1934,8 @@ const CheckoutForm = ({
   discount,
   voucher,
   voucherVerified,
+  setBookLoading,
+  agreeToTerms
 }) => {
   const stripe = useStripe();
   const [user, userLoading] = useAuthState(auth);
@@ -2240,6 +2291,14 @@ END:VCALENDAR`.trim();
     setLoading(false);
   };
 
+  const currentPath = router.asPath;
+
+    const handleLoginRedirect = (e) => {
+      e.preventDefault()
+      const encodedUrl = encodeURIComponent(currentPath);
+      router.push(`/Login?returnUrl=${encodedUrl}`);
+    };
+
   return (
     <form
       onSubmit={handleSubmit}
@@ -2254,6 +2313,7 @@ END:VCALENDAR`.trim();
           onClick={() => {
             setStripeOptions(null);
             setTimer(null);
+            setBookLoading(false)
           }}
         >
           <ChevronLeftIcon className="h-4 w-4 mt-1" />
@@ -2263,22 +2323,34 @@ END:VCALENDAR`.trim();
       <div className="flex flex-row items-center justify-between mb-4">
         <h1 className="text-lg font-bold">Complete Payment</h1>
 
-        <div className="flex items-center">
-          <p className="text-sm text-gray-500 mr-2">Expires in:</p>
-          <p className="text-sm text-[#E73F2B] font-bold">
-            {Math.floor(timer / 60)}:{timer % 60 < 10 ? "0" : ""}
-            {timer % 60}
-          </p>
-        </div>
+        {user && (
+          <div className="flex items-center">
+            <p className="text-sm text-gray-500 mr-2">Expires in:</p>
+            <p className="text-sm text-[#E73F2B] font-bold">
+              {Math.floor(timer / 60)}:{timer % 60 < 10 ? "0" : ""}
+              {timer % 60}
+            </p>
+          </div>
+        )}
       </div>
       <AddressElement options={{ mode: "billing" }} />
       <PaymentElement />
-      <button
-        className="mt-4 p-2 bg-[#E73F2B] text-white rounded w-full"
-        disabled={loading}
-      >
-        {loading ? "Processing..." : "Pay"}
-      </button>
+      {user && (
+        <button
+          className="mt-4 p-2 bg-[#E73F2B] text-white rounded w-full"
+          disabled={loading}
+        >
+          {loading ? "Processing..." : "Pay"}
+        </button>
+      )}
+      {!user && (
+        <button
+          className="mt-4 p-2 bg-[#E73F2B] text-white rounded w-full"
+          onClick={handleLoginRedirect}
+        >
+          Login
+        </button>
+      )}
     </form>
   );
 };
