@@ -63,6 +63,8 @@ export default function index({
   const [discount, setDiscount] = useState(null);
   const [discountType, setDiscountType] = useState("percentage");
   const [error, setError] = useState(null);
+  const [calendarEvents, setCalendarEvents] = useState([]);
+  const [instructorData, setInstructorData] = useState(null);
   const [selectedPackage, setSelectedPackage] = useState(null);
   const [bookLoading, setBookLoading] = useState(false);
   const [displayConfirmation, setDisplayConfirmation] = useState(false);
@@ -88,6 +90,73 @@ export default function index({
   const [maxDays, setMaxDays] = useState(30);
   const [packages, setPackages] = useState([]);
   const [packageClasses, setPackageClasses] = useState();
+
+  const hasCalendarConflict = (slotStart, slotEnd) => {
+    const start = moment(slotStart, "YYYY-MM-DD HH:mm");
+    const end = moment(slotEnd, "YYYY-MM-DD HH:mm");
+
+    const filteredCalender = calendarEvents?.filter((event) => {
+      if (event.extendedProperties?.private?.classId === classId) {
+        return false;
+      }
+
+      const eventStart = moment.parseZone(event.start.dateTime);
+      const eventEnd = moment.parseZone(event.end.dateTime);
+      const eventStartLocal = moment
+        .tz(eventStart, event.start.timeZone)
+        .tz(timeZone)
+        .format("YYYY-MM-DD HH:mm");
+      const eventEndLocal = moment
+        .tz(eventEnd, event.end.timeZone)
+        .tz(timeZone)
+        .format("YYYY-MM-DD HH:mm");
+      const startLocal = moment(start).format("YYYY-MM-DD HH:mm");
+      const endLocal = moment(end).format("YYYY-MM-DD HH:mm");
+      const hasOverlap =
+        (startLocal < eventEndLocal && endLocal > eventStartLocal) ||
+        (eventStartLocal < endLocal && eventEndLocal > startLocal);
+
+      return hasOverlap;
+    });
+
+    return filteredCalender?.length > 0;
+  };
+
+  useEffect(() => {
+    const fetchInstructorData = async () => {
+      if (!instructorId) {
+        console.error("Instructor ID is not provided");
+        return;
+      }
+      try {
+        const instructorDocRef = doc(db, "Users", instructorId);
+        const instructorDoc = await getDoc(instructorDocRef);
+        if (instructorDoc.exists()) {
+          const data = instructorDoc.data();
+          setInstructorData(data);
+          if (data.googleCalendar?.accessToken) {
+            const response = await fetch(
+              `/api/calendar/events?userId=${encodeURIComponent(instructorId)}`,
+              {
+                method: "GET",
+                headers: {
+                  "Content-Type": "application/json",
+                },
+              }
+            );
+            if (response.ok) {
+              const events = await response.json();
+              setCalendarEvents(events);
+            }
+          }
+        }
+      } catch (error) {
+        console.error("Error fetching instructor data:", error);
+      }
+    };
+
+    fetchInstructorData();
+  }, [instructorId]);
 
   const handleVoucher = async () => {
     try {
@@ -533,6 +602,19 @@ export default function index({
             moment.utc(booked.startTime, "HH:mm").isSame(slotStart)
         );
 
+        const slotStartDateTime = moment(
+          `${dateStr} ${slotStart.format("HH:mm")}`,
+          "YYYY-MM-DD HH:mm"
+        );
+        const slotEndDateTime = moment(
+          `${dateStr} ${nextSlot.format("HH:mm")}`,
+          "YYYY-MM-DD HH:mm"
+        );
+
+        const hasConflict = hasCalendarConflict(
+          slotStartDateTime,
+          slotEndDateTime
+        );
         const isBooked = bookingsForSlot.length > 0;
         const groupBooked = bookingsForSlot.filter(
           (b) => b.classId && b.classId === classId
@@ -546,7 +628,8 @@ export default function index({
           endTime: nextSlot.format("HH:mm"),
           date: dateStr,
           classId: classId,
-          isBooked: isBooked,
+          isBooked: isBooked || hasConflict,
+          hasConflict: hasConflict,
         });
 
         slotStart.add(appointmentDuration, "minutes");
@@ -560,7 +643,14 @@ export default function index({
       schedule.adjustedAvailability.length
     )
       generateSlots();
-  }, [selectedDate, schedule, appointmentDuration, bookedSlots, mode]);
+  }, [
+    selectedDate,
+    schedule,
+    appointmentDuration,
+    bookedSlots,
+    mode,
+    calendarEvents,
+  ]);
 
   const handleSlotClick = (date, slot) => {
     setSelectedSlot({ date, ...slot });
@@ -1300,7 +1390,7 @@ END:VCALENDAR`.trim();
                     disabled={slot.emptyClasses < 1}
                     onClick={() => handleSlotClick(slot.date, slot)}
                     className={`${baseClasses} ${
-                      slot.emptyClasses < 1
+                      slot.emptyClasses < 1 || slot?.hasConflict
                         ? disabledClasses
                         : isSelected
                         ? selectedClasses
@@ -1429,7 +1519,6 @@ END:VCALENDAR`.trim();
                   </button>
                 ))}
             </div>
-
             <div className="mt-4 mb-4 flex flex-col lg:flex-row gap-4 items-center w-full">
               <label className="block text-gray-700 font-semibold">
                 Have a voucher code?
@@ -1489,7 +1578,8 @@ END:VCALENDAR`.trim();
                           {discountType === "percentage"
                             ? `${discount}%`
                             : `$${discount}`}
-                        </strong>{" "} off
+                        </strong>{" "}
+                        off
                       </p>
                     </div>
                   </div>
@@ -2212,6 +2302,32 @@ END:VCALENDAR`.trim();
         ]
       );
 
+      // Send create-event request to Google Calendar API
+      const calendarResponse = await fetch("/api/calendar/create-event", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          booking: {
+            title: classData.Name,
+            class: classId,
+            start: startDateTime,
+            end: endDateTime,
+            location: location,
+            meetingLink: meetingLink,
+            userEmails: [user?.email, ...(mode === "Group" ? groupEmails : [])],
+            timeZone: timeZone ? timeZone : "America/Toronto",
+          },
+          timeZone: timeZone ? timeZone : "America/Toronto",
+          userId: bookingData.instructor_id,
+        }),
+      });
+      console.log("Calendar Response:", calendarResponse);
+      if (!calendarResponse.ok) {
+        const errorText = await calendarResponse.text();
+        console.error("Error creating calendar event:", errorText);
+      }
       if (selectedPackage?.num_sessions) {
         const docRef = await addDoc(collection(db, "Packages"), {
           payment_intent_id: paymentIntent.id,

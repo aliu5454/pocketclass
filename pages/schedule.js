@@ -32,6 +32,7 @@ const localizer = momentLocalizer(moment);
 export default function Schedule() {
   const [user, userLoading] = useAuthState(auth);
   const router = useRouter();
+  const [userData, setUserData] = useState(null);
   const [loaded,setLoaded] = useState(false)
   const [vacationStartDate, setVacationStartDate] = useState(null);
   const [saveStatus,setSaveStatus] = useState('')
@@ -46,7 +47,7 @@ export default function Schedule() {
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showDatePicker1, setShowDatePicker1] = useState(false);
   const [appointmentDuration, setAppointmentDuration] = useState(30);
-  const [currentView, setCurrentView] = useState('week');
+  const [currentView, setCurrentView] = useState("week");
   const [temporaryEvent, setTemporaryEvent] = useState(null);
   const [generalAvailability, setGeneralAvailability] = useState(
     [
@@ -106,6 +107,20 @@ export default function Schedule() {
     updatedGeneralAvailability[dayIndex].slots[slotIndex].groupSlot = false;
     setGeneralAvailability(updatedGeneralAvailability);
   };
+
+  useEffect(() => {
+    const fetchUserData = async () => {
+      if (!user) return;
+      const userDoc = await getDoc(doc(db, "Users", user.uid));
+      if (userDoc.exists()) {
+        setUserData(userDoc.data());
+      } else {
+        toast.error("User data not found");
+      }
+    };
+    fetchUserData();
+  }, [user]);
+
   useEffect(() => {
     const northAmericanTimeZones = moment.tz
       .names()
@@ -227,10 +242,7 @@ export default function Schedule() {
       };
     });
 
-    setAdjustedAvailability([
-      ...updatedAdjustedAvailability,
-      ...vacationDates,
-    ]);
+    setAdjustedAvailability([...updatedAdjustedAvailability, ...vacationDates]);
     setEvents(updatedEvents);
     setVacationStartDate(null);
     setVacationEndDate(null);
@@ -384,14 +396,13 @@ export default function Schedule() {
     const updatedAvailability = adjustedAvailability.map((item) =>
       item.date === date
         ? {
-          ...item,
-          slots: [...item.slots, { startTime, endTime }],
-        }
+            ...item,
+            slots: [...item.slots, { startTime, endTime }],
+          }
         : item
     );
     setAdjustedAvailability(updatedAvailability);
   };
-
 
   const handleAdjustedInputChange = (date, slotIndex, key, value) => {
     const updatedAvailability = adjustedAvailability.map((item) => {
@@ -409,9 +420,9 @@ export default function Schedule() {
     const updatedAvailability = adjustedAvailability.map((item) =>
       item.date === date
         ? {
-          ...item,
-          slots: item.slots.filter((_, index) => index !== slotIndex),
-        }
+            ...item,
+            slots: item.slots.filter((_, index) => index !== slotIndex),
+          }
         : item
     );
     setAdjustedAvailability(updatedAvailability);
@@ -534,7 +545,9 @@ export default function Schedule() {
     const groupedSlots = {};
 
     bookedSlots.forEach((booked) => {
-      const key = `${moment(booked.startTime).format()}/${moment(booked.endTime).format()}`;
+      const key = `${moment(booked.startTime).format()}/${moment(
+        booked.endTime
+      ).format()}`;
 
       if (!groupedSlots[key]) {
         groupedSlots[key] = [];
@@ -571,16 +584,15 @@ export default function Schedule() {
         tooltip:
           students.length === 1
             ? `Class: ${classDetail?.Name}, Booked by ${students[0]}`
-            : `Class: ${classDetail?.Name}\nStudents:\n- ${students.join("\n- ")}`,
+            : `Class: ${classDetail?.Name}\nStudents:\n- ${students.join(
+                "\n- "
+              )}`,
       });
     });
 
     // ✅ Set all generated events except vacation ones
     setEvents(newEvents);
   };
-
-
-
 
   // time slots from 30 minutes to 3 hours slotOptions
 
@@ -651,14 +663,10 @@ export default function Schedule() {
       color: "#D8F5B6", // light green
     };
 
-
     setSelectedSlot(newSlot);
     setTemporaryEvent(newSlot);
     setShowPopup(true);
   };
-
-
-
 
   const formatDateTimeLocal = (date) => {
     const d = new Date(date);
@@ -694,7 +702,15 @@ export default function Schedule() {
     const secondPart = label.slice(firstSpaceIndex + 1);
 
     return (
-      <p className="font-bold flex flex-col dm1:flex-row mr-2 text-center leading-tight" style={{ fontWeight: 'bold', marginRight: '8px', whiteSpace: 'nowrap', flexShrink: 1, }}>
+      <p
+        className="font-bold flex flex-col dm1:flex-row mr-2 text-center leading-tight"
+        style={{
+          fontWeight: "bold",
+          marginRight: "8px",
+          whiteSpace: "nowrap",
+          flexShrink: 1,
+        }}
+      >
         <p className="block mr-1">{firstPart}</p>
         <p className="block whitespace-nowrap">{secondPart}</p>
       </p>
@@ -763,25 +779,55 @@ export default function Schedule() {
       <div
         className="rbc-toolbar dm1:px-4 py-4 dm1:bg-white-500 dm1:shadow-md bg-transparent shadow-none"
         style={{
-          display: 'flex',
-          flexWrap: 'nowrap',
-          flexDirection: 'row',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          marginBottom: '1rem',
-          borderRadius: '5px',
+          display: "flex",
+          flexWrap: "nowrap",
+          flexDirection: "row",
+          justifyContent: "space-between",
+          alignItems: "center",
+          marginBottom: "1rem",
+          borderRadius: "5px",
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center' }}>
-          <div onClick={() => onNavigate('TODAY')} style={{ marginRight: '8px', minWidth: 0 }}>Today</div>
-          <div onClick={() => onNavigate('PREV')} className="dm1:px-0 px-2 prev" style={{ marginRight: '8px', background: 'none', border: 'none', minWidth: 0 }}>
-            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 20 20">
+        <div style={{ display: "flex", alignItems: "center" }}>
+          <div
+            onClick={() => onNavigate("TODAY")}
+            style={{ marginRight: "8px", minWidth: 0 }}
+          >
+            Today
+          </div>
+          <div
+            onClick={() => onNavigate("PREV")}
+            className="dm1:px-0 px-2 prev"
+            style={{
+              marginRight: "8px",
+              background: "none",
+              border: "none",
+              minWidth: 0,
+            }}
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="20"
+              height="20"
+              fill="currentColor"
+              viewBox="0 0 20 20"
+            >
               <path d="M13.293 16.293a1 1 0 010-1.414L9.414 11l3.879-3.879a1 1 0 00-1.414-1.414l-4.586 4.586a1 1 0 000 1.414l4.586 4.586a1 1 0 001.414-1.414z" />
             </svg>
           </div>
           <ResponsiveLabel label={label} />
-          <div onClick={() => onNavigate('NEXT')} className="prev" style={{ background: 'none', border: 'none' }}>
-            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 20 20">
+          <div
+            onClick={() => onNavigate("NEXT")}
+            className="prev"
+            style={{ background: "none", border: "none" }}
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="20"
+              height="20"
+              fill="currentColor"
+              viewBox="0 0 20 20"
+            >
               <path d="M6.707 16.293a1 1 0 000-1.414L10.586 11 6.707 7.121a1 1 0 011.414-1.414l4.586 4.586a1 1 0 010 1.414l-4.586 4.586a1 1 0 01-1.414 0z" />
             </svg>
           </div>
@@ -796,17 +842,17 @@ export default function Schedule() {
             value={view}
             onChange={(e) => onView(e.target.value)}
             style={{
-              padding: '6px 8px',
-              width: '80px',
-              borderRadius: '5px',
-              border: '1px solid #ccc',
-              backgroundColor: '#fff',
-              outline: 'none',
-              boxShadow: 'none',
+              padding: "6px 8px",
+              width: "80px",
+              borderRadius: "5px",
+              border: "1px solid #ccc",
+              backgroundColor: "#fff",
+              outline: "none",
+              boxShadow: "none",
             }}
           >
             {views
-              .filter((v) => v !== 'Agenda')
+              .filter((v) => v !== "Agenda")
               .map((v) => (
                 <option key={v} value={v}>
                   {v.charAt(0).toUpperCase() + v.slice(1)}
@@ -826,8 +872,29 @@ export default function Schedule() {
         <link rel="icon" href="/pc_favicon.ico" />
       </Head>
       <NewHeader />
+
       <div className="flex flex-grow flex-col lg:flex-row overflow-hidden bg-gray-50 text-black">
         <div className="overflow-auto p-4 border-r bg-white shadow-md">
+          {userData &&
+          userData.googleCalendar &&
+          userData.googleCalendar.accessToken ? (
+            <div className="flex items-center mb-4 px-4 py-2 border border-green-500 text-green-600 bg-green-50 rounded-md space-x-2">
+              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M19 3h-1V1h-2v2H8V1H6v2H5c-1.1 0-2 .9-2 2v15c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 17H5V10h14v10zm0-12H5V5h14v3z" />
+              </svg>
+              <span className="font-medium">Google Calendar Connected!</span>
+            </div>
+          ) : (
+            <a
+              href="/api/googleCalendar"
+              className="hidden lg:inline-flex items-center space-x-2 border-gray-400 border text-gray-600 px-4 py-2 rounded-md my-4 shadow transition duration-200 hover:border-blue-600"
+              title="Connect your Google Calendar to automatically sync bookings to and update Pocketclass when times are blocked on Google Calendar"
+            >
+              <img className="w-5 h-5" src="/Google_Calendar_icon.svg" alt="Google Icon" />
+              <span className="font-medium">Connect to <b>Google Calendar</b></span>
+            </a>
+          )}
+
           <h2 className="text-2xl font-bold text-gray-700 mb-3">
             Appointment Duration
           </h2>
@@ -946,7 +1013,10 @@ export default function Schedule() {
                             }
                             options={timeOptions}
                             className="w-full min-w-[70px]"
-                            components={{ DropdownIndicator: () => null, IndicatorSeparator: () => null }}
+                            components={{
+                              DropdownIndicator: () => null,
+                              IndicatorSeparator: () => null,
+                            }}
                           />
                           <span>-</span>
                           <Select
@@ -963,7 +1033,10 @@ export default function Schedule() {
                             }
                             options={timeOptions}
                             className="w-full min-w-[70px]"
-                            components={{ DropdownIndicator: () => null, IndicatorSeparator: () => null }}
+                            components={{
+                              DropdownIndicator: () => null,
+                              IndicatorSeparator: () => null,
+                            }}
                           />
                           <button
                             onClick={() =>
@@ -978,8 +1051,9 @@ export default function Schedule() {
                           </button>
                           <button
                             onClick={() => assignClass(dayIndex, slotIndex)}
-                            className={`text-blue-400 ${slot.groupSlot ? "hidden" : ""
-                              } flex justify-center items-center hover:text-blue-600`}
+                            className={`text-blue-400 ${
+                              slot.groupSlot ? "hidden" : ""
+                            } flex justify-center items-center hover:text-blue-600`}
                             title="Assign Class"
                           >
                             <span className="material-symbols-outlined text-xs">
@@ -991,8 +1065,9 @@ export default function Schedule() {
 
                           <button
                             onClick={() => removeClass(dayIndex, slotIndex)}
-                            className={`text-red-500 flex justify-center items-center hover:text-red-600 ${slot.groupSlot ? "" : "hidden"
-                              }`}
+                            className={`text-red-500 flex justify-center items-center hover:text-red-600 ${
+                              slot.groupSlot ? "" : "hidden"
+                            }`}
                             title="Remove Class"
                           >
                             <span className="material-symbols-outlined text-xs">
@@ -1092,7 +1167,10 @@ export default function Schedule() {
                               maxHeight: "300px",
                             }),
                           }}
-                          components={{ DropdownIndicator: () => null, IndicatorSeparator: () => null }}
+                          components={{
+                            DropdownIndicator: () => null,
+                            IndicatorSeparator: () => null,
+                          }}
                         />
 
                         <span>-</span>
@@ -1116,12 +1194,16 @@ export default function Schedule() {
                               maxHeight: "300px",
                             }),
                           }}
-                          components={{ DropdownIndicator: () => null, IndicatorSeparator: () => null }}
+                          components={{
+                            DropdownIndicator: () => null,
+                            IndicatorSeparator: () => null,
+                          }}
                         />
                         <button
                           onClick={() => assignClass(dayIndex, slotIndex)}
-                          className={`text-blue-400 ${slot.groupSlot ? "hidden" : ""
-                            } flex justify-center items-center hover:text-blue-600`}
+                          className={`text-blue-400 ${
+                            slot.groupSlot ? "hidden" : ""
+                          } flex justify-center items-center hover:text-blue-600`}
                           title="Assign Class"
                         >
                           <span className="material-symbols-outlined text-xs">
@@ -1131,8 +1213,9 @@ export default function Schedule() {
 
                         <button
                           onClick={() => removeClass(dayIndex, slotIndex)}
-                          className={`text-red-500 flex justify-center items-center hover:text-red-600 ${slot.groupSlot ? "" : "hidden"
-                            }`}
+                          className={`text-red-500 flex justify-center items-center hover:text-red-600 ${
+                            slot.groupSlot ? "" : "hidden"
+                          }`}
                           title="Remove Class"
                         >
                           <span className="material-symbols-outlined text-xs">
@@ -1311,7 +1394,10 @@ export default function Schedule() {
                                 maxHeight: "300px",
                               }),
                             }}
-                            components={{ DropdownIndicator: () => null, IndicatorSeparator: () => null }}
+                            components={{
+                              DropdownIndicator: () => null,
+                              IndicatorSeparator: () => null,
+                            }}
                           />
 
                           <span>-</span>
@@ -1335,7 +1421,10 @@ export default function Schedule() {
                                 maxHeight: "300px",
                               }),
                             }}
-                            components={{ DropdownIndicator: () => null, IndicatorSeparator: () => null }}
+                            components={{
+                              DropdownIndicator: () => null,
+                              IndicatorSeparator: () => null,
+                            }}
                           />
                           <button
                             onClick={() =>
@@ -1352,8 +1441,9 @@ export default function Schedule() {
                             onClick={() =>
                               assignAdjustedClass(item.date, slotIndex)
                             }
-                            className={`text-blue-400 ${slot.groupSlot ? "hidden" : ""
-                              } flex justify-center items-center hover:text-blue-600`}
+                            className={`text-blue-400 ${
+                              slot.groupSlot ? "hidden" : ""
+                            } flex justify-center items-center hover:text-blue-600`}
                             title="Assign Class"
                           >
                             <span className="material-symbols-outlined text-xs">
@@ -1364,8 +1454,9 @@ export default function Schedule() {
                             onClick={() =>
                               removeAdjustedClass(item.date, slotIndex)
                             }
-                            className={`text-red-500 ${slot.groupSlot ? "" : "hidden"
-                              } flex justify-center items-center hover:text-red-600`}
+                            className={`text-red-500 ${
+                              slot.groupSlot ? "" : "hidden"
+                            } flex justify-center items-center hover:text-red-600`}
                             title="Remove Class"
                           >
                             <span className="material-symbols-outlined text-xs">
@@ -1462,7 +1553,10 @@ export default function Schedule() {
                               maxHeight: "300px",
                             }),
                           }}
-                          components={{ DropdownIndicator: () => null, IndicatorSeparator: () => null }}
+                          components={{
+                            DropdownIndicator: () => null,
+                            IndicatorSeparator: () => null,
+                          }}
                         />
 
                         <span>-</span>
@@ -1486,15 +1580,19 @@ export default function Schedule() {
                               maxHeight: "300px",
                             }),
                           }}
-                          components={{ DropdownIndicator: () => null, IndicatorSeparator: () => null }}
+                          components={{
+                            DropdownIndicator: () => null,
+                            IndicatorSeparator: () => null,
+                          }}
                         />
 
                         <button
                           onClick={() =>
                             assignAdjustedClass(item.date, slotIndex)
                           }
-                          className={`text-blue-400 ${slot.groupSlot ? "hidden" : ""
-                            } flex justify-center items-center hover:text-blue-600`}
+                          className={`text-blue-400 ${
+                            slot.groupSlot ? "hidden" : ""
+                          } flex justify-center items-center hover:text-blue-600`}
                           title="Assign Class"
                         >
                           <span className="material-symbols-outlined text-xs">
@@ -1505,8 +1603,9 @@ export default function Schedule() {
                           onClick={() =>
                             removeAdjustedClass(item.date, slotIndex)
                           }
-                          className={`text-red-500 ${slot.groupSlot ? "" : "hidden"
-                            } flex justify-center items-center hover:text-red-600`}
+                          className={`text-red-500 ${
+                            slot.groupSlot ? "" : "hidden"
+                          } flex justify-center items-center hover:text-red-600`}
                           title="Remove Class"
                         >
                           <span className="material-symbols-outlined text-xs">
@@ -1601,8 +1700,8 @@ export default function Schedule() {
               localizer={localizer}
               events={
                 temporaryEvent
-                  ? [...events.filter(e => !e.isVacation), temporaryEvent]
-                  : events.filter(e => !e.isVacation)
+                  ? [...events.filter((e) => !e.isVacation), temporaryEvent]
+                  : events.filter((e) => !e.isVacation)
               }
               startAccessor="start"
               endAccessor="end"
@@ -1611,10 +1710,10 @@ export default function Schedule() {
               eventPropGetter={(event) => ({
                 style: {
                   backgroundColor: event.color,
-                  fontSize: '12px'
+                  fontSize: "12px",
                 },
               })}
-              views={['month', 'week', 'day']}
+              views={["month", "week", "day"]}
               onView={(view) => setCurrentView(view)}
               components={{ toolbar: CustomToolbar }}
               onSelectSlot={handleSlotSelect}
@@ -1624,16 +1723,15 @@ export default function Schedule() {
             />
           </div>
           <div
-            className='
+            className="
     flex justify-end 
     dm1:static dm1:w-auto 
     fixed bottom-0 left-0 w-full 
     bg-white z-50
     pb-1
     dm1:px-0 px-3
-  '
-          >
-          </div>
+  "
+          ></div>
 
           {showPopup && selectedSlot && (
             <div
@@ -1646,10 +1744,11 @@ export default function Schedule() {
               <div className="relative bg-white p-6 rounded-xl z-[10000] shadow-lg w-[300px] popup dm1:w-[400px]" onClick={(e) => e.stopPropagation()}>
                 <h3>Add Availability</h3>
 
-                <div
-                  className="flex flex-col dm1:flex-row items-start mt-2 justify-start gap-2 py-2 text-sm rounded cursor-pointer"
-                >
-                  <span onClick={() => setShowDatePicker1(!showDatePicker1)} className="whitespace-nowrap border rounded px-4 py-1 min-h-[41px] bg-white shadow-sm cursor-pointer flex items-center">
+                <div className="flex flex-col dm1:flex-row items-start mt-2 justify-start gap-2 py-2 text-sm rounded cursor-pointer">
+                  <span
+                    onClick={() => setShowDatePicker1(!showDatePicker1)}
+                    className="whitespace-nowrap border rounded px-4 py-1 min-h-[41px] bg-white shadow-sm cursor-pointer flex items-center"
+                  >
                     {(() => {
                       const startDate = new Date(selectedSlot.start);
                       const endDate = new Date(selectedSlot.end);
@@ -1662,7 +1761,8 @@ export default function Schedule() {
                           day: "numeric",
                         });
 
-                      const isSameDay = startDate.toDateString() === endDate.toDateString();
+                      const isSameDay =
+                        startDate.toDateString() === endDate.toDateString();
 
                       return isSameDay
                         ? formatDate(startDate)
@@ -1674,11 +1774,18 @@ export default function Schedule() {
                       value={timeOptions.find(
                         (option) =>
                           option.value ===
-                          `${new Date(selectedSlot.start).getHours().toString().padStart(2, "0")}:${new Date(selectedSlot.start).getMinutes().toString().padStart(2, "0")}`
+                          `${new Date(selectedSlot.start)
+                            .getHours()
+                            .toString()
+                            .padStart(2, "0")}:${new Date(selectedSlot.start)
+                            .getMinutes()
+                            .toString()
+                            .padStart(2, "0")}`
                       )}
-
                       onChange={(selected) => {
-                        const [hours, minutes] = selected.value.split(":").map(Number);
+                        const [hours, minutes] = selected.value
+                          .split(":")
+                          .map(Number);
                         const updatedStart = new Date(selectedSlot.start);
 
                         updatedStart.setHours(hours);
@@ -1688,25 +1795,39 @@ export default function Schedule() {
 
                         setSelectedSlot((prev) => {
                           // Adjust the start and end times to ensure they are in the correct order
-                          const adjustedStart = updatedStart < prev.end ? updatedStart : prev.end;
-                          const adjustedEnd = updatedStart < prev.end ? prev.end : updatedStart;
+                          const adjustedStart =
+                            updatedStart < prev.end ? updatedStart : prev.end;
+                          const adjustedEnd =
+                            updatedStart < prev.end ? prev.end : updatedStart;
 
-                          const newSlot = { ...prev, start: adjustedStart, end: adjustedEnd };
+                          const newSlot = {
+                            ...prev,
+                            start: adjustedStart,
+                            end: adjustedEnd,
+                          };
 
                           // Update the input field for start time
-                          const startInput = document.getElementById("startTimeInput");
+                          const startInput =
+                            document.getElementById("startTimeInput");
                           if (startInput) {
-                            startInput.value = formatDateTimeLocal(adjustedStart);
+                            startInput.value =
+                              formatDateTimeLocal(adjustedStart);
                           }
 
                           // Set the temporary event with adjusted times
                           setTemporaryEvent({
-                            start: adjustedStart,  // Set the adjusted start time
-                            end: adjustedEnd,      // Set the adjusted end time
-                            title: `${adjustedStart.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })} - ${adjustedEnd.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`,
-                            color: "#D8F5B6",      // light green
+                            start: adjustedStart, // Set the adjusted start time
+                            end: adjustedEnd, // Set the adjusted end time
+                            title: `${adjustedStart.toLocaleTimeString([], {
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            })} - ${adjustedEnd.toLocaleTimeString([], {
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            })}`,
+                            color: "#D8F5B6", // light green
                           });
-                          return newSlot;  // Return the updated slot with adjusted start and end times
+                          return newSlot; // Return the updated slot with adjusted start and end times
                         });
 
                         // slotInfo = selectedSlot
@@ -1725,9 +1846,12 @@ export default function Schedule() {
                         control: () =>
                           "border rounded min-w-[70px] px-0 py-1 min-h-[36px] bg-white shadow-sm cursor-pointer",
                         option: ({ isFocused }) =>
-                          `px-2 py-1 cursor-pointer ${isFocused ? "bg-gray-100" : ""}`,
+                          `px-2 py-1 cursor-pointer ${
+                            isFocused ? "bg-gray-100" : ""
+                          }`,
                         singleValue: () => "text-sm",
-                        menu: () => "z-50 bg-white shadow-lg border rounded mt-1",
+                        menu: () =>
+                          "z-50 bg-white shadow-lg border rounded mt-1",
                       }}
                       components={{
                         DropdownIndicator: () => null,
@@ -1741,10 +1865,18 @@ export default function Schedule() {
                       value={timeOptions.find(
                         (option) =>
                           option.value ===
-                          `${new Date(selectedSlot.end).getHours().toString().padStart(2, "0")}:${new Date(selectedSlot.end).getMinutes().toString().padStart(2, "0")}`
+                          `${new Date(selectedSlot.end)
+                            .getHours()
+                            .toString()
+                            .padStart(2, "0")}:${new Date(selectedSlot.end)
+                            .getMinutes()
+                            .toString()
+                            .padStart(2, "0")}`
                       )}
                       onChange={(selected) => {
-                        const [hours, minutes] = selected.value.split(":").map(Number);
+                        const [hours, minutes] = selected.value
+                          .split(":")
+                          .map(Number);
                         const updatedEnd = new Date(selectedSlot.end);
 
                         updatedEnd.setHours(hours);
@@ -1754,25 +1886,39 @@ export default function Schedule() {
 
                         setSelectedSlot((prev) => {
                           // Adjust the start and end times to ensure they are in the correct order
-                          const adjustedStart = updatedEnd < prev.start ? updatedEnd : prev.start;
-                          const adjustedEnd = updatedEnd < prev.start ? prev.start : updatedEnd;
+                          const adjustedStart =
+                            updatedEnd < prev.start ? updatedEnd : prev.start;
+                          const adjustedEnd =
+                            updatedEnd < prev.start ? prev.start : updatedEnd;
 
-                          const newSlot = { ...prev, start: adjustedStart, end: adjustedEnd };
+                          const newSlot = {
+                            ...prev,
+                            start: adjustedStart,
+                            end: adjustedEnd,
+                          };
 
                           // Update the input field for start time
-                          const startInput = document.getElementById("startTimeInput");
+                          const startInput =
+                            document.getElementById("startTimeInput");
                           if (startInput) {
-                            startInput.value = formatDateTimeLocal(adjustedStart);
+                            startInput.value =
+                              formatDateTimeLocal(adjustedStart);
                           }
 
                           // Set the temporary event with adjusted times
                           setTemporaryEvent({
-                            start: adjustedStart,  // Set the adjusted start time
-                            end: adjustedEnd,      // Set the adjusted end time
-                            title: `${adjustedStart.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })} - ${adjustedEnd.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`,
-                            color: "#D8F5B6",      // light green
+                            start: adjustedStart, // Set the adjusted start time
+                            end: adjustedEnd, // Set the adjusted end time
+                            title: `${adjustedStart.toLocaleTimeString([], {
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            })} - ${adjustedEnd.toLocaleTimeString([], {
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            })}`,
+                            color: "#D8F5B6", // light green
                           });
-                          return newSlot;  // Return the updated slot with adjusted start and end times
+                          return newSlot; // Return the updated slot with adjusted start and end times
                         });
                       }}
                       options={timeOptions}
@@ -1781,9 +1927,12 @@ export default function Schedule() {
                         control: () =>
                           "border rounded px-0 py-1 min-w-[70px] focus:outline-none focus:ring-0 focus:border-none min-h-[36px] bg-white shadow-sm cursor-pointer",
                         option: ({ isFocused }) =>
-                          `px-2 py-1 cursor-pointer ${isFocused ? "bg-gray-100" : ""}`,
+                          `px-2 py-1 cursor-pointer ${
+                            isFocused ? "bg-gray-100" : ""
+                          }`,
                         singleValue: () => "text-sm",
-                        menu: () => "z-50 bg-white shadow-lg border rounded mt-1",
+                        menu: () =>
+                          "z-50 bg-white shadow-lg border rounded mt-1",
                       }}
                       components={{
                         DropdownIndicator: () => null,
@@ -1801,23 +1950,35 @@ export default function Schedule() {
                         onSelect={(date) => {
                           if (!date || !selectedSlot) return;
 
-                          const startInput = document.getElementById("startTimeInput");
-                          const endInput = document.getElementById("endTimeInput");
+                          const startInput =
+                            document.getElementById("startTimeInput");
+                          const endInput =
+                            document.getElementById("endTimeInput");
 
                           const oldStart = new Date(selectedSlot.start);
                           const oldEnd = new Date(selectedSlot.end);
 
                           const updatedStart = new Date(date);
-                          updatedStart.setHours(oldStart.getHours(), oldStart.getMinutes(), 0, 0);
+                          updatedStart.setHours(
+                            oldStart.getHours(),
+                            oldStart.getMinutes(),
+                            0,
+                            0
+                          );
 
                           const updatedEnd = new Date(date);
-                          updatedEnd.setHours(oldEnd.getHours(), oldEnd.getMinutes(), 0, 0);
+                          updatedEnd.setHours(
+                            oldEnd.getHours(),
+                            oldEnd.getMinutes(),
+                            0,
+                            0
+                          );
 
                           const pad = (n) => String(n).padStart(2, "0");
                           const format = (d) =>
-                            `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(
-                              d.getHours()
-                            )}:${pad(d.getMinutes())}`;
+                            `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(
+                              d.getDate()
+                            )}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 
                           if (startInput && endInput) {
                             startInput.value = format(updatedStart);
@@ -1860,7 +2021,7 @@ export default function Schedule() {
                   </div>
                 )}
 
-                <label style={{ "display": "none" }}>
+                <label style={{ display: "none" }}>
                   Start:
                   <input
                     id="startTimeInput"
@@ -1869,7 +2030,7 @@ export default function Schedule() {
                   />
                 </label>
 
-                <label style={{ "display": "none" }}>
+                <label style={{ display: "none" }}>
                   End:
                   <input
                     id="endTimeInput"
@@ -1880,14 +2041,20 @@ export default function Schedule() {
 
                 <label>
                   Repeat:
-                  <select id="repeatSelect" className="border rounded border-gray-300">
+                  <select
+                    id="repeatSelect"
+                    className="border rounded border-gray-300"
+                  >
                     <option>Does not repeat</option>
                     <option>Daily</option>
                     <option>
                       Weekly on{" "}
-                      {new Date(selectedSlot.start).toLocaleDateString("en-US", {
-                        weekday: "long",
-                      })}
+                      {new Date(selectedSlot.start).toLocaleDateString(
+                        "en-US",
+                        {
+                          weekday: "long",
+                        }
+                      )}
                     </option>
                     <option>Every weekday (Monday to Friday)</option>
                   </select>
@@ -1933,42 +2100,62 @@ export default function Schedule() {
                     }}
                   />
 
-                  <label htmlFor="groupCheckbox" style={{ margin: 0, fontSize: "14px" }}>
+                  <label
+                    htmlFor="groupCheckbox"
+                    style={{ margin: 0, fontSize: "14px" }}
+                  >
                     Group class
                   </label>
                 </div>
 
-
-                <button className="border border-red-500 text-red-500 rounded-md hover:bg-red-50 mr-4 w-fit" style={{ padding: '8px 14px' }} onClick={() => {
-                  setShowPopup(false)
-                  setTemporaryEvent(null);
-                }}>Close</button>
+                <button
+                  className="border border-red-500 text-red-500 rounded-md hover:bg-red-50 mr-4 w-fit"
+                  style={{ padding: "8px 14px" }}
+                  onClick={() => {
+                    setShowPopup(false);
+                    setTemporaryEvent(null);
+                  }}
+                >
+                  Close
+                </button>
                 <button
                   className="bg-red-500 text-white rounded-md hover:bg-red-600"
-                  style={{ padding: '9px 20px' }}
+                  style={{ padding: "9px 20px" }}
                   onClick={() => {
-                    const startTime = selectedSlot.start.toLocaleTimeString("en-US", {
-                      hour: "2-digit",
-                      minute: "2-digit",
-                      hour12: false,
-                    });
+                    const startTime = selectedSlot.start.toLocaleTimeString(
+                      "en-US",
+                      {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                        hour12: false,
+                      }
+                    );
 
-                    const endTime = selectedSlot.end.toLocaleTimeString("en-US", {
-                      hour: "2-digit",
-                      minute: "2-digit",
-                      hour12: false,
-                    });
+                    const endTime = selectedSlot.end.toLocaleTimeString(
+                      "en-US",
+                      {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                        hour12: false,
+                      }
+                    );
 
                     const date = selectedSlot.start.toISOString().slice(0, 10);
 
-                    const newSlot = { startTime, endTime, ...(isGroup && { groupSlot: true }) };
+                    const newSlot = {
+                      startTime,
+                      endTime,
+                      ...(isGroup && { groupSlot: true }),
+                    };
 
                     const updateAvailability = (daysArray) => {
                       setGeneralAvailability((prev) => {
                         const updated = [...prev];
 
                         daysArray.forEach((day) => {
-                          const index = updated.findIndex((item) => item.day === day);
+                          const index = updated.findIndex(
+                            (item) => item.day === day
+                          );
 
                           if (index === -1) {
                             updated.push({ day, slots: [newSlot] });
@@ -1987,16 +2174,22 @@ export default function Schedule() {
                       setShowPopup(false);
                     };
 
-                    const repeatOption = document.getElementById("repeatSelect").value;
+                    const repeatOption =
+                      document.getElementById("repeatSelect").value;
 
                     if (repeatOption === "Does not repeat") {
                       setAdjustedAvailability((prev) => {
-                        const existingEntry = prev.find((item) => item.date === date);
+                        const existingEntry = prev.find(
+                          (item) => item.date === date
+                        );
 
                         let updatedAvailability;
 
                         if (!existingEntry) {
-                          updatedAvailability = [...prev, { date, slots: [newSlot] }];
+                          updatedAvailability = [
+                            ...prev,
+                            { date, slots: [newSlot] },
+                          ];
                         } else {
                           updatedAvailability = prev.map((item) =>
                             item.date === date
@@ -2020,10 +2213,20 @@ export default function Schedule() {
                         "Friday",
                         "Saturday",
                       ]);
-                    } else if (repeatOption === "Every weekday (Monday to Friday)") {
-                      updateAvailability(["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"]);
+                    } else if (
+                      repeatOption === "Every weekday (Monday to Friday)"
+                    ) {
+                      updateAvailability([
+                        "Monday",
+                        "Tuesday",
+                        "Wednesday",
+                        "Thursday",
+                        "Friday",
+                      ]);
                     } else if (repeatOption.startsWith("Weekly")) {
-                      const weekday = new Date(`${date}T12:00:00`).toLocaleDateString("en-US", {
+                      const weekday = new Date(
+                        `${date}T12:00:00`
+                      ).toLocaleDateString("en-US", {
                         weekday: "long",
                       });
                       updateAvailability([weekday]);
@@ -2037,7 +2240,6 @@ export default function Schedule() {
                 >
                   Save
                 </button>
-
               </div>
             </div>
           )}

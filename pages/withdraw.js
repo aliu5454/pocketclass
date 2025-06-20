@@ -1,4 +1,28 @@
 import React, { useEffect, useFetch } from "react";
+import { Line } from "react-chartjs-2";
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  Title,
+  Tooltip,
+  Legend,
+} from 'chart.js';
+import * as XLSX from 'xlsx';
+import { jsPDF } from 'jspdf';
+import 'jspdf-autotable';
+
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  Title,
+  Tooltip,
+  Legend
+);
 
 import PaymentSelect from "./../components/PaymentSelect";
 import dynamic from "next/dynamic";
@@ -49,6 +73,20 @@ function Balance({ }) {
   const [currencySelected, setCurrencySelected] = React.useState("cad");
   const [pendingAmount, setPendingAmount] = React.useState(0);
   const [bookingsData, setBookingsData] = React.useState(null);
+  const [currentMonthEarnings, setCurrentMonthEarnings] = React.useState(0);
+  const [previousMonthEarnings, setPreviousMonthEarnings] = React.useState(0);
+  const [chartData, setChartData] = React.useState({
+    labels: [],
+    datasets: [
+      {
+        label: 'Funds Transferred',
+        data: [],
+        borderColor: 'rgb(75, 192, 192)',
+        tension: 0.1
+      }
+    ]
+  });
+
   const fetchEverthing = async () => {
     toast.loading("Loading Balance and Details...");
     //get account from the firebase
@@ -248,6 +286,42 @@ function Balance({ }) {
     setFuturePayments(totalFuturePayments / 100);
     setBookingsData(bookingsData);
     setPendingPayments(totalPendingAmount / 100);
+
+    // Calculate monthly earnings
+    const now = moment();
+    const thirtyDaysAgo = moment().subtract(30, 'days');
+    const sixtyDaysAgo = moment().subtract(60, 'days');
+
+    const currentMonthTotal = bookingsData
+      .filter(booking => moment(booking.startTime).isBetween(thirtyDaysAgo, now))
+      .reduce((sum, booking) => sum + (booking.pendingAmount || 0), 0);
+
+    const previousMonthTotal = bookingsData
+      .filter(booking => moment(booking.startTime).isBetween(sixtyDaysAgo, thirtyDaysAgo))
+      .reduce((sum, booking) => sum + (booking.pendingAmount || 0), 0);
+
+    setCurrentMonthEarnings(currentMonthTotal / 100);
+    setPreviousMonthEarnings(previousMonthTotal / 100);
+
+    // Update chart data when bookings data is processed
+    if (bookingsData) {
+      const sortedBookings = [...bookingsData].sort((a, b) => new Date(a.startTime) - new Date(b.startTime));
+      const labels = sortedBookings.map(booking => moment(booking.startTime).format('MMM DD'));
+      const data = sortedBookings.map(booking => booking.pendingAmount / 100);
+
+      setChartData({
+        labels,
+        datasets: [
+          {
+            label: 'Funds Transferred',
+            data,
+            borderColor: 'rgb(75, 192, 192)',
+            tension: 0.1
+          }
+        ]
+      });
+    }
+
     Promise.all([getBalanceObject, banks, payouts, getHistory]).finally(() => {
       toast.dismiss();
     });
@@ -310,6 +384,64 @@ function Balance({ }) {
     }
   };
 
+  const exportToXLSX = () => {
+    const data = bookingsData.map(booking => ({
+      Date: moment(booking.startTime).format("DD-MM-YY / hh:mm A"),
+      Amount: `$${(booking.pendingAmount / 100).toFixed(2)}`,
+      Type: moment(booking.startTime).format("YY DD MM") === moment().format("YY DD MM") && !booking.isTransfered
+        ? "Available"
+        : booking.isTransfered
+          ? "Sent to Stripe"
+          : "Pending"
+    }));
+
+    const ws = XLSX.utils.json_to_sheet(data);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Transactions");
+    XLSX.writeFile(wb, "transactions.xlsx");
+  };
+
+  const exportToPDF = () => {
+    const doc = new jsPDF();
+    
+    // Add title
+    doc.setFontSize(16);
+    doc.text("Transaction History", 14, 15);
+    
+    // Add date
+    doc.setFontSize(10);
+    doc.text(`Generated on: ${moment().format("DD-MM-YYYY HH:mm")}`, 14, 22);
+
+    const data = bookingsData.map(booking => [
+      moment(booking.startTime).format("DD-MM-YY / hh:mm A"),
+      `$${(booking.pendingAmount / 100).toFixed(2)}`,
+      moment(booking.startTime).format("YY DD MM") === moment().format("YY DD MM") && !booking.isTransfered
+        ? "Available"
+        : booking.isTransfered
+          ? "Sent to Stripe"
+          : "Pending"
+    ]);
+
+    doc.autoTable({
+      head: [['Date', 'Amount', 'Type']],
+      body: data,
+      startY: 30,
+      theme: 'grid',
+      styles: {
+        fontSize: 8,
+        cellPadding: 2,
+      },
+      headStyles: {
+        fillColor: [41, 128, 185],
+        textColor: 255,
+        fontSize: 10,
+        fontStyle: 'bold',
+      },
+    });
+
+    doc.save("transactions.pdf");
+  };
+
   return (
     <>
       <div className="mx-auto">
@@ -352,9 +484,58 @@ function Balance({ }) {
 
               <div className="p-6 pt-2">
                 <form action="">
-                  <div className="space-y-4 md:space-y-0 md:space-x-4 ">
-                    <div className="flex flex-row gap-4 flex-wrap justify-between  bg-white p-6 ">
-                      <div className="flex-grow bg-gray-100 p-4 py-3 rounded-lg">
+                  <div className="flex flex-col gap-4 items-center md:flex-row">
+                    {/* Chart Section - Takes 2/3 of the space */}
+                    <div className="w-full md:w-2/3 bg-white p-4 rounded-lg">
+                      <h3 className="text-lg font-semibold mb-4">Funds Transfer History</h3>
+                      <div className="h-[300px]">
+                        <Line 
+                          data={chartData}
+                          options={{
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                              legend: {
+                                position: 'top',
+                              },
+                              title: {
+                                display: true,
+                                text: 'Funds Transferred Over Time'
+                              }
+                            }
+                          }}
+                        />
+                      </div>
+                    </div>
+
+                    {/* Funds Section - Takes 1/3 of the space */}
+                    <div className="w-full md:w-1/3 flex flex-col gap-4">
+                      <div className="bg-gray-100 p-4 py-3 rounded-lg">
+                        <p className="text-sm font-semibold mb-1 text-gray-700">
+                          Total Funds
+                        </p>
+                        <h3 className="text-2xl font-bold text-blue-500">
+                          {"$" + (futurePayments + pendingPayments + accountBalance)}
+                        </h3>
+                      </div>
+                      <div className="bg-gray-100 p-4 py-3 rounded-lg">
+                        <p className="text-sm font-semibold mb-1 text-gray-700">
+                          Earnings This Month
+                        </p>
+                        <h3 className="text-2xl font-bold text-green-500">
+                          {"$" + currentMonthEarnings.toFixed(2)}
+                        </h3>
+                        <p className="text-sm text-gray-600">
+                          {previousMonthEarnings > 0 ? (
+                            <span className={currentMonthEarnings >= previousMonthEarnings ? "text-green-500" : "text-red-500"}>
+                              {((currentMonthEarnings - previousMonthEarnings) / previousMonthEarnings * 100).toFixed(1)}% vs last month
+                            </span>
+                          ) : (
+                            <span className="text-gray-500"></span>
+                          )}
+                        </p>
+                      </div>
+                      <div className="bg-gray-100 p-4 py-3 rounded-lg">
                         <p className="text-sm font-semibold mb-1 text-gray-700">
                           Pending Funds
                         </p>
@@ -362,15 +543,7 @@ function Balance({ }) {
                           {"$" + futurePayments}
                         </h3>
                       </div>
-                      <div className="flex-grow bg-gray-100 p-4 py-3 rounded-lg">
-                        <p className="text-sm font-semibold mb-1 text-gray-700">
-                          Available Funds
-                        </p>
-                        <h3 className="text-2xl font-bold text-green-500">
-                          {"$" + pendingPayments}
-                        </h3>
-                      </div>
-                      <div className="flex-grow bg-gray-100 p-4 py-3 rounded-lg">
+                      <div className="bg-gray-100 p-4 py-3 rounded-lg">
                         <p className="text-sm font-semibold mb-1 text-gray-700">
                           Sent to Stripe
                         </p>
@@ -379,14 +552,15 @@ function Balance({ }) {
                         </h3>
                       </div>
                     </div>
-                    {/* A Notification saying "Incoming Payments" will be processed at End of Day */}
-                    <div className="bg-logo-red text-white px-4 py-2 rounded-lg">
-                      <div className="flex items-center text-base">
-                        <InformationCircleIcon className="h-5 w-5 mr-2" />
-                        <p>
-                          Available Funds will be sent to Stripe at the end of the day(12 AM UTC).
-                        </p>
-                      </div>
+                  </div>
+
+                  {/* Notification Section */}
+                  <div className="mt-4 bg-logo-red text-white px-4 py-2 rounded-lg">
+                    <div className="flex items-center text-base">
+                      <InformationCircleIcon className="h-5 w-5 mr-2" />
+                      <p>
+                        Available Funds will be sent to Stripe at the end of the day(12 AM UTC).
+                      </p>
                     </div>
                   </div>
                 </form>
@@ -396,9 +570,54 @@ function Balance({ }) {
           <div className="col-lg-6">
             <div className="card">
               <div className="card-header">
-                <h4 className="text-3xl font-extrabold text-center py-5">
-                  My Balance
-                </h4>
+                <div className="flex justify-between items-center">
+                  <h4 className="text-3xl font-extrabold text-center py-5">
+                    My Balance
+                  </h4>
+                  <div className="relative">
+                    <button
+                      className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center"
+                      onClick={() => setIsOpen(!isOpen)}
+                    >
+                      Export
+                      <svg
+                        className="w-4 h-4 ml-2"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth="2"
+                          d="M19 9l-7 7-7-7"
+                        />
+                      </svg>
+                    </button>
+                    {isOpen && (
+                      <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg z-10">
+                        <button
+                          className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                          onClick={() => {
+                            exportToXLSX();
+                            setIsOpen(false);
+                          }}
+                        >
+                          Export to XLSX
+                        </button>
+                        <button
+                          className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                          onClick={() => {
+                            exportToPDF();
+                            setIsOpen(false);
+                          }}
+                        >
+                          Export to PDF
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </div>
               </div>
               <div className="card-body">
                 {!bookingsData ? (

@@ -38,8 +38,8 @@
     "geolib": "^3.3.3",
     "googleapis": "^144.0.0",
     "ics": "^3.8.1",
-    "jspdf": "^2.5.1",
-    "jspdf-autotable": "^3.8.2",
+    "jspdf": "^2.5.2",
+    "jspdf-autotable": "^3.8.4",
     "jspdf-invoice-template": "^1.4.3",
     "leaflet-geosearch": "^4.0.0",
     "mapbox-gl": "^2.15.0",
@@ -73,6 +73,7 @@
     "swiper": "^8.4.5",
     "tailwind-scrollbar-hide": "^1.1.7",
     "uuid": "^9.0.1",
+    "xlsx": "^0.18.5",
     "yup": "^1.6.1"
   },
   "devDependencies": {
