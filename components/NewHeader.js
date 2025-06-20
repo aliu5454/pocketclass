@@ -257,10 +257,14 @@ const NewHeader = ({ isHome = true, activeCategory, handleCategorySelection }) =
           </div>
         )}
 
-      <div className={`flex flex-col md:gap-1 bg-white pb-4 md:pb-[2rem] sticky top-0 w-full dm2:z-50 z-[900] transition-all duration-500 ${isMenuShrunk ? 'h-[90px] dm2:h-[100px]': (`${isMenuSmall ? 'h-auto dm2:h-[100px]' : 'h-auto'}`)}`}>
+      <div className={`flex flex-col md:gap-1 bg-white pb-4 md:pb-[2rem] sticky top-0 w-full ${
+                      router.pathname==='/' ? "z-[9000]" : "dm2:z-50 z-[9000]"
+       } transition-all duration-500 ${isMenuShrunk ? 'h-[90px] dm2:h-[100px]': (`${isMenuSmall ? 'h-auto dm2:h-[100px]' : 'h-auto'}`)}`}>
         {/*NavBar Top Part*/}
-        <div className="top-0 max-md:pt-4 max-md:pb-3 py-6 dm2:z-50 z-[900] box-border flex justify-between items-center flex-row gap-2 w-[100.00%] section-spacing">
-          <Link className="cursor-pointer" href="/">
+        <div className={`${
+                      router.pathname==='/' ? "z-[9000]" : "dm2:z-50 z-[9000]"
+        }relative top-0 max-md:pt-4 max-md:pb-3 py-6  box-border flex justify-between items-center flex-row gap-2 w-[100.00%] section-spacing`}>
+          <Link className="left-section cursor-pointer" href="/">
             <img
               src="/assets/image_5c0480a2.png"
               className="cursor-pointer h-12 object-contain w-[117px] md:w-36 lg:w-44 box-border block border-[none]"
@@ -268,7 +272,7 @@ const NewHeader = ({ isHome = true, activeCategory, handleCategorySelection }) =
           </Link>
 
           {/* Category Buttons */}
-             <div className="hidden md:block">
+             <div className="absolute left-1/2 transform -translate-x-[65%] hidden md:block">
                <div className={`transition duration-500 ${isMenuShrunk || isMenuSmall ? '-translate-y-[600%]' : ''}`}>
                  <div className="flex space-x-2.5 items-center">
                    {categoryData.map((category) => (
@@ -300,7 +304,9 @@ const NewHeader = ({ isHome = true, activeCategory, handleCategorySelection }) =
           </div>
 
 
-          <div className="flex justify-start items-center flex-row gap-4">
+          <div className={`right-section ml-auto flex justify-start items-center flex-row gap-4 ${
+                      router.pathname==='/' ? "z-[990]" : "dm2:z-50 z-[900]"}
+                    `}>
             {!loading ? (
               user ? (
                 <div className="flex items-center gap-4">
@@ -337,7 +343,9 @@ const NewHeader = ({ isHome = true, activeCategory, handleCategorySelection }) =
                   {user && <Notifications user={user} />}
 
                   <div
-                    className="relative flex gap-2 items-center space-x-2 border-2 p-1 md:p-2 rounded-full hover:bg-gray-100 cursor-pointer dm2:z-50 z-[900]"
+                    className={`relative flex gap-2 items-center space-x-2 border-2 p-1 md:p-2 rounded-full hover:bg-gray-100 cursor-pointer ${
+                      router.pathname==='/' ? "z-[990]" : "dm2:z-50 z-[900]"
+                    }`}
                     onClick={toggleDropDown}
                   >
                     <MenuIcon className="h-6 cursor-pointer ml-1" />
@@ -352,7 +360,8 @@ const NewHeader = ({ isHome = true, activeCategory, handleCategorySelection }) =
                     )}
 
                     {showDropDown && (
-                      <div className="dropDown bg-white absolute top-[130%] right-3 rounded-md shadow-2xl h-auto w-[200px] p-5 z-[700]">
+                      <div className={`dropDown bg-white absolute top-[130%] right-3 rounded-md shadow-2xl h-auto w-[200px] p-5 ${
+                      router.pathname==='/' ? "z-[990]" : "dm2:z-50 z-[900]"}`}>
                         <ul>
                           <li className="my-2  hover:text-logo-red hover:scale-105 transition transform duration-200 ease-out active:scale-90">
                             <Link href={`/profile/${user.uid}`}>Profile</Link>

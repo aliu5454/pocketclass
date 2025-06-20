@@ -18,6 +18,7 @@ import {
   deleteDoc,
   Timestamp,
   serverTimestamp,
+  increment
 } from "firebase/firestore";
 import moment from "moment-timezone";
 import { loadStripe } from "@stripe/stripe-js";
@@ -52,6 +53,7 @@ export default function index({
   const router = useRouter();
   const { id } = router.query;
   const [timer, setTimer] = useState(null);
+  const [agreeToTerms, setAgreeToTerms] = useState(true);
 
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [schedule, setSchedule] = useState({
@@ -276,7 +278,6 @@ export default function index({
   useEffect(() => {
     const fetchData = async () => {
       if (!instructorId || !classId) return;
-      console.log(classId);
 
       let scheduleData = null;
 
@@ -428,7 +429,6 @@ export default function index({
         (classData?.groupSize || 0) - totalBooked,
         0
       );
-      console.log(remainingSlots);
       return remainingSlots;
     };
 
@@ -617,6 +617,7 @@ export default function index({
 
   const handleSubmit = async (price, payment_intent_id) => {
     const bookingData = {
+      isAgreedToTerms: agreeToTerms,
       student_id: studentId,
       instructor_id: instructorId,
       class_id: classId,
@@ -791,9 +792,8 @@ export default function index({
       timeZone: timeZone ? timeZone : "America/Toronto",
     });
 
-    const recipientEmails = `${user?.email}, ${instructorData.email}, ${
-      mode === "Group" ? groupEmails.join(",") : ""
-    }`;
+    const recipientEmails = `${user?.email}, ${instructorData.email}, ${mode === "Group" ? groupEmails.join(",") : ""
+      }`;
     const icsContent = `BEGIN:VCALENDAR
 VERSION:2.0
 PRODID:-//Pocketclass//NONSGML v1.0//EN
@@ -807,9 +807,8 @@ X-LIC-LOCATION:${timeZone || "America/Toronto"}
 DTSTART;TZID=${timeZone || "America/Toronto"}:${formatDateTime(startDateTime)}
 DTEND;TZID=${timeZone || "America/Toronto"}:${formatDateTime(endDateTime)}
 LOCATION:${location}
-ORGANIZER;CN=${instructorData.firstName} ${
-      instructorData.lastName
-    }:MAILTO:${organizer}
+ORGANIZER;CN=${instructorData.firstName} ${instructorData.lastName
+      }:MAILTO:${organizer}
 STATUS:CONFIRMED
 ${meetingLink ? `X-GOOGLE-CONFERENCE:${meetingLink}` : ""}
 END:VEVENT
@@ -825,9 +824,8 @@ END:VCALENDAR`.trim();
     const htmlContent = `
       <div>
 
-      ${
-        meetingLink
-          ? `<div style="margin-top: 20px; padding: 6px 34px; box-sizing: border-box; border: 1px solid #ddd; background-color: #ffffff; border-radius: 8px; display: inline-block; width: 100%;">
+      ${meetingLink
+        ? `<div style="margin-top: 20px; padding: 6px 34px; box-sizing: border-box; border: 1px solid #ddd; background-color: #ffffff; border-radius: 8px; display: inline-block; width: 100%;">
               <p style="font-size: 16px; color: #333; margin-bottom: 10px;">
                 Join the meeting for your class <strong>${classData.Name}</strong> with <strong>${instructorData.firstName} ${instructorData.lastName}</strong>.
               </p>
@@ -839,14 +837,13 @@ END:VCALENDAR`.trim();
                 <li style="font-size: 14px; color: #5f5f5f; margin-bottom: 5px;">Student: ${user?.email}</li>
               </ul>
             </div>`
-          : ""
+        : ""
       }
       <div style="font-family: Arial, sans-serif; color: #333;">
         <h2 style="color: #E73F2B;">New Booking Confirmation</h2>
         <p>Hello,</p>
-        <p>We are excited to confirm a new booking for the class <strong>${
-          classData.Name
-        }</strong>!</p>
+        <p>We are excited to confirm a new booking for the class <strong>${classData.Name
+      }</strong>!</p>
         <h3>Booking Details:</h3>
         <table style="width: 100%; border-collapse: collapse;" border="1">
           <tr>
@@ -867,24 +864,21 @@ END:VCALENDAR`.trim();
           </tr>
           <tr>
             <td style="padding: 8px;"><strong>Time Zone:</strong></td>
-            <td style="padding: 8px;">${
-              timeZone ? timeZone : "America/Toronto"
-            }</td>
+            <td style="padding: 8px;">${timeZone ? timeZone : "America/Toronto"
+      }</td>
           </tr>
           <tr>
             <td style="padding: 8px;"><strong>Price:</strong></td>
-            <td style="padding: 8px;">${
-              mode === "Group" ? classData.groupPrice : classData.Price
-            }</td>
+            <td style="padding: 8px;">${mode === "Group" ? classData.groupPrice : classData.Price
+      }</td>
           </tr>
-          ${
-            meetingLink
-              ? `<tr>
+          ${meetingLink
+        ? `<tr>
             <td style="padding: 8px;"><strong>Meeting Link:</strong></td>
             <td style="padding: 8px;"><a href="${meetingLink}">${meetingLink}</a></td>
           </tr>`
-              : ""
-          }
+        : ""
+      }
         </table>
         <p>Thank you for choosing <strong>Pocketclass</strong>!</p>
         <p style="color: #555;">Best Regards,<br>Pocketclass Team</p>
@@ -960,8 +954,54 @@ END:VCALENDAR`.trim();
       }
     }
     if (!user && !userLoading) {
-      toast.error("Please login to book a slot.");
-      return;
+      setStripeLoading(true);
+      const packagePrice1 = selectedPackage?.num_sessions
+      ? selectedPackage?.Price -
+      ((selectedPackage?.Discount
+        ? selectedPackage.Discount
+        : selectedPackage?.discountPercentage) *
+        selectedPackage?.Price) /
+      100
+      : selectedSlot.classId
+        ? classData.groupPrice
+        : classData.Price;
+
+    const actualPrice1 = selectedPackage?.num_sessions
+      ? packagePrice1
+      : isGroup
+        ? classData.groupPrice * numberOfGroupMembers
+        : classData.Price;
+
+    let finalPrice1 = actualPrice1;
+
+    if (discountType === "percentage") {
+      const discountAmount = ((finalPrice1 * discount) / 100).toFixed(2);
+      finalPrice1 -= discountAmount;
+    } else if (discountType === "Fixed") {
+      finalPrice1 -= discount;
+    }
+
+    const response1 = await fetch("/api/create-stripe-session", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        price: finalPrice1,
+      }),
+    });
+
+    const data1 = await response1.json();
+
+    if (data1?.clientSecret) {
+      setStripeLoading(false);
+
+      setStripeOptions({
+        clientSecret: data1.clientSecret,
+        bookingRef: bookingRef?.id,
+      });
+    }
+    setStripeLoading(false);
+    setBookLoading(true);
+    return
     }
 
     if (packageClasses > 0 && selectedPackage === "Credits") {
@@ -1020,9 +1060,10 @@ END:VCALENDAR`.trim();
         }
         return 0;
       });
-    }, 1000); 
+    }, 1000);
 
     const bookingData = {
+      isAgreedToTerms: agreeToTerms,
       student_id: studentId,
       instructor_id: instructorId,
       class_id: classId,
@@ -1107,20 +1148,20 @@ END:VCALENDAR`.trim();
     const bookingRef = await addDoc(collection(db, "Bookings"), bookingData);
     const packagePrice = selectedPackage?.num_sessions
       ? selectedPackage?.Price -
-        ((selectedPackage?.Discount
-          ? selectedPackage.Discount
-          : selectedPackage?.discountPercentage) *
-          selectedPackage?.Price) /
-          100
+      ((selectedPackage?.Discount
+        ? selectedPackage.Discount
+        : selectedPackage?.discountPercentage) *
+        selectedPackage?.Price) /
+      100
       : selectedSlot.classId
-      ? classData.groupPrice
-      : classData.Price;
+        ? classData.groupPrice
+        : classData.Price;
 
     const actualPrice = selectedPackage?.num_sessions
       ? packagePrice
       : isGroup
-      ? classData.groupPrice * numberOfGroupMembers
-      : classData.Price;
+        ? classData.groupPrice * numberOfGroupMembers
+        : classData.Price;
 
     let finalPrice = actualPrice;
 
@@ -1264,13 +1305,12 @@ END:VCALENDAR`.trim();
                     key={i}
                     disabled={slot?.isBooked}
                     onClick={() => handleSlotClick(slot.date, slot)}
-                    className={`${baseClasses} ${
-                      slot?.isBooked
+                    className={`${baseClasses} ${slot?.isBooked
                         ? disabledClasses
                         : isSelected
-                        ? selectedClasses
-                        : `bg-gray-100 cursor-pointer ${hoverClasses}`
-                    }`}
+                          ? selectedClasses
+                          : `bg-gray-100 cursor-pointer ${hoverClasses}`
+                      }`}
                   >
                     {slot.startTime} - {slot.endTime}
                   </button>
@@ -1299,13 +1339,12 @@ END:VCALENDAR`.trim();
                     key={i}
                     disabled={slot.emptyClasses < 1}
                     onClick={() => handleSlotClick(slot.date, slot)}
-                    className={`${baseClasses} ${
-                      slot.emptyClasses < 1
+                    className={`${baseClasses} ${slot.emptyClasses < 1
                         ? disabledClasses
                         : isSelected
-                        ? selectedClasses
-                        : `bg-gray-100 cursor-pointer ${hoverClasses}`
-                    }`}
+                          ? selectedClasses
+                          : `bg-gray-100 cursor-pointer ${hoverClasses}`
+                      }`}
                   >
                     {slot.startTime} - {slot.endTime}
                   </button>
@@ -1373,9 +1412,8 @@ END:VCALENDAR`.trim();
             <div className="flex flex-col justify-start gap-3 items-center overflow-x-auto mb-3 md:flex-row">
               <button
                 onClick={() => setSelectedPackage(null)}
-                className={`bg-white min-w-max flex-grow font-bold w-full md:w-max px-6 py-2 border border-gray-300 hover:border-logo-red hover:bg-logo-red/5 text-black rounded ${
-                  selectedPackage === null && "border-logo-red bg-logo-red/5"
-                }`}
+                className={`bg-white min-w-max flex-grow font-bold w-full md:w-max px-6 py-2 border border-gray-300 hover:border-logo-red hover:bg-logo-red/5 text-black rounded ${selectedPackage === null && "border-logo-red bg-logo-red/5"
+                  }`}
               >
                 Single Lesson
                 <div className="font-normal">
@@ -1391,10 +1429,9 @@ END:VCALENDAR`.trim();
               {packageClasses > 0 && (
                 <button
                   onClick={() => setSelectedPackage("Credits")}
-                  className={`bg-white min-w-max flex-grow font-bold w-full md:w-max px-6 py-2 border border-gray-300 hover:border-logo-red hover:bg-logo-red/5 text-black rounded ${
-                    selectedPackage === "Credits" &&
+                  className={`bg-white min-w-max flex-grow font-bold w-full md:w-max px-6 py-2 border border-gray-300 hover:border-logo-red hover:bg-logo-red/5 text-black rounded ${selectedPackage === "Credits" &&
                     "border-logo-red bg-logo-red/5"
-                  }`}
+                    }`}
                 >
                   Credits
                   <div className="font-normal">
@@ -1409,9 +1446,8 @@ END:VCALENDAR`.trim();
                 classPackages.map((pkg, i) => (
                   <button
                     onClick={() => setSelectedPackage(pkg)}
-                    className={`bg-white min-w-max flex-grow font-bold w-full md:w-max px-6 py-2 border border-gray-300 hover:border-logo-red hover:bg-logo-red/5 text-black rounded ${
-                      selectedPackage === pkg && "border-logo-red bg-logo-red/5"
-                    }`}
+                    className={`bg-white min-w-max flex-grow font-bold w-full md:w-max px-6 py-2 border border-gray-300 hover:border-logo-red hover:bg-logo-red/5 text-black rounded ${selectedPackage === pkg && "border-logo-red bg-logo-red/5"
+                      }`}
                   >
                     {pkg.num_sessions ? pkg.num_sessions : "0"} Lesson Package
                     <div className="font-normal">
@@ -1421,7 +1457,7 @@ END:VCALENDAR`.trim();
                             (pkg.Discount
                               ? pkg.Discount
                               : pkg.discountPercentage)) /
-                            100) /
+                          100) /
                           (pkg.num_sessions ? pkg.num_sessions : 1)}{" "}
                         / lesson
                       </p>
@@ -1536,10 +1572,10 @@ END:VCALENDAR`.trim();
                     {selectedPackage?.Price
                       ? selectedPackage.Price
                       : selectedSlot.classId
-                      ? selectedSlot.classId
-                        ? classData.groupPrice
-                        : classData.Price
-                      : classData.Price}
+                        ? selectedSlot.classId
+                          ? classData.groupPrice
+                          : classData.Price
+                        : classData.Price}
                   </p>
                 </div>
 
@@ -1550,12 +1586,12 @@ END:VCALENDAR`.trim();
                   <p>
                     {selectedPackage?.num_sessions
                       ? ((selectedPackage?.Discount
-                          ? selectedPackage.Discount
-                          : selectedPackage?.discountPercentage) *
-                          (selectedPackage?.Price
-                            ? selectedPackage.Price
-                            : classData.Price)) /
-                        100
+                        ? selectedPackage.Discount
+                        : selectedPackage?.discountPercentage) *
+                        (selectedPackage?.Price
+                          ? selectedPackage.Price
+                          : classData.Price)) /
+                      100
                       : 0}
                   </p>
                 </div>
@@ -1566,18 +1602,18 @@ END:VCALENDAR`.trim();
                     <p>
                       {discountType === "percentage"
                         ? (
-                            (discount *
-                              (selectedPackage?.num_sessions
-                                ? selectedPackage.Price -
-                                  ((selectedPackage?.Discount ??
-                                    selectedPackage?.discountPercentage) *
-                                    selectedPackage?.Price) /
-                                    100
-                                : selectedSlot.classId
+                          (discount *
+                            (selectedPackage?.num_sessions
+                              ? selectedPackage.Price -
+                              ((selectedPackage?.Discount ??
+                                selectedPackage?.discountPercentage) *
+                                selectedPackage?.Price) /
+                              100
+                              : selectedSlot.classId
                                 ? classData.groupPrice
                                 : classData.Price)) /
-                            100
-                          ).toFixed(2)
+                          100
+                        ).toFixed(2)
                         : discount}
                     </p>
                   </div>
@@ -1590,34 +1626,40 @@ END:VCALENDAR`.trim();
                   <p>
                     {(selectedPackage?.num_sessions
                       ? selectedPackage.Price -
-                        (
-                          ((selectedPackage?.Discount ??
-                            selectedPackage?.discountPercentage) *
-                            selectedPackage?.Price) /
-                          100
-                        ).toFixed(2)
+                      (
+                        ((selectedPackage?.Discount ??
+                          selectedPackage?.discountPercentage) *
+                          selectedPackage?.Price) /
+                        100
+                      ).toFixed(2)
                       : selectedSlot.classId
-                      ? classData.groupPrice
-                      : classData.Price) -
+                        ? classData.groupPrice
+                        : classData.Price) -
                       (discountType === "percentage"
                         ? (
-                            (discount *
-                              (selectedPackage?.num_sessions
-                                ? selectedPackage.Price -
-                                  ((selectedPackage?.Discount ??
-                                    selectedPackage?.discountPercentage) *
-                                    selectedPackage?.Price) /
-                                    100
-                                : selectedSlot.classId
+                          (discount *
+                            (selectedPackage?.num_sessions
+                              ? selectedPackage.Price -
+                              ((selectedPackage?.Discount ??
+                                selectedPackage?.discountPercentage) *
+                                selectedPackage?.Price) /
+                              100
+                              : selectedSlot.classId
                                 ? classData.groupPrice
                                 : classData.Price)) /
-                            100
-                          ).toFixed(2)
+                          100
+                        ).toFixed(2)
                         : discount)}
                   </p>
                 </div>
+                <div>
+                  <label className="flex items-center gap-2 mt-2">
+                    <input type="checkbox" checked={agreeToTerms} onChange={(e) => setAgreeToTerms(e.target.checked)} className="form-checkbox appearance-none accent-red-600 focus:ring-0 focus:outline-none rounded-full" />
+                    <span>I agree to the <a href="/community/termsandconditions" className="text-red-600 underline">Terms of Service</a></span>
+                  </label>
+                </div>
               </div>
-              <div className="md:h-16 md:w-[1px] h-[1px] w-full  bg-slate-500" />
+              <div className="md:h-[6rem] md:w-[1px] h-[1px] w-full  bg-slate-500" />
               <div className="flex flex-grow flex-col gap-3">
                 <div className="flex flex-col">
                   <p>
@@ -1647,8 +1689,9 @@ END:VCALENDAR`.trim();
                       handleBookSlot();
                     }
                   }}
-                  disabled={bookLoading}
-                  className="bg-[#E73F2B] text-white max-[450px]:w-full p-2 rounded"
+                  disabled={bookLoading || !agreeToTerms}
+                  className={`${agreeToTerms ? "bg-[#E73F2B] cursor-pointer" : "bg-[#f5b2aa] cursor-not-allowed"
+                    } text-white max-[450px]:w-full p-2 rounded transition-colors duration-200`}
                 >
                   {bookLoading ? "Loading..." : "Book Now"}
                 </button>
@@ -1677,17 +1720,15 @@ END:VCALENDAR`.trim();
               <div>
                 <div className="flex flex-row gap-3 flex-wrap items-center mt-4">
                   <div
-                    className={`p-2 px-4 text-logo-red border border-1 border-logo-red rounded cursor-pointer hover:bg-logo-red hover:text-white ${
-                      isSelfBooking && "bg-logo-red text-white"
-                    }`}
+                    className={`p-2 px-4 text-logo-red border border-1 border-logo-red rounded cursor-pointer hover:bg-logo-red hover:text-white ${isSelfBooking && "bg-logo-red text-white"
+                      }`}
                     onClick={() => setIsSelfBooking(true)}
                   >
                     Book for Self
                   </div>
                   <div
-                    className={`p-2 px-4 text-logo-red border border-1 border-logo-red rounded cursor-pointer hover:bg-logo-red hover:text-white ${
-                      !isSelfBooking && "bg-logo-red text-white"
-                    }`}
+                    className={`p-2 px-4 text-logo-red border border-1 border-logo-red rounded cursor-pointer hover:bg-logo-red hover:text-white ${!isSelfBooking && "bg-logo-red text-white"
+                      }`}
                     onClick={() => setIsSelfBooking(false)}
                   >
                     Book for someone else
@@ -1794,6 +1835,8 @@ END:VCALENDAR`.trim();
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
           <Elements stripe={stripePromise} options={stripeOptions}>
             <CheckoutForm
+              setBookLoading = {setBookLoading}
+              agreeToTerms={agreeToTerms}
               bookingRef={stripeOptions.bookingRef}
               setStripeOptions={setStripeOptions}
               timer={timer}
@@ -1803,12 +1846,12 @@ END:VCALENDAR`.trim();
                   : classData.Price) -
                 (discountType === "percentage"
                   ? (
-                      ((selectedSlot.classId
-                        ? classData.groupPrice * numberOfGroupMembers
-                        : classData.Price) *
-                        discount) /
-                      100
-                    ).toFixed(2)
+                    ((selectedSlot.classId
+                      ? classData.groupPrice * numberOfGroupMembers
+                      : classData.Price) *
+                      discount) /
+                    100
+                  ).toFixed(2)
                   : discount)
               }
               discountType={discountType}
@@ -1891,6 +1934,8 @@ const CheckoutForm = ({
   discount,
   voucher,
   voucherVerified,
+  setBookLoading,
+  agreeToTerms
 }) => {
   const stripe = useStripe();
   const [user, userLoading] = useAuthState(auth);
@@ -1929,14 +1974,14 @@ const CheckoutForm = ({
   };
   let packagePrice = selectedPackage?.num_sessions
     ? selectedPackage?.Price -
-      ((selectedPackage?.Discount
-        ? selectedPackage.Discount
-        : selectedPackage?.discountPercentage) *
-        selectedPackage?.Price) /
-        100
+    ((selectedPackage?.Discount
+      ? selectedPackage.Discount
+      : selectedPackage?.discountPercentage) *
+      selectedPackage?.Price) /
+    100
     : selectedSlot.classId
-    ? classData.groupPrice
-    : classData.Price;
+      ? classData.groupPrice
+      : classData.Price;
 
   const offerDiscount =
     discountType === "percentage"
@@ -1950,6 +1995,9 @@ const CheckoutForm = ({
     if (!stripe || !elements) {
       toast.error("Stripe is not loaded yet.");
       return;
+    }
+    if(!agreeToTerms){
+      toast.error("Please agree to the Terms of Service")
     }
 
     // if (!user?.displayName || !user?.email) {
@@ -2079,14 +2127,13 @@ const CheckoutForm = ({
         paymentStatus: "Paid",
         price: selectedPackage?.num_sessions
           ? (packagePrice / selectedPackage?.num_sessions) *
-            numberOfGroupMembers
+          numberOfGroupMembers
           : price,
         timeZone: timeZone ? timeZone : "America/Toronto",
       });
 
-      const recipientEmails = `${user?.email}, ${instructorData.email}, ${
-        mode === "Group" ? groupEmails.join(",") : ""
-      }`;
+      const recipientEmails = `${user?.email}, ${instructorData.email}, ${mode === "Group" ? groupEmails.join(",") : ""
+        }`;
       const icsContent = `BEGIN:VCALENDAR
 VERSION:2.0
 PRODID:-//Pocketclass//NONSGML v1.0//EN
@@ -2100,9 +2147,8 @@ X-LIC-LOCATION:${timeZone || "America/Toronto"}
 DTSTART;TZID=${timeZone || "America/Toronto"}:${formatDateTime(startDateTime)}
 DTEND;TZID=${timeZone || "America/Toronto"}:${formatDateTime(endDateTime)}
 LOCATION:${location}
-ORGANIZER;CN=${instructorData.firstName} ${
-        instructorData.lastName
-      }:MAILTO:${organizer}
+ORGANIZER;CN=${instructorData.firstName} ${instructorData.lastName
+        }:MAILTO:${organizer}
 STATUS:CONFIRMED
 ${meetingLink ? `X-GOOGLE-CONFERENCE:${meetingLink}` : ""}
 END:VEVENT
@@ -2118,8 +2164,7 @@ END:VCALENDAR`.trim();
       const htmlContent = `
       <div>
 
-      ${
-        meetingLink
+      ${meetingLink
           ? `<div style="margin-top: 20px; padding: 6px 34px; box-sizing: border-box; border: 1px solid #ddd; background-color: #ffffff; border-radius: 8px; display: inline-block; width: 100%;">
               <p style="font-size: 16px; color: #333; margin-bottom: 10px;">
                 Join the meeting for your class <strong>${classData.Name}</strong> with <strong>${instructorData.firstName} ${instructorData.lastName}</strong>.
@@ -2133,12 +2178,11 @@ END:VCALENDAR`.trim();
               </ul>
             </div>`
           : ""
-      }
+        }
       <div style="font-family: Arial, sans-serif; color: #333;">
         <h2 style="color: #E73F2B;">New Booking Confirmation</h2>
         <p>Hello,</p>
-        <p>We are excited to confirm a new booking for the class <strong>${
-          classData.Name
+        <p>We are excited to confirm a new booking for the class <strong>${classData.Name
         }</strong>!</p>
         <h3>Booking Details:</h3>
         <table style="width: 100%; border-collapse: collapse;" border="1">
@@ -2160,24 +2204,21 @@ END:VCALENDAR`.trim();
           </tr>
           <tr>
             <td style="padding: 8px;"><strong>Time Zone:</strong></td>
-            <td style="padding: 8px;">${
-              timeZone ? timeZone : "America/Toronto"
-            }</td>
+            <td style="padding: 8px;">${timeZone ? timeZone : "America/Toronto"
+        }</td>
           </tr>
           <tr>
             <td style="padding: 8px;"><strong>Price:</strong></td>
-            <td style="padding: 8px;">${
-              mode === "Group" ? classData.groupPrice : classData.Price
-            }</td>
+            <td style="padding: 8px;">${mode === "Group" ? classData.groupPrice : classData.Price
+        }</td>
           </tr>
-          ${
-            meetingLink
-              ? `<tr>
+          ${meetingLink
+          ? `<tr>
             <td style="padding: 8px;"><strong>Meeting Link:</strong></td>
             <td style="padding: 8px;"><a href="${meetingLink}">${meetingLink}</a></td>
           </tr>`
-              : ""
-          }
+          : ""
+        }
         </table>
         <p>Thank you for choosing <strong>Pocketclass</strong>!</p>
         <p style="color: #555;">Best Regards,<br>Pocketclass Team</p>
@@ -2250,6 +2291,14 @@ END:VCALENDAR`.trim();
     setLoading(false);
   };
 
+  const currentPath = router.asPath;
+
+    const handleLoginRedirect = (e) => {
+      e.preventDefault()
+      const encodedUrl = encodeURIComponent(currentPath);
+      router.push(`/Login?returnUrl=${encodedUrl}`);
+    };
+
   return (
     <form
       onSubmit={handleSubmit}
@@ -2264,6 +2313,7 @@ END:VCALENDAR`.trim();
           onClick={() => {
             setStripeOptions(null);
             setTimer(null);
+            setBookLoading(false)
           }}
         >
           <ChevronLeftIcon className="h-4 w-4 mt-1" />
@@ -2273,22 +2323,34 @@ END:VCALENDAR`.trim();
       <div className="flex flex-row items-center justify-between mb-4">
         <h1 className="text-lg font-bold">Complete Payment</h1>
 
-        <div className="flex items-center">
-          <p className="text-sm text-gray-500 mr-2">Expires in:</p>
-          <p className="text-sm text-[#E73F2B] font-bold">
-            {Math.floor(timer / 60)}:{timer % 60 < 10 ? "0" : ""}
-            {timer % 60}
-          </p>
-        </div>
+        {user && (
+          <div className="flex items-center">
+            <p className="text-sm text-gray-500 mr-2">Expires in:</p>
+            <p className="text-sm text-[#E73F2B] font-bold">
+              {Math.floor(timer / 60)}:{timer % 60 < 10 ? "0" : ""}
+              {timer % 60}
+            </p>
+          </div>
+        )}
       </div>
       <AddressElement options={{ mode: "billing" }} />
       <PaymentElement />
-      <button
-        className="mt-4 p-2 bg-[#E73F2B] text-white rounded w-full"
-        disabled={loading}
-      >
-        {loading ? "Processing..." : "Pay"}
-      </button>
+      {user && (
+        <button
+          className="mt-4 p-2 bg-[#E73F2B] text-white rounded w-full"
+          disabled={loading}
+        >
+          {loading ? "Processing..." : "Pay"}
+        </button>
+      )}
+      {!user && (
+        <button
+          className="mt-4 p-2 bg-[#E73F2B] text-white rounded w-full"
+          onClick={handleLoginRedirect}
+        >
+          Login
+        </button>
+      )}
     </form>
   );
 };

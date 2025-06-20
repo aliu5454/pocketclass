@@ -391,3 +391,12 @@ a {
     width: 90%;
   }
 }
+
+@layer base {
+  .form-checkbox {
+    color: #ef4444; /* Tailwind red-500 */
+  }
+  [type='checkbox']:checked{
+    background-color: rgb(231, 63, 43) !important;
+  }
+}
