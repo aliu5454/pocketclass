@@ -11,6 +11,7 @@ import {
   collection,
   deleteDoc,
   doc,
+  getDoc,
   getDocs,
   query,
   where,
@@ -136,7 +137,9 @@ function StudentCard({
     const diff = bookingStartDate.diff(now, "hours");
 
     if (paymentMethod === "Package") {
-      toast.error("You cannot cancel a package booking, please try to reschedule the booking.");
+      toast.error(
+        "You cannot cancel a package booking, please try to reschedule the booking."
+      );
       return;
     }
     if (diff >= 24) {
@@ -173,6 +176,26 @@ function StudentCard({
       return;
     }
     setRefundLoading(true);
+    const bookingRef = doc(db, "Bookings", appointmentId);
+    const bookingSnapshot = await getDoc(bookingRef);
+    if (!bookingSnapshot.exists()) {
+      toast.error("Booking not found. Cannot process refund.");
+      setIsModalOpen(false);
+      setRefundLoading(false);
+      return;
+    }
+    const bookingData = bookingSnapshot.data();
+    const studentRef = doc(db, "Users", bookingData.student_id);
+    const studentSnapshot = await getDoc(studentRef);
+    if (!studentSnapshot.exists()) {
+      toast.error("Student not found. Cannot process refund.");
+      setIsModalOpen(false);
+      setRefundLoading(false);
+      return;
+    }
+    const studentData = studentSnapshot.data();
+    const userEmails = [studentData.email, ...bookingData.groupEmails];
+
     const refund = await fetch("/api/refund", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -182,8 +205,29 @@ function StudentCard({
         refundReason: refundReason,
       }),
     });
+    const startDateTime = moment
+      .utc(bookingData.startTime)
+      .format("YYYY-MM-DDTHH:mm:ss");
+    const endDateTime = moment
+      .utc(bookingData.endTime)
+      .format("YYYY-MM-DDTHH:mm:ss");
     const data = await refund.json();
     if (data.success) {
+      const deleteEvent = await fetch("/api/calendar/delete-event", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          instructorId: classCreator,
+          userEmails: userEmails,
+          classId: bookingData.class_id,
+          start: startDateTime,
+          end: endDateTime,
+          timeZone: bookingData.timeZone || "America/Toronto",
+        }),
+      });
+      if (!deleteEvent.ok) {
+        console.error("Error deleting calendar event:", deleteEvent.statusText);
+      }
       toast.success("Refund initiated successfully");
       setIsModalOpen(false);
       setRefundLoading(false);
