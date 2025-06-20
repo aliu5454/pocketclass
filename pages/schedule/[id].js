@@ -62,6 +62,8 @@ export default function Schedule() {
         }))
     );
     const [adjustedAvailability, setAdjustedAvailability] = useState([]);
+    const [loaded,setLoaded] = useState(false)
+    const [saveStatus,setSaveStatus] = useState('')
     const [selectedDate, setSelectedDate] = useState(null);
     const [view, setView] = useState("week");
     const [scheduleLoading, setScheduleLoading] = useState(false);
@@ -182,6 +184,13 @@ export default function Schedule() {
 
         if (user) fetchBookedSlots();
     }, [user]);
+
+    useEffect(()=>{
+        if(loaded===true){
+        saveSchedule(db,user,generalAvailability,adjustedAvailability)
+        }
+    },[generalAvailability,adjustedAvailability,loaded])
+
     const addVacation = () => {
         if (!vacationStartDate || !vacationEndDate) {
             toast.error("Please select a valid vacation range.");
@@ -241,6 +250,7 @@ export default function Schedule() {
     ) => {
         try {
             setScheduleLoading(true);
+            setSaveStatus("saving")
 
             const data = {
                 generalAvailability,
@@ -281,12 +291,14 @@ export default function Schedule() {
                 );
             }
 
-            toast.success("Schedule saved successfully");
+            // toast.success("Schedule saved successfully");
             setScheduleLoading(false);
+            setSaveStatus("saved")
         } catch (error) {
             console.error("Schedule save failed:", error);
             toast.error("Error saving schedule");
             setScheduleLoading(false);
+            setSaveStatus("error")
         }
     };
 
@@ -334,6 +346,7 @@ export default function Schedule() {
                     setMinDays(data.minDays || 1);
                     setMaxDays(data.maxDays || 30);
                     setSelectedTimeZone(data.timezone || "America/Toronto");
+                    setLoaded(true)
                 } else {
                     const userRef = doc(db, "Schedule", user.uid);
                     getDoc(userRef).then((userDoc) => {
@@ -377,6 +390,63 @@ export default function Schedule() {
         timeGutterFormat: (date, culture, localizer) =>
             localizer.format(date, "ha").replace("am", "AM").replace("pm", "PM"),
     };
+
+    const renderStatus = () => {
+    switch (saveStatus) {
+      case "saving":
+        return (
+          <p className="flex items-center text-sm text-gray-500">
+            <svg
+              className="w-4 h-4 mr-1 animate-spin text-gray-400"
+              fill="none"
+              viewBox="0 0 24 24"
+            >
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+              <path
+                className="opacity-75"
+                fill="currentColor"
+                d="M4 12a8 8 0 018-8v8H4z"
+              />
+            </svg>
+            Saving...
+          </p>
+        );
+      case "saved":
+        return (
+          <p className="flex items-center text-sm text-gray-500">
+            <svg
+              className="w-4 h-4 mr-1 text-green-500"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+            </svg>
+            Saved
+          </p>
+        );
+      case "error":
+        return (
+          <p className="flex items-center text-sm text-red-500">
+            <svg
+              className="w-4 h-4 mr-1"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+            Error saving
+          </p>
+        );
+      default:
+        return (
+          <p className="text-sm text-gray-400">
+            All changes saved
+          </p>
+        );
+    }
+  };
 
     useEffect(() => {
         generateEvents(generalAvailability, adjustedAvailability);
@@ -785,6 +855,9 @@ export default function Schedule() {
                         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 20 20">
                             <path d="M6.707 16.293a1 1 0 000-1.414L10.586 11 6.707 7.121a1 1 0 011.414-1.414l4.586 4.586a1 1 0 010 1.414l-4.586 4.586a1 1 0 01-1.414 0z" />
                         </svg>
+                    </div>
+                    <div className="hidden dm:block">
+                        {renderStatus()}
                     </div>
                 </div>
                 <h2>{classes.Name}</h2>
@@ -1588,6 +1661,9 @@ export default function Schedule() {
                 </div>
                 <div className="flex-grow p-4">
                     <div className="overflow-auto">
+                        <div className="dm:hidden block">
+                            {renderStatus()}
+                        </div>
                         <BigCalendar
                             selectable
                             timeslots={2}
@@ -1617,27 +1693,16 @@ export default function Schedule() {
                             tooltipAccessor="tooltip"
                             onSelectEvent={handleEventClick} // Event click handler
                         />
-                        <div className='w-full flex justify-end'>
-                            <button
-                                onClick={() =>
-                                    saveSchedule(db, user, generalAvailability, adjustedAvailability)
-                                }
-                                disabled={scheduleLoading}
-                                className={` px-4 py-2 bg-logo-red text-white mt-4 mb-2 scheduleButton absolute rounded-md hover:bg-red-600`}
-                            >
-                                {scheduleLoading ? "Saving..." : "Save Schedule"}
-                            </button>
-                        </div>
                     </div>
                     {showPopup && selectedSlot && (
                         <div
-                            className="fixed top-0 left-0 w-screen h-screen bg-black bg-opacity-10 z-50 flex items-center justify-center"
+                            className="fixed top-0 left-0 w-screen h-screen bg-black bg-opacity-10 z-[10000] flex items-center justify-center"
                             onClick={() => {
                                 setShowPopup(false);
                                 setTemporaryEvent(null);
                             }}
                         >
-                            <div className="relative bg-white p-6 rounded-xl shadow-lg w-[300px] popup dm1:w-[400px]" onClick={(e) => e.stopPropagation()}>
+                            <div className="relative bg-white p-6 rounded-xl z-[10000] shadow-lg w-[300px] popup dm1:w-[400px]" onClick={(e) => e.stopPropagation()}>
                                 <h3>Add Availability</h3>
 
                                 <div

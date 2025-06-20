@@ -1,20 +1,24 @@
-import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
 import { useRouter } from "next/router";
 import { SearchIcon } from "@heroicons/react/solid";
 import { categories as categoryData } from "../utils/categories";
 import { smartDefaults } from "../utils/smartDefaults";
 import dayjs from "dayjs";
 import dynamic from 'next/dynamic';
+import "react-big-calendar/lib/css/react-big-calendar.css";
 import "react-day-picker/dist/style.css";
 import { useActiveIndicator } from "../hooks/useActiveIndicator";
 
-// Lazy load the DayPicker component
+// Dynamically import DayPicker to reduce bundle size
 const DayPicker = dynamic(
   () => import('react-day-picker').then(mod => mod.DayPicker),
-  { ssr: false }
+  {
+    ssr: false,
+    loading: () => <p>Loading date picker...</p>
+  }
 );
 
-// Precompute search options outside the component
+// Precompute search options outside component
 const initialSearchOptions = [
   ...smartDefaults.map(d => ({
     label: d.name,
@@ -52,27 +56,25 @@ const sortByOptions = [
   { value: 'distance', label: 'Distance (Nearest)' },
 ];
 
-const ClearSearchIcon = ({ classes, onClick }) => {
-  return (
-    <div className={`clear-search-icon ${classes}`} onClick={onClick}>
-      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" aria-hidden="true" role="presentation"
-        focusable="false"
-        style={{
-          display: "block",
-          fill: "none",
-          height: '12px',
-          width: '12px',
-          stroke: "currentcolor",
-          strokeWidth: 4,
-          overflow: "visible"
-        }}>
-        <path d="m6 6 20 20M26 6 6 26"></path>
-      </svg>
-    </div>
-  )
-}
+const ClearSearchIcon = React.memo(({ classes, onClick }) => (
+  <div className={`clear-search-icon ${classes}`} onClick={onClick}>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" aria-hidden="true" role="presentation"
+      focusable="false"
+      style={{
+        display: "block",
+        fill: "none",
+        height: '12px',
+        width: '12px',
+        stroke: "currentcolor",
+        strokeWidth: 4,
+        overflow: "visible"
+      }}>
+      <path d="m6 6 20 20M26 6 6 26"></path>
+    </svg>
+  </div>
+));
 
-const TeacherSearch = ({ isShrunk, expandMenu }) => {
+const TeacherSearch = ({ isShrunk, isMenuSmall, expandMenu, user }) => {
   const router = useRouter();
   const [activeDropdown, setActiveDropdown] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
@@ -94,7 +96,7 @@ const TeacherSearch = ({ isShrunk, expandMenu }) => {
 
   // Handle URL parameters
   useEffect(() => {
-    if (Object.keys(router.query).length) {
+    if (Object.keys(router.query).length && initialSearchOptions.length) {
       const { category, subCategory, startDate, endDate } = router.query;
 
       let term = '';
@@ -114,7 +116,7 @@ const TeacherSearch = ({ isShrunk, expandMenu }) => {
       setDateRange([startDate, endDate]);
       setSelectedRange({ from: startDate, to: endDate });
     }
-  }, [router.query]);
+  }, [router.query, initialSearchOptions]);
 
   // Handle click outside dropdown
   useEffect(() => {
@@ -130,30 +132,11 @@ const TeacherSearch = ({ isShrunk, expandMenu }) => {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // Handle active dropdown background
-  useEffect(() => {
-    const activeSearchBg = document.querySelector('.search-wrap-bg.active-search');
-    const defaultBg = document.querySelector('.search-wrap-bg.default');
-
-    if (activeSearchBg && defaultBg) {
-      activeSearchBg.style.opacity = activeDropdown?.length ? "1" : "0";
-      defaultBg.style.opacity = activeDropdown?.length ? "0" : "1";
-
-      if (!activeDropdown?.length) {
-        resetActiveBG();
-      }
-    }
-  }, [activeDropdown, resetActiveBG]);
-
-  useEffect(() => {
-    setActiveDropdown(null);
-  }, [isShrunk]);
-
-  const isISODate = useCallback((str) => {
+  const isISODate = (str) => {
     return /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z$/.test(str);
-  }, []);
+  };
 
-  const handleSearch = useCallback((e) => {
+  const handleSearch = (e) => {
     e.preventDefault();
 
     const searchParams = {
@@ -161,14 +144,16 @@ const TeacherSearch = ({ isShrunk, expandMenu }) => {
       sortBy: searchSortBy,
     };
 
-    if (selectedItem?.type === "smart") {
+    if (!selectedItem) return;
+
+    if (selectedItem.type === "smart") {
       searchParams.category = selectedItem.label;
       searchParams.distance = '';
       searchParams.subCategory = selectedItem.payload.subCategories;
-    } else if (selectedItem?.type === "category") {
+    } else if (selectedItem.type === "category") {
       searchParams.category = selectedItem.label;
       searchParams.subCategory = 'All';
-    } else if (selectedItem?.type === "subCategory") {
+    } else if (selectedItem.type === "subCategory") {
       const category = categoryData.find(cat =>
         cat.subCategories.some(sc => sc.name === selectedItem.label)
       );
@@ -179,12 +164,8 @@ const TeacherSearch = ({ isShrunk, expandMenu }) => {
     }
 
     if (dateRange[0] && dateRange[1]) {
-      searchParams.startDate = isISODate(dateRange[0])
-        ? dateRange[0]
-        : dateRange[0].toISOString();
-      searchParams.endDate = isISODate(dateRange[1])
-        ? dateRange[1]
-        : dateRange[1].toISOString();
+      searchParams.startDate = isISODate(dateRange[0]) ? dateRange[0] : dateRange[0].toISOString();
+      searchParams.endDate = isISODate(dateRange[1]) ? dateRange[1] : dateRange[1].toISOString();
     }
 
     const filteredParams = Object.fromEntries(
@@ -201,24 +182,43 @@ const TeacherSearch = ({ isShrunk, expandMenu }) => {
     });
 
     setActiveDropdown(null);
-  }, [searchDistance, searchSortBy, selectedItem, dateRange, isISODate, router]);
+  };
 
   const handleDatePickerClick = (e) => {
     e.stopPropagation();
   };
 
-  const formattedDateRange = useCallback(() => {
+  const formattedDateRange = () => {
     if (dateRange[0] && dateRange[1]) {
       return `${dayjs(dateRange[0]).format("MMM D")} - ${dayjs(dateRange[1]).format("MMM D")}`;
     }
     return "Add dates";
-  }, [dateRange]);
+  };
 
-  const toggleDropdown = useCallback((type) => {
+  useEffect(() => {
+    if (activeDropdown?.length) {
+      const activeSearchBg = document.querySelector('.search-wrap-bg.active-search');
+      const defaultBg = document.querySelector('.search-wrap-bg.default');
+      if (activeSearchBg) activeSearchBg.style.opacity = "1";
+      if (defaultBg) defaultBg.style.opacity = "0";
+    } else {
+      const activeSearchBg = document.querySelector('.search-wrap-bg.active-search');
+      const defaultBg = document.querySelector('.search-wrap-bg.default');
+      if (activeSearchBg) activeSearchBg.style.opacity = "0";
+      if (defaultBg) defaultBg.style.opacity = "1";
+      resetActiveBG();
+    }
+  }, [activeDropdown, resetActiveBG]);
+
+  useEffect(() => {
+    setActiveDropdown(null);
+  }, [isShrunk]);
+
+  const toggleDropdown = (type) => {
     setActiveDropdown(prev => (prev === type ? null : type));
-  }, []);
+  };
 
-  const handleOptionClick = useCallback((type, index) => {
+  const handleOptionClick = (type, index) => {
     if (isShrunk) {
       expandMenu();
       setTimeout(() => {
@@ -229,160 +229,159 @@ const TeacherSearch = ({ isShrunk, expandMenu }) => {
       toggleDropdown(type);
       updateIndicator(index);
     }
-  }, [isShrunk, expandMenu, toggleDropdown, updateIndicator]);
+  };
 
   return (
-    <div className={`menu-search-bar mx-auto relative z-50 w-full transition-all duration-500 ${isShrunk ? 'max-w-[230px] h-[48px] translate-y-[-75px]' : 'max-w-[650px] max-md:px-3'
-      }`}>
-      <div
-        onClick={() => isShrunk ? expandMenu() : null}
-        className="relative"
-        ref={dropdownRef}
-      >
-        <div className="absolute top-0 left-0 w-full h-full">
-          <div className={`search-wrap-bg active-search ${isShrunk ? 'hidden' : 'block'}`}></div>
-          <div className="search-wrap-bg default"></div>
-        </div>
+    <div className={`menu-search-bar z-[100] relative w-full transition-all duration-500 mx-auto max-dm2:px-3 ${isShrunk ? 'max-w-[230px] h-[50px] translate-y-[-75px]' :
+          `${isMenuSmall ? 'max-w-[400px] h-[54px] dm2:translate-y-[-75px]' : 'max-dm2:h-[54px] max-w-[650px]'}`
+        }`}>
+      <div className={`${user ? 'dm2:translate-y-[-20px] translate-y-[0px]' : ''}  transition duration-500`}>
+        <div className="relative h-full" ref={dropdownRef}>
+          <div className="absolute top-0 left-0 w-full h-full">
+            <div className={`search-wrap-bg active-search ${isShrunk ? 'hidden' : 'block'}`}></div>
+            <div className="search-wrap-bg default"></div>
+          </div>
 
-        <div ref={containerRef} className={`search-bar-wrapper transition-all`}>
-          {!isShrunk && (
-            <div
-              className="active-bg"
-              style={{
-                left: activeStyle.left,
-                width: activeStyle.width,
-              }}
-            ></div>
-          )}
-
-          {/* Search Option */}
-          <div
-            className={`search-bar-option group ${isShrunk ? '!pl-6 !pr-3 !w-auto font-medium' : '!pl-4 sm:!pl-8'
-              }`}
-            onClick={() => handleOptionClick('sub', 0)}
-          >
-            <div className={`search-hover initial bg-gray-200 ${isShrunk ? 'opacity-0' : 'group-hover:opacity-100'
-              }`}></div>
-            <div className="search-hover active hidden group-hover:opacity-100 bg-gray-300"></div>
-            <div className="text-xs sm:text-sm text-gray-700 relative">
-              Search
-            </div>
+          <div ref={containerRef} className="search-bar-wrapper transition-all">
             {!isShrunk && (
-              <input
-                type="text"
-                placeholder="Explore your interests"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="relative border-0 p-0 text-xs sm:text-sm text-black bg-transparent font-semibold focus:ring-0 placeholder:text-black"
-              />
+              <div
+                className={`active-bg ${isMenuSmall ? 'h-full' : 'h-[52px] dm2:h-[62px]'}`}
+                style={{
+                  left: activeStyle.left,
+                  width: activeStyle.width,
+                }}
+              ></div>
             )}
-            <ClearSearchIcon
-              classes={searchTerm.length && activeDropdown === 'sub' ? 'opacity-100' : 'opacity-0'}
-              onClick={() => setSearchTerm('')}
-            />
+
+            {/* Search Input */}
+            <div
+              className={`search-bar-option group z-50 ${isShrunk ? '!pl-6 !pr-3 font-medium' :
+                  `${isMenuSmall ? '!pl-5 !pr-4 dm2:!pl-8' : '!pl-5 !pr-4 dm2:!pl-8'}`
+                }`}
+              onClick={() => handleOptionClick('sub', 0)}
+            >
+              <div className={`search-hover initial bg-gray-200 ${isShrunk ? 'opacity-0' : 'group-hover:opacity-100'
+                }`}></div>
+              <div className="search-hover active hidden group-hover:opacity-100 bg-gray-300"></div>
+              <div className="text-xs dm2:text-sm text-gray-700 relative">
+                Search
+              </div>
+              {!isShrunk && (
+                <input
+                  type="text"
+                  placeholder="Explore your interests"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="relative border-0 p-0 text-xs dm2:text-sm text-black bg-transparent font-semibold focus:ring-0 placeholder:text-black"
+                />
+              )}
+              <ClearSearchIcon
+                classes={searchTerm.length && activeDropdown === 'sub' ? 'opacity-100' : 'opacity-0'}
+                onClick={() => setSearchTerm('')}
+              />
+            </div>
+
+            {isShrunk ? (
+              <div className="search-options-separator !opacity-100"></div>
+            ) : (
+              <div className={`search-options-separator ${!['picker', 'sub'].includes(activeDropdown) ? 'opacity-100' : 'opacity-0'
+                }`}></div>
+            )}
+
+            {/* Date Picker */}
+            <div
+              className={`search-bar-option group ${isShrunk ? '!pl-3 !pr-14 !w-auto text-center font-medium' :
+                  `${isMenuSmall ? '!px-4' : ''}`
+                }`}
+              onClick={() => handleOptionClick('picker', 1)}
+            >
+              <div className={`search-hover initial bg-gray-200 ${isShrunk ? 'opacity-0' : 'group-hover:opacity-100'
+                }`}></div>
+              <div className="search-hover active hidden group-hover:opacity-100 bg-gray-300"></div>
+              <div className="text-left text-xs dm2:text-sm relative">
+                <p className="text-gray-700">
+                  {isShrunk ? 'Date' : 'From - To'}
+                </p>
+                {!isShrunk && <p className="font-semibold">{formattedDateRange()}</p>}
+              </div>
+              <ClearSearchIcon
+                classes={`!right-16 ${dateRange[0] && dateRange[1] && activeDropdown === 'picker' ? 'opacity-100' : 'opacity-0'
+                  }`}
+                onClick={() => setDateRange([undefined, undefined])}
+              />
+            </div>
+
+            {/* Search Button */}
+            <button
+              className={`absolute right-1 dm2:right-2 -translate-y-1/2 top-1/2 flex items-center justify-center z-30 rounded-full bg-red-500 hover:bg-red-600 text-white transition duration-500 ${isShrunk ? 'size-9 !right-1.5' :
+                  `${isMenuSmall ? 'size-11 right-1' : 'size-11 dm2:size-12'}`
+                }`}
+              onClick={handleSearch}
+              type="button"
+            >
+              <SearchIcon className={`${isShrunk ? 'size-4' : 'size-5'}`} />
+            </button>
           </div>
 
-          {isShrunk ? (
-            <div className="search-options-separator !opacity-100"></div>
-          ) : (
-            <div className={`search-options-separator ${!['picker', 'sub'].includes(activeDropdown) ? 'opacity-100' : 'opacity-0'
-              }`}></div>
+          {/* Dropdowns */}
+          {activeDropdown === 'sub' && !isShrunk && (
+            <div className="menu-dropdown left-0 max-w-[400px] !pr-0">
+              <div className="max-h-[calc(100vh_-_250px)] overflow-auto">
+                <ul className="flex flex-col dm2:gap-1 pr-5">
+                  {filteredSearchOptions.map((item, index) => (
+                    <li
+                      key={index}
+                      onClick={() => {
+                        setSelectedItem(item);
+                        setSearchTerm(item.label);
+                        toggleDropdown('picker');
+                        updateIndicator(1);
+                      }}
+                      className="flex gap-3 items-center rounded-lg hover:bg-gray-100 transition p-2"
+                    >
+                      <div className="size-12 shrink-0 rounded flex justify-center items-center bg-gray-50">
+                        <img
+                          src={item.icon}
+                          alt={item.label}
+                          className="w-[80%] h-full object-contain"
+                        />
+                      </div>
+                      <div>
+                        <span className="font-medium">{item.label}</span>
+                        {item.payload?.description && <p>{item.payload.description}</p>}
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
           )}
 
-          {/* Date Range Picker */}
-          <div
-            className={`search-bar-option group ${isShrunk ? '!pl-3 !pr-14 !w-auto text-center font-medium' : ''
-              }`}
-            onClick={() => handleOptionClick('picker', 1)}
-          >
-            <div className={`search-hover initial bg-gray-200 ${isShrunk ? 'opacity-0' : 'group-hover:opacity-100'
-              }`}></div>
-            <div className="search-hover active hidden group-hover:opacity-100 bg-gray-300"></div>
-            <div className="text-left text-xs sm:text-sm relative">
-              <p className="text-gray-700">
-                {isShrunk ? 'Date' : 'From - To'}
-              </p>
-              {!isShrunk && <p className="font-semibold">{formattedDateRange()}</p>}
+          {activeDropdown === 'picker' && !isShrunk && (
+            <div className="menu-dropdown right-0 !w-fit z-50">
+              <div onClick={handleDatePickerClick}>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Available Between
+                </label>
+                <DayPicker
+                  mode="range"
+                  selected={selectedRange}
+                  onSelect={(range) => {
+                    setSelectedRange(range);
+                    if (range?.from && range?.to) {
+                      setDateRange([range.from, range.to]);
+                    }
+                  }}
+                  className="p-2 bg-white-100 text-sm"
+                  disabled={{ before: new Date() }}
+                />
+              </div>
             </div>
-            <ClearSearchIcon
-              classes={`!right-16 ${dateRange[0] && dateRange[1] && activeDropdown === 'picker'
-                  ? 'opacity-100'
-                  : 'opacity-0'
-                }`}
-              onClick={() => setDateRange([undefined, undefined])}
-            />
-          </div>
-
-          {/* Search Button */}
-          <button
-            className={`absolute right-2 -translate-y-1/2 top-1/2 flex items-center justify-center z-30 rounded-full bg-red-500 hover:bg-red-600 text-white transition duration-500 ${isShrunk ? 'size-9 !right-1.5' : 'size-9 sm:size-12'
-              }`}
-            onClick={handleSearch}
-            type="button"
-          >
-            <SearchIcon className={`${isShrunk ? 'size-4' : 'size-5'}`} />
-          </button>
+          )}
         </div>
-
-        {/* Sub Categories Dropdown */}
-        {activeDropdown === 'sub' && !isShrunk && (
-          <div className="menu-dropdown left-0 max-w-[400px] !pr-0">
-            <div className="max-h-[calc(100vh_-_250px)] overflow-auto">
-              <ul className="flex flex-col gap-1 pr-5">
-                {filteredSearchOptions.map((item, index) => (
-                  <li
-                    key={index}
-                    onClick={() => {
-                      setSelectedItem(item);
-                      setSearchTerm(item.label);
-                      toggleDropdown('picker');
-                      updateIndicator(1);
-                    }}
-                    className="flex gap-3 items-center rounded-lg hover:bg-gray-100 transition p-2"
-                  >
-                    <div className="size-12 shrink-0 rounded flex justify-center items-center bg-gray-50">
-                      <img
-                        src={item.icon}
-                        alt={item.label}
-                        className="w-[80%] h-full object-contain"
-                      />
-                    </div>
-                    <div>
-                      <span className="font-medium">{item.label}</span>
-                      {item.payload?.description && <p>{item.payload.description}</p>}
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </div>
-        )}
-
-        {/* Date Picker Dropdown */}
-        {activeDropdown === 'picker' && !isShrunk && (
-          <div className="menu-dropdown right-0 !w-fit z-50">
-            <div onClick={handleDatePickerClick}>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Available Between
-              </label>
-              <DayPicker
-                mode="range"
-                selected={selectedRange}
-                onSelect={(range) => {
-                  setSelectedRange(range);
-                  if (range?.from && range?.to) {
-                    setDateRange([range.from, range.to]);
-                  }
-                }}
-                className="p-2 bg-white-100 text-sm"
-                disabled={{ before: new Date() }}
-              />
-            </div>
-          </div>
-        )}
       </div>
     </div>
   );
 };
 
-export default TeacherSearch;
+export default React.memo(TeacherSearch);

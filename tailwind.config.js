@@ -29,6 +29,7 @@ module.exports = {
       // => @media (min-width: 1536px) { ... }
       'dm': '600px',
       'dm1': '450px',
+      'dm2':'990px',
       // => @media (min-width: 500px) { ... }
     }
   },
