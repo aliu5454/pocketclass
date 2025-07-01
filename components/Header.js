@@ -68,6 +68,7 @@ function Header({ placeholder }) {
     }
   }, [userData]);
 
+  useEffect(() => {console.log(userData)},[userData])
   useEffect(() => {
     if (classes && classes.length > 0) {
       setClassCreated(true);
@@ -322,12 +323,13 @@ function Header({ placeholder }) {
           {!loading || category !== "" ? (
             <>
               {category !== "" && user ? (
-                category !== "instructor" ? (
+                category === "student" || category==="Student" ? (
                   <p className="text-sm hidden lg:inline cursor-pointer hover:bg-gray-100 rounded-full space-x-2 p-3 hover:scale-105 active:scale-90 transition duration-150">
                     <a
                       target="_blank"
                       href="https://gm81lvnyohz.typeform.com/to/IoLpsf9g"
                     >
+                      {category}
                       Request a Class
                     </a>
                   </p>

@@ -312,7 +312,7 @@ const NewHeader = ({ isHome = true, activeCategory, handleCategorySelection }) =
                 <div className="flex items-center gap-4">
                   <div className="hidden dm1:block">
                   {category !== "" && user ? (
-                    category !== "instructor" ? (
+                    category === "student" || category==="Student" ? (
                       <p className="text-sm lg:inline cursor-pointer hover:bg-gray-100 rounded-full space-x-2 p-3 hover:scale-105 active:scale-90 transition duration-150">
                         <a
                           target="_blank"
