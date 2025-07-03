@@ -273,7 +273,7 @@ const NewHeader = ({ isHome = true, activeCategory, handleCategorySelection }) =
 
           {/* Category Buttons */}
              <div className="absolute left-1/2 transform -translate-x-[65%] hidden md:block">
-               <div className={`transition duration-500 ${isMenuShrunk || isMenuSmall ? '-translate-y-[600%]' : ''}`}>
+               <div className={`transition duration-500 ${isMenuShrunk || isMenuSmall ? '-translate-y-[1600%]' : ''}`}>
                  <div className="flex space-x-2.5 items-center">
                    {categoryData.map((category) => (
                        <div key={category.name}>

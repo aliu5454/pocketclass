@@ -68,7 +68,7 @@ const SortableImage = ({ image, onRemove }) => {
     >
       <button
         type="button"
-        className="text-logo-red absolute top-2 right-2 z-50"
+        className="text-logo-red absolute top-2 right-2 z-[49]"
         onClick={(e) => {
           e.stopPropagation();
           onRemove(e, image.name);

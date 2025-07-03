@@ -35,6 +35,21 @@ function UpdateProfile() {
     }
   }, [id]);
 
+  useEffect(() => {
+    if (droppedFile && showCropper && cropperRef.current) {
+      setTimeout(() => {
+        cropperRef.current.refresh?.();
+
+        const canvas = cropperRef.current.getCanvas?.();
+        if (canvas && canvas.focus) {
+          canvas.focus();
+        }
+        document.getElementById('cropper').click()
+        console.log('Clicked')
+      }, 500);
+    }
+  }, [droppedFile, showCropper]);
+
   const validateFields = (data) => {
     const errors = {};
     if (!data.firstName) errors.firstName = "First Name is required";
@@ -173,6 +188,63 @@ function UpdateProfile() {
 
       <NewHeader />
 
+      {droppedFile && showCropper && (
+        <div className="w-full fixed h-full fixed top-0 left-0 bg-transparent md:bg-[rgba(0,0,0,0.6)] overflow-hidden flex justify-center items-center z-[10001]">
+          <div className="w-fit h-fit px-4 py-4 h-[600px] bg-white rounded-xl" tabIndex={0}
+            onFocus={() => console.log('Wrapper focused')}>
+            <Cropper
+              src={droppedFile ? URL.createObjectURL(droppedFile) : null}
+              className={'cropper'}
+              ref={cropperRef}
+              tabIndex={0}
+              canvas="false"
+              transition="true"
+              maxWidth={1200}
+              maxHeight={1200}
+              stencilComponent={CircleStencil}
+              onReady={() => {
+                // Defer focus until layout is complete and element is visible
+                const tryFocus = () => {
+                  const canvas = cropperRef.current?.getCanvas?.();
+                  if (canvas && typeof canvas.focus === "function") {
+                    canvas.focus();
+                    console.log("✅ Canvas focused programmatically");
+                  } else {
+                    console.warn("❌ Canvas not focusable");
+                  }
+                };
+
+                // Ensure layout is painted — fire after 2 frames
+                requestAnimationFrame(() => {
+                  requestAnimationFrame(() => {
+                    tryFocus();
+                  });
+                });
+              }}
+            />
+            <div className="flex justify-start mt-4 mb-2">
+              <button
+                className="border-2 border-red-500 text-red-500 px-2 min-w-[70px] py-2 w-[12vw] rounded mr-2"
+                onClick={onCancel}>
+                Cancel
+              </button>
+              <button
+                className="bg-red-500 text-white py-2 w-[12vw] min-w-[70px] rounded"
+                onClick={onSave}>
+                Save
+              </button>
+              <button
+                id="cropper"
+                onClick={() => console.log("Button manually clicked")}
+                className="hidden"
+              >
+                Click Here
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="px-10 rounded-3xl flex flex-col justify-center items-center mt-10">
         <div className="registrationContainer lg:w-[50%] sm:w-[100%]">
           <h1 className="text-5xl font-semibold text-center">Update Profile</h1>
@@ -276,35 +348,6 @@ function UpdateProfile() {
                   </div>
                 </div>
               </div>
-              {droppedFile && showCropper && (
-                <div className="w-[100vw] max-h-[100vh] h-[100vh] absolute top-0 left-0 bg-transparent md:bg-[rgba(0,0,0,0.6)] overflow-hidden flex justify-center items-center z-50">
-                  <div className="w-fit md:w-[800px] h-fit px-4 py-4 h-[600px] bg-white rounded-xl">
-                    <Cropper
-                      src={droppedFile ? URL.createObjectURL(droppedFile) : null}
-                      className={'cropper'}
-                      ref={cropperRef}
-                      canvas="false"
-                      transition="true"
-                      maxWidth={1200}
-                      maxHeight={1200}
-                      stencilComponent={CircleStencil}
-                    />
-                    <div className="flex justify-start mt-4 mb-2">
-                      <button
-                        className="border-2 border-red-500 text-red-500 px-2 min-w-[70px] py-2 w-[12vw] rounded mr-2"
-                        onClick={onCancel}>
-                        Cancel
-                      </button>
-                      <button
-                        className="bg-red-500 text-white py-2 w-[12vw] min-w-[70px] rounded"
-                        onClick={onSave}>
-                        Save
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              )}
-
               <div>
                 <label className="text-medium font-medium">Description</label>
                 <textarea

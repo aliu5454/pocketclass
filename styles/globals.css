@@ -393,10 +393,15 @@ a {
 }
 
 @layer base {
-  .form-checkbox {
-    color: #ef4444; /* Tailwind red-500 */
+  /* Apply red accent color to both checkboxes and radios */
+  [type='checkbox'],
+  [type='radio'] {
+    accent-color: #e73f2b; /* or use a Tailwind color like theme('colors.red.600') */
   }
-  [type='checkbox']:checked{
-    background-color: rgb(231, 63, 43) !important;
+
+  /* (Optional) Force background color if needed */
+  [type='checkbox']:checked,
+  [type='radio']:checked {
+    background-color: #e73f2b !important;
   }
 }
