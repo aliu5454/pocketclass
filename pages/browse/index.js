@@ -306,6 +306,7 @@ export default function Results() {
                     " " +
                     instructorDoc.data().lastName
                   : "N/A";
+                classData.instructorImage = instructorDoc.data().profileImage;
               }
             }
 

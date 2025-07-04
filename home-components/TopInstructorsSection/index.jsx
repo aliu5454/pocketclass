@@ -67,7 +67,8 @@ function TopClassesSection({
                 classData.name = classData.Name || "N/A";
                 classData.profileImage = classData.Images?.[0] || "N/A";
                 classData.category = classData.Category || "N/A";
-                classData.instructorName = instructorDoc.data().name || "N/A";
+                classData.instructorName = instructorDoc.data().firstName || "Instructor";
+                classData.instructorImage = instructorDoc.data().profileImage;
               }
             }
 

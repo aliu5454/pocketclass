@@ -2,8 +2,10 @@ import { Skeleton } from "@mui/material";
 import Link from "next/link";
 import SuperInstructorCard from "../SuperInstructorCard";
 import MusicianProfileCard1 from "../MusicianProfileCard1";
+import { useRouter } from "next/router";
 
 function InstructorSection({ classId, instructor, loading }) {
+  const router = useRouter();
   if (loading) {
     return (
       <div className="shrink-0 bg-[white] box-border flex justify-start items-stretch flex-col grow basis-[0.00] rounded-2xl">
@@ -41,7 +43,7 @@ function InstructorSection({ classId, instructor, loading }) {
           superInstructor={instructor?.TopRated}
           classId={classId}
         />
-        <MusicianProfileCard1 instructor={instructor} />
+        <MusicianProfileCard1 instructor={instructor} router={router} />
       </div>
     </Link>
   );

@@ -634,7 +634,7 @@ const processClasses = async (classDocs) => {
     const instructorName = instructor
       ? `${instructor.firstName || ""} ${instructor.lastName || ""}`.trim()
       : "N/A";
-
+    const instructorImage = instructor.profileImage;
     const classReviews = reviewMap.get(classData.id) || [];
     const avgRating =
       classReviews.length > 0
@@ -652,6 +652,7 @@ const processClasses = async (classDocs) => {
       profileImage: classData.Images?.[0] || "N/A",
       category: classData.Category || "N/A",
       instructorName,
+      instructorImage,
       averageRating: avgRating,
       reviewCount: classReviews.length,
     };

@@ -14,7 +14,8 @@ const images = [
     "./assets/Partnerships/TMU.jpg",
     "./assets/Partnerships/uoft.jpg",
     "./assets/Partnerships/HockeyPylon.png",
-    "./assets/Partnerships/UNITYLogo.jpg"
+    "./assets/Partnerships/UNITYLogo.jpg",
+    "./assets/Partnerships/munchwell.png"
 ];
 
 const CarousselSlider = () => {

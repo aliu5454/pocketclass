@@ -22,6 +22,7 @@ import { categories } from "../../utils/categories";
 import BookingComponent from "../BookingComponent";
 import FAQAccordion from "../FAQAccordion";
 import Link from 'next/link';
+import {useRouter} from 'next/router';
 
 function FitnessClassDetailsSection({
   timeSlotOptions,
@@ -34,6 +35,7 @@ function FitnessClassDetailsSection({
   classId,
   userId,
 }) {
+  const router = useRouter()
   const [isFavorite, setIsFavorite] = useState(false);
   const [isFavoriteLoading, setIsFavoriteLoading] = useState(true);
   const [classData, setClassData] = useState(null);
@@ -266,13 +268,15 @@ function FitnessClassDetailsSection({
       <div className="flex flex-col-reverse lg:flex-row gap-20 lg:gap-10 w-full max-w-[1312px] grow-0 shrink-0 basis-auto box-border mt-9">
         <div className="grow-0 shrink basis-auto xl:max-w-[calc(100vw-500px)]">
           <EnhancedImageGallery images={classData?.Images || []} />
-          <div className="flex justify-start items-start gap-2 flex-col md:flex-row w-[100.00%] box-border mt-8">
+          <div onClick={()=>{
+                  router.push(`/instructor?class=${classId}&creator=${classCreatorData.userUid}`);
+                }} className="cursor-pointer flex justify-start items-start gap-2 flex-col md:flex-row w-[100.00%] box-border mt-8">
             {!classCreatorData?.profileImage ? (
               <div className="w-20 h-20 md:h-[122px] md:w-[124px] rounded-full bg-gray-200 animate-pulse" />
             ) : (
               <img
                 src={classCreatorData.profileImage}
-                className="w-20 h-20 md:h-[122px] md:w-[124px] max-w-[initial] object-cover rounded-full block box-border shrink-0"
+                className="cursor-pointer w-20 h-20 md:h-[122px] md:w-[124px] max-w-[initial] object-cover rounded-full block box-border shrink-0"
               />
             )}
 
@@ -282,7 +286,7 @@ function FitnessClassDetailsSection({
                   <div className="h-8 bg-gray-200 rounded w-48"></div>
                 </div>
               ) : (
-                <p className="[font-family:'DM_Sans',sans-serif] text-2xl font-bold text-[#261f22] m-0 p-0">
+                <p className="[font-family:'DM_Sans',sans-serif] text-2xl font-bold text-[#261f22] m-0 p-0 cursor-pointer" >
                   {`${classCreatorData.firstName} ${classCreatorData.lastName}`}
                 </p>
               )}
