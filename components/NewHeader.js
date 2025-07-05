@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Button } from "@mui/base";
 import Link from "next/link";
 import { useAuthState, useSignOut } from "react-firebase-hooks/auth";
@@ -17,11 +17,21 @@ import Notifications from "./Notifications";
 import { useRouter } from "next/router";
 import { toast } from "react-toastify";
 import TeacherSearch from "./TeacherSearch";
-import {categories as categoryData} from "../utils/categories";
-import {Tag} from "antd";
+import { categories as categoryData } from "../utils/categories";
+import dynamic from "next/dynamic";
 
-const NewHeader = ({ isHome = true, activeCategory, handleCategorySelection }) => {
+const Player = dynamic(
+  () => import("@lottiefiles/react-lottie-player").then((mod) => mod.Player),
+  { ssr: false }
+);
+
+const NewHeader = ({
+  isHome = true,
+  activeCategory,
+  handleCategorySelection,
+}) => {
   const [user, loading] = useAuthState(auth);
+  const playerRefs = useRef([]);
   const [signOut] = useSignOut(auth);
   const [userData, setUserData] = useState(null);
   const [showDropDown, setDropDown] = useState(false);
@@ -33,14 +43,18 @@ const NewHeader = ({ isHome = true, activeCategory, handleCategorySelection }) =
   const [stripeIntegration, setStripeIntegration] = useState(true);
   const [classCreated, setClassCreated] = useState(true);
   const [scheduleCreated, setScheduleCreated] = useState(true);
+  const videoRefs = useRef([]);
 
   const [activeKey, setActiveKey] = useState("sport");
 
-  const handleCategoryClick = (category) => {
+  const handleCategoryClick = (category, index) => {
     setActiveKey(category);
-    handleCategorySelection(category)
-  };
+    handleCategorySelection(category);
 
+    const player = playerRefs.current[index];
+    console.log("Player:", player);
+    player.play();
+  };
 
   useEffect(() => {
     const getData = async () => {
@@ -51,10 +65,9 @@ const NewHeader = ({ isHome = true, activeCategory, handleCategorySelection }) =
         const data = docSnap.data();
         setSchedule(data);
 
-        if (data){
+        if (data) {
           setScheduleCreated(true);
-        }
-        else{
+        } else {
           setScheduleCreated(false);
         }
       }
@@ -71,12 +84,10 @@ const NewHeader = ({ isHome = true, activeCategory, handleCategorySelection }) =
 
         if (data && data.length > 0) {
           setClassCreated(true);
-        }
-        else{
+        } else {
           setClassCreated(false);
         }
-      }
-      else{
+      } else {
         setClassCreated(false);
       }
     };
@@ -108,8 +119,7 @@ const NewHeader = ({ isHome = true, activeCategory, handleCategorySelection }) =
         data?.data().profileDescription
       ) {
         setProfileCompleted(true);
-      }
-      else{
+      } else {
         setProfileCompleted(false);
       }
       if (
@@ -119,8 +129,7 @@ const NewHeader = ({ isHome = true, activeCategory, handleCategorySelection }) =
       ) {
         toast.error("Please setup stripe to start earning");
         setStripeIntegration(false);
-      }
-      else{
+      } else {
         setStripeIntegration(true);
       }
     };
@@ -136,7 +145,7 @@ const NewHeader = ({ isHome = true, activeCategory, handleCategorySelection }) =
   useEffect(() => {
     const handleScroll = () => {
       if (window.innerWidth < 768) return;
-        setScrollPosition(window.scrollY);
+      setScrollPosition(window.scrollY);
       if (window.scrollY > 5 && !isSearchExpanded) {
         setIsMenuShrunk(true);
       } else if (window.scrollY <= 5 && !isSearchExpanded) {
@@ -144,14 +153,15 @@ const NewHeader = ({ isHome = true, activeCategory, handleCategorySelection }) =
       }
     };
 
-    if (router.pathname === '/') window.addEventListener('scroll', handleScroll);
+    if (router.pathname === "/")
+      window.addEventListener("scroll", handleScroll);
     else {
       setIsMenuShrunk(false);
       setMenuSmall(true);
     }
 
     return () => {
-      window.removeEventListener('scroll', handleScroll);
+      window.removeEventListener("scroll", handleScroll);
     };
   }, [isSearchExpanded]);
 
@@ -257,9 +267,13 @@ const NewHeader = ({ isHome = true, activeCategory, handleCategorySelection }) =
           </div>
         )}
 
-      <div className={`flex flex-col md:gap-1 bg-white pb-4 md:pb-[2rem] sticky top-0 w-full ${
-                      router.pathname==='/' ? "z-[9000]" : "dm2:z-50 z-[9000]"
-       } transition-all duration-500 ${isMenuShrunk ? 'h-[90px] dm2:h-[100px]': (`${isMenuSmall ? 'h-auto dm2:h-[100px]' : 'h-auto'}`)}`}>
+      <div
+        className={`flex flex-col md:gap-1 bg-white pb-4 md:pb-[2rem] sticky top-0 w-full dm2:z-50 z-[900] transition-all duration-500 ${
+          isMenuShrunk
+            ? "h-[90px] dm2:h-[100px]"
+            : `${isMenuSmall ? "h-auto dm2:h-[100px]" : "h-auto"}`
+        }`}
+      >
         {/*NavBar Top Part*/}
         <div className={`${
                       router.pathname==='/' ? "z-[9000]" : "dm2:z-50 z-[9000]"
@@ -272,72 +286,84 @@ const NewHeader = ({ isHome = true, activeCategory, handleCategorySelection }) =
           </Link>
 
           {/* Category Buttons */}
-             <div className="absolute left-1/2 transform -translate-x-[65%] hidden md:block">
-               <div className={`transition duration-500 ${isMenuShrunk || isMenuSmall ? '-translate-y-[600%]' : ''}`}>
-                 <div className="flex space-x-2.5 items-center">
-                   {categoryData.map((category) => (
-                       <div key={category.name}>
-                         <Tag.CheckableTag
-                             checked={activeKey === category.name.toLowerCase()}
-                             onChange={() => handleCategoryClick(category.name.toLowerCase())}
-                             style={{
-                               minWidth: '79px',
-                               height: '35px',
-                               display: 'flex',
-                               alignItems: 'center',
-                               justifyContent: 'center',
-                               gap: '12px',
-                               borderRadius: '100px',
-                               border: '2px solid black',
-                               marginInlineEnd: 0,
-                               cursor: 'pointer',
-                               backgroundColor: activeKey === category.name.toLowerCase() ? '#261f22' : 'white',
-                               color: activeKey === category.name.toLowerCase() ? 'white' : 'black'
-                             }}
-                         >
-                           {category.name}
-                         </Tag.CheckableTag>
-                       </div>
-                   ))}
-                 </div>
-               </div>
+          <div className="hidden md:block">
+            <div
+              className={`transition duration-500 ${
+                isMenuShrunk || isMenuSmall ? "-translate-y-[600%]" : ""
+              }`}
+            >
+              <div className="flex space-x-2.5 items-center">
+                {categoryData.map((category, index) => (
+                  <div key={category.name}>
+                    <button
+                      key={category.name}
+                      onClick={() =>
+                        handleCategoryClick(category.name.toLowerCase(), index)
+                      }
+                      className="flex flex-col items-center justify-center relative cursor-pointer bg-transparent border-none p-2"
+                    >
+                      <Player
+                        id={`player-${index}`}
+                        lottieRef={(el) => (playerRefs.current[index] = el)}
+                        autoplay
+                        loop={false}
+                        src={category.jsonPath}
+                        style={{
+                          height: "42px",
+                          marginBottom: "4px",
+                        }}
+                      />
+                      <span
+                        className={`text-xs font-medium transition-colors ${
+                          activeKey === category.name.toLowerCase()
+                            ? "text-black"
+                            : "text-gray-500"
+                        }`}
+                      >
+                        {category.name}
+                      </span>
+                      {activeKey === category.name.toLowerCase() && (
+                        <div className="absolute bottom-[-2px] w-[110%] h-0.5 bg-black rounded-full"></div>
+                      )}
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
 
-
-          <div className={`right-section ml-auto flex justify-start items-center flex-row gap-4 ${
-                      router.pathname==='/' ? "z-[990]" : "dm2:z-50 z-[900]"}
-                    `}>
+          <div className="flex justify-start items-center flex-row gap-4">
             {!loading ? (
               user ? (
                 <div className="flex items-center gap-4">
                   <div className="hidden dm1:block">
-                  {category !== "" && user ? (
-                    category !== "instructor" ? (
-                      <p className="text-sm lg:inline cursor-pointer hover:bg-gray-100 rounded-full space-x-2 p-3 hover:scale-105 active:scale-90 transition duration-150">
-                        <a
-                          target="_blank"
-                          href="https://gm81lvnyohz.typeform.com/to/IoLpsf9g"
+                    {category !== "" && user ? (
+                      category !== "instructor" ? (
+                        <p className="text-sm lg:inline cursor-pointer hover:bg-gray-100 rounded-full space-x-2 p-3 hover:scale-105 active:scale-90 transition duration-150">
+                          <a
+                            target="_blank"
+                            href="https://gm81lvnyohz.typeform.com/to/IoLpsf9g"
+                          >
+                            Request a Class
+                          </a>
+                        </p>
+                      ) : (
+                        <p
+                          onClick={() => router.push("/createClass")}
+                          className="text-sm lg:inline cursor-pointer hover:bg-gray-100 rounded-full space-x-2 p-3 hover:scale-105 active:scale-90 transition duration-150"
                         >
-                          Request a Class
-                        </a>
-                      </p>
+                          Create Class
+                        </p>
+                      )
                     ) : (
-                      <p
-                        onClick={() => router.push("/createClass")}
-                        className="text-sm lg:inline cursor-pointer hover:bg-gray-100 rounded-full space-x-2 p-3 hover:scale-105 active:scale-90 transition duration-150"
-                      >
-                        Create Class
-                      </p>
-                    )
-                  ) : (
-                    <Image
-                      priority={true}
-                      src="/Rolling-1s-200px.svg"
-                      width={"30px"}
-                      height={"30px"}
-                      alt="Loading"
-                    />
-                  )}
+                      <Image
+                        priority={true}
+                        src="/Rolling-1s-200px.svg"
+                        width={"30px"}
+                        height={"30px"}
+                        alt="Loading"
+                      />
+                    )}
                   </div>
 
                   {user && <Notifications user={user} />}
@@ -372,19 +398,25 @@ const NewHeader = ({ isHome = true, activeCategory, handleCategorySelection }) =
                             </Link>
                           </li>
                           <li className="my-2  hover:text-logo-red hover:scale-105 transition transform duration-200 ease-out active:scale-90">
-                            <Link href={`/chat`}>
-                              My Messages
-                            </Link>
+                            <Link href={`/chat`}>My Messages</Link>
                           </li>
-                          <li className="my-2  hover:text-logo-red hover:scale-105 transition transform duration-200 ease-out active:scale-90" style={{display: category==="instructor"?"none":"block"}}>
-                            <Link href={`/myPackages`}>
-                              My Packages
-                            </Link>
+                          <li
+                            className="my-2  hover:text-logo-red hover:scale-105 transition transform duration-200 ease-out active:scale-90"
+                            style={{
+                              display:
+                                category === "instructor" ? "none" : "block",
+                            }}
+                          >
+                            <Link href={`/myPackages`}>My Packages</Link>
                           </li>
                           {category !== "instructor" && (
                             <>
                               <li className="my-2 block dm1:hidden hover:text-logo-red hover:scale-105 transition transform duration-200 ease-out active:scale-90">
-                                <Link href={`https://gm81lvnyohz.typeform.com/to/IoLpsf9g`}>Request a Class</Link>
+                                <Link
+                                  href={`https://gm81lvnyohz.typeform.com/to/IoLpsf9g`}
+                                >
+                                  Request a Class
+                                </Link>
                               </li>
                             </>
                           )}
@@ -392,7 +424,9 @@ const NewHeader = ({ isHome = true, activeCategory, handleCategorySelection }) =
                             <>
                               <li>
                                 <p className="my-2  hover:text-logo-red hover:scale-105 transition transform duration-200 ease-out active:scale-90">
-                                  <a href={`/myStudents/${user.uid}`}>My Students</a>
+                                  <a href={`/myStudents/${user.uid}`}>
+                                    My Students
+                                  </a>
                                 </p>
                               </li>
                               <li>
@@ -478,10 +512,10 @@ const NewHeader = ({ isHome = true, activeCategory, handleCategorySelection }) =
 
         {/*NavBar Search Part*/}
         <TeacherSearch
-            isShrunk={isMenuShrunk}
-            isMenuSmall={isMenuSmall}
-            expandMenu={() => setIsMenuShrunk(false)}
-            user={user}
+          isShrunk={isMenuShrunk}
+          isMenuSmall={isMenuSmall}
+          expandMenu={() => setIsMenuShrunk(false)}
+          user={user}
         />
       </div>
     </>
