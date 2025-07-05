@@ -195,6 +195,7 @@ const InstructorClasses = ({ classes, bookings, bookingsByMe, reviews }) => {
                 paymentIntentId={appointment.paymentIntentId}
                 isBooking={true}
                 payment={appointment.payment}
+                isMindbody={classData.mindbodyId ? true : false}
               />
             ) : null;
           })
@@ -310,6 +311,7 @@ const InstructorClasses = ({ classes, bookings, bookingsByMe, reviews }) => {
                 end={classData.endTime}
                 classCreator={classData.classCreator}
                 isBooking={false}
+                isMindbody={classData.mindbodyId ? true : false}
               />
             );
           })

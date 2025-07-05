@@ -59,6 +59,7 @@ export default function index({
     generalAvailability: [],
     adjustedAvailability: [],
   });
+  const [mindbodySchedule, setMindbodySchedule] = useState([]);
   const [voucher, setVoucher] = useState("");
   const [voucherVerified, setVoucherVerified] = useState(false);
   const [discount, setDiscount] = useState(null);
@@ -336,16 +337,30 @@ export default function index({
     const minHourtoDay = 0;
     for (let i = minHourtoDay; i < maxDays; i++) {
       const date = moment(today).add(i, "days").toDate();
-      if (!hasSlots(date, schedule, bookedSlots, appointmentDuration)) {
+      if (
+        classData &&
+        !classData.mindbodyId &&
+        !hasSlots(date, schedule, bookedSlots, appointmentDuration)
+      ) {
         daysToCheck.push(date);
+      }
+      if (classData && classData.mindbodyId && mindbodySchedule.length > 0) {
+        const dateStr = moment(date).format("YYYY-MM-DD");
+        const hasMindbodySlots = mindbodySchedule.some(
+          (slot) => moment(slot.StartDateTime).format("YYYY-MM-DD") === dateStr
+        );
+        if (!hasMindbodySlots) {
+          daysToCheck.push(date);
+        }
       }
     }
     setDaysWithNoSlots(daysToCheck);
-  }, [schedule, bookedSlots, appointmentDuration, classData]);
+  }, [schedule, bookedSlots, appointmentDuration, classData, mindbodySchedule]);
 
   useEffect(() => {
     const fetchData = async () => {
       if (!instructorId || !classId) return;
+      if (classData && classData.mindbodyId) return;
 
       let scheduleData = null;
 
@@ -458,7 +473,85 @@ export default function index({
     };
 
     fetchData();
-  }, [instructorId, classId]);
+  }, [instructorId, classId, classData]);
+
+  // If Mindbody classId is provided, fetch schedule from Mindbody
+  useEffect(() => {
+    const fetchMindbodySchedule = async () => {
+      if (!instructorId || !classId || !instructorData) return;
+      if (!classData || !classData.mindbodyId) return;
+      try {
+        const quertParams = new URLSearchParams({
+          siteId: instructorData?.mindbodySite,
+          classDescriptionID: classData.mindbodyId,
+        });
+        const response = await fetch(
+          `/api/mindbody/getClasses?${quertParams.toString()}`,
+          {
+            method: "GET",
+            headers: {
+              Authorization: instructorData?.mindbody.accessToken,
+              RefreshToken: instructorData?.mindbody.refreshToken,
+              userId: instructorId,
+            },
+          }
+        );
+        if (!response.ok) {
+          throw new Error("Failed to fetch Mindbody schedule");
+        }
+        const data = await response.json();
+        if (data.length === 0) {
+          console.warn("No classes found for the given Mindbody classId");
+          return;
+        }
+        const filteredData = data.filter(
+          (slot) => slot.MaxCapacity > slot.TotalBooked
+        );
+        setMindbodySchedule(filteredData);
+      } catch (error) {
+        console.error("Error fetching Mindbody schedule:", error);
+      }
+    };
+    fetchMindbodySchedule();
+  }, [instructorId, classId, classData, instructorData]);
+
+  // Slots manager for mindbody classes
+  useEffect(() => {
+    const manageMindbodySlots = () => {
+      if (!mindbodySchedule || mindbodySchedule.length === 0) return;
+      const slots = mindbodySchedule.map((slot) => {
+        const startTime = moment(slot.StartDateTime).format("HH:mm");
+        const endTime = moment(slot.EndDateTime).format("HH:mm");
+        const date = moment(slot.StartDateTime).format("YYYY-MM-DD");
+        const mindbodyId = slot.Id;
+        const bookedSlots = slot.TotalBooked;
+        return { startTime, endTime, date, mindbodyId, bookedSlots };
+      });
+      // Filter slots of selectedDate
+      const filteredSlots = slots.filter(
+        (slot) => slot.date === moment(selectedDate).format("YYYY-MM-DD")
+      );
+      const groupedSlots = filteredSlots.reduce((acc, slot) => {
+        const key = `${slot.date} ${slot.startTime}`;
+        if (!acc[key]) {
+          acc[key] = {
+            startTime: slot.startTime,
+            endTime: slot.endTime,
+            date: slot.date,
+            classId: classId,
+            mindbodyId: slot.mindbodyId,
+            bookedSlots: slot.bookedSlots,
+          };
+        } else {
+          acc[key].endTime = slot.endTime;
+        }
+        return acc;
+      }, {});
+      setGroupedSlots(Object.values(groupedSlots));
+      setIndividualSlots([]);
+    };
+    manageMindbodySlots();
+  }, [mindbodySchedule, classId, selectedDate]);
 
   const calculateRemainingGroupedClassSlots = () => {
     const selected = moment
@@ -469,12 +562,12 @@ export default function index({
         booking.startTime === selectedSlot.startTime &&
         booking.date === selectedSlot.date
     );
-
+    const midBodyBooked = selectedSlot.bookedSlots || 0;
     const bookingSizes = filteredBookings.map((booking) =>
       booking.groupSize ? booking.groupSize : 1
     );
     const remainingSlots =
-      classData.groupSize - bookingSizes.reduce((a, b) => a + b, 0);
+      classData.groupSize - bookingSizes.reduce((a, b) => a + b, 0) - midBodyBooked;
 
     return remainingSlots;
   };
@@ -1901,8 +1994,10 @@ END:VCALENDAR`.trim();
               startTime={selectedSlot.startTime}
               endTime={selectedSlot.endTime}
               date={selectedSlot.date}
+              instructorId={instructorId}
               setTimer={setTimer}
               mode={selectedSlot.classId ? "Group" : "Individual"}
+              mindBodyClassID={selectedSlot.mindbodyId}
               classData={classData}
               timeZone={timeZone}
               groupEmails={groupEmails}
@@ -1961,6 +2056,7 @@ const CheckoutForm = ({
   setStripeOptions,
   startTime,
   endTime,
+  mindBodyClassID,
   date,
   setTimer,
   mode,
@@ -1972,6 +2068,7 @@ const CheckoutForm = ({
   price,
   selectedPackage,
   classId,
+  instructorId,
   discountType,
   discount,
   voucher,
@@ -2194,6 +2291,43 @@ ${meetingLink ? `X-GOOGLE-CONFERENCE:${meetingLink}` : ""}
 END:VEVENT
 END:VCALENDAR`.trim();
 
+      // if mindBody class, then hit bookClass API
+      console.log(classData);
+      if (classData?.mindbodyId) {
+        try {
+          const resp = await fetch("/api/mindbody/bookClass", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${instructorData?.mindbody.accessToken}`,
+              SiteId: instructorData?.mindbodySite,
+              RefreshToken: instructorData?.mindbody.refreshToken,
+              userId: instructorId,
+            },
+            body: JSON.stringify({
+              classId: mindBodyClassID,
+              firstName: user?.displayName?.split(" ")[0] || user?.email,
+              lastName: user?.displayName?.split(" ")[1] || "User",
+            }),
+          });
+          console.log("Mindbody class booked successfully");
+          console.log(resp);
+          if (!resp.ok) {
+            const errorData = await resp.json();
+            console.error("Error booking Mindbody class:", errorData);
+            toast.error(
+              `Failed to book Mindbody class: ${errorData.Message || "Unknown error"}`
+            );
+          }
+          else{
+            const data = await resp.json();
+            console.log("Mindbody class booked successfully:", data);
+          }
+        } catch (e) {
+          console.log(e);
+        }
+      }
+
       function formatDateTime(dateTimeString) {
         const date = moment.utc(dateTimeString);
         const formattedDate = date.format("YYYYMMDD");
@@ -2314,7 +2448,6 @@ END:VCALENDAR`.trim();
           userId: bookingData.instructor_id,
         }),
       });
-      console.log("Calendar Response:", calendarResponse);
       if (!calendarResponse.ok) {
         const errorText = await calendarResponse.text();
         console.error("Error creating calendar event:", errorText);
