@@ -33,9 +33,9 @@ export default function Schedule() {
   const [user, userLoading] = useAuthState(auth);
   const router = useRouter();
   const [userData, setUserData] = useState(null);
-  const [loaded,setLoaded] = useState(false)
+  const [loaded, setLoaded] = useState(false);
   const [vacationStartDate, setVacationStartDate] = useState(null);
-  const [saveStatus,setSaveStatus] = useState('')
+  const [saveStatus, setSaveStatus] = useState("");
   const [vacationEndDate, setVacationEndDate] = useState(null);
   const [showVacationPicker, setShowVacationPicker] = useState(false);
   const [showClassDropdown, setShowClassDropdown] = useState(null);
@@ -249,11 +249,11 @@ export default function Schedule() {
     setShowVacationPicker(false);
   };
 
-  useEffect(()=>{
-    if(loaded===true){
-      saveSchedule(db,user,generalAvailability,adjustedAvailability)
+  useEffect(() => {
+    if (loaded === true) {
+      saveSchedule(db, user, generalAvailability, adjustedAvailability);
     }
-  },[generalAvailability,adjustedAvailability,loaded])
+  }, [generalAvailability, adjustedAvailability, loaded]);
 
   const saveSchedule = async (
     db,
@@ -263,7 +263,7 @@ export default function Schedule() {
   ) => {
     try {
       setScheduleLoading(true);
-      setSaveStatus("saving")
+      setSaveStatus("saving");
       const data = {
         generalAvailability,
         adjustedAvailability,
@@ -277,11 +277,11 @@ export default function Schedule() {
 
       // toast.success("Schedule saved successfully");
       setScheduleLoading(false);
-      setSaveStatus("saved")
+      setSaveStatus("saved");
     } catch (error) {
       toast.error("Error saving schedule");
       setScheduleLoading(false);
-      setSaveStatus("error")
+      setSaveStatus("error");
     }
   };
 
@@ -301,7 +301,7 @@ export default function Schedule() {
               setMinDays(data?.minDays ? data.minDays : 1);
               setMaxDays(data?.maxDays ? data.maxDays : 30);
               setSelectedTimeZone(data.timezone || "America/Toronto");
-              setLoaded(true)
+              setLoaded(true);
             }
           }
         },
@@ -727,7 +727,14 @@ export default function Schedule() {
               fill="none"
               viewBox="0 0 24 24"
             >
-              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+              <circle
+                className="opacity-25"
+                cx="12"
+                cy="12"
+                r="10"
+                stroke="currentColor"
+                strokeWidth="4"
+              />
               <path
                 className="opacity-75"
                 fill="currentColor"
@@ -746,7 +753,12 @@ export default function Schedule() {
               stroke="currentColor"
               viewBox="0 0 24 24"
             >
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M5 13l4 4L19 7"
+              />
             </svg>
             Saved
           </p>
@@ -760,17 +772,18 @@ export default function Schedule() {
               stroke="currentColor"
               viewBox="0 0 24 24"
             >
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M6 18L18 6M6 6l12 12"
+              />
             </svg>
             Error saving
           </p>
         );
       default:
-        return (
-          <p className="text-sm text-gray-400">
-            All changes saved
-          </p>
-        );
+        return <p className="text-sm text-gray-400">All changes saved</p>;
     }
   };
 
@@ -831,9 +844,7 @@ export default function Schedule() {
               <path d="M6.707 16.293a1 1 0 000-1.414L10.586 11 6.707 7.121a1 1 0 011.414-1.414l4.586 4.586a1 1 0 010 1.414l-4.586 4.586a1 1 0 01-1.414 0z" />
             </svg>
           </div>
-          <div className="hidden dm:block">
-            {renderStatus()}
-          </div>
+          <div className="hidden dm:block">{renderStatus()}</div>
         </div>
         <h2>Common Schedule</h2>
 
@@ -875,6 +886,25 @@ export default function Schedule() {
 
       <div className="flex flex-grow flex-col lg:flex-row overflow-hidden bg-gray-50 text-black">
         <div className="overflow-auto p-4 border-r bg-white shadow-md">
+        
+
+          {/* Connect to Mind Body button */}
+          { userData && userData.mindbody && userData.mindbody.accessToken ? (
+            <div className="flex items-center mb-4 px-4 py-2 border border-green-500 text-green-600 bg-green-50 rounded-md space-x-2">
+              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm1-13h-2v6h2V7zm0 8h-2v2h2v-2z" />
+              </svg>
+              <span className="font-medium">Mindbody Connected!</span>
+              </div>
+              ) : (
+                <a
+                  href="mindbody-init"
+                  className="hidden lg:inline-flex items-center space-x-2 border-gray-400 border text-gray-600 px-4 py-2 rounded-md my-4 shadow transition duration-200 hover:border-blue-600"
+                  title="Connect your Mindbody account to automatically sync bookings to and update Pocketclass when times are blocked on Mindbody"
+                >
+                  Connect to Mindbody
+                  </a>
+              ) }
           {userData &&
           userData.googleCalendar &&
           userData.googleCalendar.accessToken ? (
@@ -890,8 +920,14 @@ export default function Schedule() {
               className="hidden lg:inline-flex items-center space-x-2 border-gray-400 border text-gray-600 px-4 py-2 rounded-md my-4 shadow transition duration-200 hover:border-blue-600"
               title="Connect your Google Calendar to automatically sync bookings to and update Pocketclass when times are blocked on Google Calendar"
             >
-              <img className="w-5 h-5" src="/Google_Calendar_icon.svg" alt="Google Icon" />
-              <span className="font-medium">Connect to <b>Google Calendar</b></span>
+              <img
+                className="w-5 h-5"
+                src="/Google_Calendar_icon.svg"
+                alt="Google Icon"
+              />
+              <span className="font-medium">
+                Connect to <b>Google Calendar</b>
+              </span>
             </a>
           )}
 
@@ -1689,9 +1725,7 @@ export default function Schedule() {
         </div>
         <div className="flex-grow p-4">
           <div className="dm1:mb-0 mb-8">
-            <div className="dm:hidden block">
-              {renderStatus()}
-            </div>
+            <div className="dm:hidden block">{renderStatus()}</div>
             <BigCalendar
               selectable
               timeslots={2}
@@ -1741,7 +1775,10 @@ export default function Schedule() {
                 setTemporaryEvent(null);
               }}
             >
-              <div className="relative bg-white p-6 rounded-xl z-[10000] shadow-lg w-[300px] popup dm1:w-[400px]" onClick={(e) => e.stopPropagation()}>
+              <div
+                className="relative bg-white p-6 rounded-xl z-[10000] shadow-lg w-[300px] popup dm1:w-[400px]"
+                onClick={(e) => e.stopPropagation()}
+              >
                 <h3>Add Availability</h3>
 
                 <div className="flex flex-col dm1:flex-row items-start mt-2 justify-start gap-2 py-2 text-sm rounded cursor-pointer">

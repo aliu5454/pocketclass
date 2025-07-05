@@ -235,6 +235,7 @@ const MyClass = () => {
           bookings={bookings}
           bookingsByMe={bookingsByMe}
           reviews={reviews}
+          userData={userData}
         />
       )}
 

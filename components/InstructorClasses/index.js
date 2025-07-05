@@ -4,9 +4,15 @@ import InfoCard from "../InfoCard";
 import InstructorCard from "./InstructorCard";
 import StudentCard from "../StudentClasses/StudentCard";
 import moment from "moment";
-import { useRouter } from 'next/router'
+import { useRouter } from "next/router";
 
-const InstructorClasses = ({ classes, bookings, bookingsByMe, reviews }) => {
+const InstructorClasses = ({
+  classes,
+  bookings,
+  bookingsByMe,
+  reviews,
+  userData,
+}) => {
   const [selectedStatus, setSelectedStatus] = React.useState("Bookings");
   const router = useRouter();
   const { bookingId, mode } = router.query;
@@ -23,7 +29,9 @@ const InstructorClasses = ({ classes, bookings, bookingsByMe, reviews }) => {
       existing.studentId.push(appointment.student_id);
       existing.paymentIntentId.push(appointment.paymentIntentId);
       if (appointment.groupSize && appointment.groupSize > 1) {
-        existing.student_name.push(appointment.student_name + " x" + appointment.groupSize);
+        existing.student_name.push(
+          appointment.student_name + " x" + appointment.groupSize
+        );
       } else {
         existing.student_name.push(appointment.student_name);
       }
@@ -68,7 +76,9 @@ const InstructorClasses = ({ classes, bookings, bookingsByMe, reviews }) => {
       existing.studentId.push(appointment.student_id);
       existing.paymentIntentId.push(appointment.paymentIntentId);
       if (appointment.groupSize && appointment.groupSize > 1) {
-        existing.student_name.push(appointment.student_name + " x" + appointment.groupSize);
+        existing.student_name.push(
+          appointment.student_name + " x" + appointment.groupSize
+        );
       } else {
         existing.student_name.push(appointment.student_name);
       }
@@ -111,7 +121,9 @@ const InstructorClasses = ({ classes, bookings, bookingsByMe, reviews }) => {
       existing.studentId.push(appointment.student_id);
       existing.paymentIntentId.push(appointment.paymentIntentId);
       if (appointment.groupSize && appointment.groupSize > 1) {
-        existing.student_name.push(appointment.student_name + " x" + appointment.groupSize);
+        existing.student_name.push(
+          appointment.student_name + " x" + appointment.groupSize
+        );
       } else {
         existing.student_name.push(appointment.student_name);
       }
@@ -142,7 +154,7 @@ const InstructorClasses = ({ classes, bookings, bookingsByMe, reviews }) => {
         ],
       });
     }
-    console.log(acc)
+    console.log(acc);
     return acc;
   }, []);
 
@@ -195,6 +207,7 @@ const InstructorClasses = ({ classes, bookings, bookingsByMe, reviews }) => {
                 paymentIntentId={appointment.paymentIntentId}
                 isBooking={true}
                 payment={appointment.payment}
+                isMindbody={classData.mindbodyId ? true : false}
               />
             ) : null;
           })
@@ -204,7 +217,8 @@ const InstructorClasses = ({ classes, bookings, bookingsByMe, reviews }) => {
           </p>
         )}
 
-        {selectedStatus === "CompletedBookings" && groupedAppointmentsAfter.length !== 0 ? (
+        {selectedStatus === "CompletedBookings" &&
+        groupedAppointmentsAfter.length !== 0 ? (
           groupedAppointmentsAfter.map((appointment) => {
             const classData = classes.find(
               (c) => c.id === appointment.class_id
@@ -244,7 +258,8 @@ const InstructorClasses = ({ classes, bookings, bookingsByMe, reviews }) => {
           </p>
         )}
 
-        {selectedStatus === "bookingsByMe" && groupedBookingsByMe.length !== 0 ? (
+        {selectedStatus === "bookingsByMe" &&
+        groupedBookingsByMe.length !== 0 ? (
           groupedBookingsByMe.map((appointment) => {
             const classData = classes.find(
               (c) => c.id === appointment.class_id
@@ -275,8 +290,12 @@ const InstructorClasses = ({ classes, bookings, bookingsByMe, reviews }) => {
                 studentName={appointment.student_name}
                 paymentIntentId={appointment.paymentIntentId}
                 timezone={appointment.timezone || "America/Toronto"}
-                rescheduleBooking={bookingId === appointment.id && mode === "reschedule"}
-                cancelBooking={bookingId === appointment.id && mode === "cancel"}
+                rescheduleBooking={
+                  bookingId === appointment.id && mode === "reschedule"
+                }
+                cancelBooking={
+                  bookingId === appointment.id && mode === "cancel"
+                }
               />
             ) : null;
           })
@@ -288,31 +307,48 @@ const InstructorClasses = ({ classes, bookings, bookingsByMe, reviews }) => {
 
         {/* For Selected Status Classes display classes */}
         {selectedStatus === "Classes" && classes.length !== 0 ? (
-          classes.map((classData) => {
-            return (
-              <InstructorCard
-                key={classData.id}
-                id={classData.id}
-                type={
-                  classData.SubCategory ? classData.SubCategory : classData.Type
-                }
-                latitude={classData.latitude}
-                name={classData.Name}
-                images={classData.Images}
-                description={classData.Description}
-                longitude={classData.longitude}
-                reviews={reviews}
-                address={classData.Address}
-                price={classData.Price}
-                category={classData.category}
-                status={classData.status}
-                start={classData.startTime}
-                end={classData.endTime}
-                classCreator={classData.classCreator}
-                isBooking={false}
-              />
-            );
-          })
+          // Add a import classes button before the classes
+          <div>
+            {userData?.mindbody?.accessToken && (
+              <div className="flex justify-between items-center mb-4">
+                <button
+                  onClick={() => router.push("/mindbody-import")}
+                  className="bg-logo-red text-white px-4 py-2 rounded-md hover:bg
+                -logo-red-dark transition-colors"
+                >
+                  Import Classes from Mindbody
+                </button>
+              </div>
+            )}
+            {classes.map((classData) => {
+              return (
+                <InstructorCard
+                  key={classData.id}
+                  id={classData.id}
+                  type={
+                    classData.SubCategory
+                      ? classData.SubCategory
+                      : classData.Type
+                  }
+                  latitude={classData.latitude}
+                  name={classData.Name}
+                  images={classData.Images}
+                  description={classData.Description}
+                  longitude={classData.longitude}
+                  reviews={reviews}
+                  address={classData.Address}
+                  price={classData.Price}
+                  category={classData.category}
+                  status={classData.status}
+                  start={classData.startTime}
+                  end={classData.endTime}
+                  classCreator={classData.classCreator}
+                  isBooking={false}
+                  isMindbody={classData.mindbodyId ? true : false}
+                />
+              );
+            })}
+          </div>
         ) : (
           <p className="text-center text-xl w-full text-logo-red">
             {selectedStatus === "Classes" ? "No Classes Found" : ""}
