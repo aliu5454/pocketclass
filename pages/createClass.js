@@ -232,7 +232,14 @@ export default function CreateClass() {
       ]);
       setPreviewImages([]);
       setUploadedFiles([]);
-      router.push("/confirmClass/" + addingClass.id);
+      
+      // Check if user came from instructor onboarding
+      if (router.query.from === 'instructor-onboarding') {
+        router.push("/instructor-onboarding");
+      } else {
+        router.push("/confirmClass/" + addingClass.id);
+      }
+      
       toast.success("Class Added");
     } catch (error) {
       console.error("Error adding class:", error);

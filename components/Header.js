@@ -87,7 +87,7 @@ function Header({ placeholder }) {
       setUserData(data?.data?.());
       if (
         window.location.pathname === "/" &&
-        data?.data()?.category === "instructor" &&
+        data?.data()?.isInstructor &&
         !data?.data()?.stripeAccountId
       ) {
         toast.error("Please setup stripe to start earning");
@@ -119,7 +119,7 @@ function Header({ placeholder }) {
       }
     };
 
-    if (userData && userData.category === "instructor") {
+    if (userData && userData.isInstructor) {
       getData();
     }
   }, [userData]);
@@ -165,6 +165,7 @@ function Header({ placeholder }) {
 
       if (docSnap.exists()) {
         setCategory(docSnap.data().category);
+        setUserData(docSnap.data());
       }
     } catch (error) {
       console.warn(error);
@@ -179,7 +180,7 @@ function Header({ placeholder }) {
     <>
       {user &&
         userData &&
-        userData.category === "instructor" &&
+        userData.isInstructor &&
         (!stripeIntegration ||
           !classCreated ||
           !scheduleCreated ||
@@ -321,8 +322,8 @@ function Header({ placeholder }) {
 
           {!loading || category !== "" ? (
             <>
-              {category !== "" && user ? (
-                category !== "instructor" ? (
+              {user ? (
+                !userData?.isInstructor ? (
                   <p className="text-sm hidden lg:inline cursor-pointer hover:bg-gray-100 rounded-full space-x-2 p-3 hover:scale-105 active:scale-90 transition duration-150">
                     <a
                       target="_blank"
@@ -403,9 +404,8 @@ function Header({ placeholder }) {
                           <a href={`/myClass/${user.uid}`}>My Classes</a>
                         </li>
 
-                        {category !== "" &&
-                        user &&
-                        category !== "instructor" ? (
+                        {user &&
+                        !userData?.isInstructor ? (
                           <li>
                             <p className="lg:hidden xl:hidden sm:inline-block md:inline cursor-pointer hover:bg-gray-100 rounded-full space-x-2 hover:scale-105 active:scale-90 transition duration-150">
                               <a
@@ -416,7 +416,7 @@ function Header({ placeholder }) {
                               </a>
                             </p>
                           </li>
-                        ) : (
+                        ) : user && userData?.isInstructor ? (
                           <li>
                             <p
                               onClick={() => router.push("/createClass")}
@@ -426,10 +426,10 @@ function Header({ placeholder }) {
                               Create Class
                             </p>
                           </li>
-                        )}
-                        {category !== "" &&
+                        ) : null}
+                        {userData &&
                           user &&
-                          category === "instructor" && (
+                          userData.isInstructor && (
                             <>
                               <li>
                                 <p className="my-2  hover:text-logo-red hover:scale-105 transition transform duration-200 ease-out active:scale-90">

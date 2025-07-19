@@ -15,7 +15,7 @@ import { toast, ToastContainer } from "react-toastify";
 function Register() {
 	const [email, setEmail] = React.useState("");
 	const [password, setPassword] = React.useState("");
-	const [category, setCategory] = React.useState("");
+	const [category, setCategory] = React.useState("student"); // Default to student
 	const router = useRouter();
 
 	const [createUserWithEmailAndPassword, user, signUpLoading, error] =
@@ -27,36 +27,31 @@ function Register() {
 		useSendEmailVerification(auth);
 
 	const handleGoogleSignIn = async () => {
-		if (category !== "") {
-			const user = await signInWithGoogle();
+		const user = await signInWithGoogle();
 
-			const displayName = user?.user?.displayName || "";
-			const nameParts = displayName.split(" ");
-			const firstName = nameParts[0] || "";
-			const lastName = nameParts.slice(1).join(" ") || "";
+		const displayName = user?.user?.displayName || "";
+		const nameParts = displayName.split(" ");
+		const firstName = nameParts[0] || "";
+		const lastName = nameParts.slice(1).join(" ") || "";
 
-			const data = {
-				userUid: user?.user?.uid,
-				email: user?.user?.email,
-				category: category,
-				profileImage: user?.user?.photoURL,
-				createdAt: serverTimestamp(),
-				firstName: firstName,
-				lastName: lastName,
-			};
+		const data = {
+			userUid: user?.user?.uid,
+			email: user?.user?.email,
+			category: "student", // Default to student
+			profileImage: user?.user?.photoURL,
+			createdAt: serverTimestamp(),
+			firstName: firstName,
+			lastName: lastName,
+			isInstructor: false, // New field to track instructor status
+		};
 
-			if (user) {
-				const docRef = doc(db, "Users", user?.user?.uid);
-				const docSnap = await getDoc(docRef);
+		if (user) {
+			const docRef = doc(db, "Users", user?.user?.uid);
+			const docSnap = await getDoc(docRef);
 
-				if (!docSnap.exists()) {
-					await setDoc(doc(db, "Users", user?.user?.uid), data);
-				}
+			if (!docSnap.exists()) {
+				await setDoc(doc(db, "Users", user?.user?.uid), data);
 			}
-		} else {
-			toast.error("Please select a category!", {
-				toastId: "error3",
-			});
 		}
 	};
 
@@ -69,12 +64,11 @@ function Register() {
 		const gender = e.target.gender.value;
 		const phoneNumber = e.target.phoneNumber.value;
 		const dob = e.target.dob.value;
-		const category = e.target.category.value;
+		const category = "student"; // Default to student
 
 		if (
 			email != null &&
 			password !== null &&
-			category !== "" &&
 			firstName !== " " &&
 			lastName !== " " &&
 			gender !== " " &&
@@ -94,8 +88,9 @@ function Register() {
 				phoneNumber,
 				dob,
 				email,
-				category,
+				category: "student", // Default to student
 				createdAt: serverTimestamp(),
+				isInstructor: false, // New field to track instructor status
 			};
 
 			if (signedUpUser) {
@@ -133,11 +128,8 @@ function Register() {
 	}
 
 	if (googleUser && !googleError) {
-		if(category==="student"){
-			router.push('/')
-			return
-		}
-		router.push(`/profile/${googleUser.user.reloadUserInfo.localId}`);
+		router.push('/');
+		return
 	}
 
 	return (
@@ -243,32 +235,6 @@ function Register() {
 								placeholder="Enter your password"
 								type={"password"}
 							/>
-						</div>
-
-						<p className="text-medium font-medium mt-5">
-							Please select whether you are a Student or an Instructor
-						</p>
-						<div className="flex  items-center">
-							<div className="flex items-center pt-5">
-								<input
-									type="radio"
-									onChange={(e) => setCategory(e.target.value)}
-									className="form-check-input mr-5"
-									value={"student"}
-									name="category"
-								/>
-								<span className="text-base mr-5">Student</span>
-							</div>
-							<div className="flex items-center pt-5">
-								<input
-									type="radio"
-									onChange={(e) => setCategory(e.target.value)}
-									className="form-check-input mr-5"
-									value={"instructor"}
-									name="category"
-								/>
-								<span className="text-base">Instructor</span>
-							</div>
 						</div>
 
 						<div className="mt-8 flex flex-col gap-y-4">

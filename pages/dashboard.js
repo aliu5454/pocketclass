@@ -338,12 +338,12 @@ export default function Dashboard() {
 
 						<p className="my-1 mx-2 flex-1 text-center  bg-gray-100 p-4 rounded-md shadow hover:opacity-70">
 							<strong>Total Instructors:</strong>{" "}
-							{users?.filter((u) => u.category === "instructor")?.length}
+							{users?.filter((u) => u.isInstructor)?.length}
 						</p>
 
 						<p className="my-1 mx-2 flex-1 text-center  bg-gray-100 p-4 rounded-md shadow hover:opacity-70">
 							<strong>Total Students:</strong>{" "}
-							{users?.filter((u) => u.category === "student")?.length}
+							{users?.filter((u) => !u.isInstructor)?.length}
 						</p>
 
 						<p className="my-1 mx-2 flex-1 text-center  bg-gray-100 p-4 rounded-md shadow hover:opacity-70">

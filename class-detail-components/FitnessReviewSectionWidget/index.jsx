@@ -12,7 +12,7 @@ function FitnessReviewSectionWidget({
   return (
     <div className="w-full box-border mt-12">
       <div
-        className="xl:hidden flex mb-12 shadow-[1px_1px_7px_rgba(0,0,0,0.20)] bg-[white] box-border justify-start items-stretch flex-col w-full lg:max-w-[300px] pt-6 px-4 md:px-6 rounded-xl md:rounded-2xl lg:rounded-3x xl:fixed xl:right-[2rem]"
+        className="xl:hidden flex mb-12 bg-[white] box-border justify-start items-stretch flex-col w-full lg:max-w-[300px] rounded-xl md:rounded-2xl lg:rounded-3x xl:fixed xl:right-[2rem]"
         style={{ zIndex: 1 }}
       >
         <DynamicButtonSection

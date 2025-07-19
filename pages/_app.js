@@ -8,6 +8,7 @@ import Router from "next/router";
 import Script from "next/script";
 import { ToastContainer } from "react-toastify";
 import NewHeader from "../components/NewHeader";
+import InstructorSideBar from "../components/instructorSideBar";
 import { useEffect } from "react";
 import { useRouter } from "next/router";
 
@@ -49,7 +50,12 @@ function MyApp({ Component, pageProps }) {
         `}
       </Script>
       <NewHeader isHome={router.pathname==="/"} />
-      <Component {...pageProps} />
+      <div className="flex">
+        <InstructorSideBar />
+        <div className="flex-1 min-w-0 pb-16 lg:pb-0">
+          <Component {...pageProps} />
+        </div>
+      </div>
       <ToastContainer
         position="top-center"
         autoClose={2000}

@@ -1,7 +1,13 @@
 import Head from "next/head";
 import * as React from "react";
 import { useRouter } from "next/router";
-import { arrayUnion, doc, getDoc, serverTimestamp, updateDoc } from "firebase/firestore";
+import {
+  arrayUnion,
+  doc,
+  getDoc,
+  serverTimestamp,
+  updateDoc,
+} from "firebase/firestore";
 import { db, storage } from "../../firebaseConfig";
 import { toast, ToastContainer } from "react-toastify";
 import { useEffect, useState } from "react";
@@ -9,18 +15,18 @@ import Image from "next/image";
 import { getDownloadURL, ref, uploadBytes } from "firebase/storage";
 import NewHeader from "../../components/NewHeader";
 import { useDropzone } from "react-dropzone";
-import { CropperRef, Cropper, CircleStencil } from 'react-advanced-cropper';
-import 'react-advanced-cropper/dist/style.css'
-import { 
-  PencilIcon, 
-  UserIcon, 
-  PhoneIcon, 
-  CakeIcon, 
-  UserGroupIcon, 
+import { CropperRef, Cropper, CircleStencil } from "react-advanced-cropper";
+import "react-advanced-cropper/dist/style.css";
+import {
+  PencilIcon,
+  UserIcon,
+  PhoneIcon,
+  CakeIcon,
+  UserGroupIcon,
   DocumentTextIcon,
   PhotographIcon,
   SaveIcon,
-  CloudUploadIcon
+  CloudUploadIcon,
 } from "@heroicons/react/solid";
 
 function UpdateProfile() {
@@ -52,7 +58,7 @@ function UpdateProfile() {
   useEffect(() => {
     const handleDragEnter = (e) => {
       e.preventDefault();
-      setDragCounter(prev => prev + 1);
+      setDragCounter((prev) => prev + 1);
       if (e.dataTransfer.items && e.dataTransfer.items.length > 0) {
         setIsDragActive(true);
       }
@@ -60,7 +66,7 @@ function UpdateProfile() {
 
     const handleDragLeave = (e) => {
       e.preventDefault();
-      setDragCounter(prev => prev - 1);
+      setDragCounter((prev) => prev - 1);
       if (dragCounter <= 1) {
         setIsDragActive(false);
       }
@@ -77,16 +83,16 @@ function UpdateProfile() {
     };
 
     // Add event listeners to document
-    document.addEventListener('dragenter', handleDragEnter);
-    document.addEventListener('dragleave', handleDragLeave);
-    document.addEventListener('dragover', handleDragOver);
-    document.addEventListener('drop', handleDrop);
+    document.addEventListener("dragenter", handleDragEnter);
+    document.addEventListener("dragleave", handleDragLeave);
+    document.addEventListener("dragover", handleDragOver);
+    document.addEventListener("drop", handleDrop);
 
     return () => {
-      document.removeEventListener('dragenter', handleDragEnter);
-      document.removeEventListener('dragleave', handleDragLeave);
-      document.removeEventListener('dragover', handleDragOver);
-      document.removeEventListener('drop', handleDrop);
+      document.removeEventListener("dragenter", handleDragEnter);
+      document.removeEventListener("dragleave", handleDragLeave);
+      document.removeEventListener("dragover", handleDragOver);
+      document.removeEventListener("drop", handleDrop);
     };
   }, [dragCounter]);
 
@@ -98,8 +104,8 @@ function UpdateProfile() {
         if (canvas && canvas.focus) {
           canvas.focus();
         }
-        document.getElementById('cropper').click()
-        console.log('Clicked')
+        document.getElementById("cropper").click();
+        console.log("Clicked");
       }, 500);
     }
   }, [droppedFile, showCropper]);
@@ -108,18 +114,24 @@ function UpdateProfile() {
     const errors = {};
     if (!data.firstName) errors.firstName = "First Name is required";
     if (!data.lastName) errors.lastName = "Last Name is required";
-    if (!data.gender && userData?.category == "instructor")
+    if (!data.gender && (userData?.isInstructor || router.query.onboarding))
       errors.gender = "Gender is required";
-    if (!data.phoneNumber && userData?.category == "instructor")
+    if (
+      !data.phoneNumber &&
+      (userData?.isInstructor || router.query.onboarding)
+    )
       errors.phoneNumber = "Phone Number is required";
-    if (!data.dob && userData?.category == "instructor")
+    if (!data.dob && (userData?.isInstructor || router.query.onboarding))
       errors.dob = "Date of Birth is required";
-    if (!data.profileDescription && userData?.category == "instructor")
+    if (
+      !data.profileDescription &&
+      (userData?.isInstructor || router.query.onboarding)
+    )
       errors.profileDescription = "Description is required";
     if (
       !droppedFile?.name &&
-      (!userData.profileImage) &&
-      userData?.category == "instructor"
+      !userData.profileImage &&
+      (userData?.isInstructor || router.query.onboarding)
     )
       errors.droppedFile = "Image is required";
     return errors;
@@ -145,7 +157,10 @@ function UpdateProfile() {
   });
 
   // Separate dropzone for click functionality
-  const { getRootProps: getClickableRootProps, getInputProps: getClickableInputProps } = useDropzone({
+  const {
+    getRootProps: getClickableRootProps,
+    getInputProps: getClickableInputProps,
+  } = useDropzone({
     onDrop,
     accept: "image/*",
   });
@@ -182,22 +197,50 @@ function UpdateProfile() {
       imageURI = imageURL;
     }
 
-    if (!imageURI){
+    if (!imageURI) {
       imageURI = userData.profileImage || "";
     }
 
-    await updateDoc(doc(db, "Users", id), {
+    // Check if this is a complete profile update that should activate instructor status
+    const isProfileComplete =
+      data.firstName &&
+      data.lastName &&
+      data.gender &&
+      data.phoneNumber &&
+      data.dob &&
+      data.profileDescription &&
+      imageURI;
+
+    const updateData = {
       ...data,
       profileImage: imageURI,
       updatedAt: serverTimestamp(),
-    });
+    };
+
+    // If profile is complete and user came from instructor onboarding, activate instructor status
+    if (
+      isProfileComplete &&
+      (router.query.from === "instructor-onboarding" ||
+        userData?.pendingInstructor)
+    ) {
+      updateData.isInstructor = true;
+      updateData.pendingInstructor = false;
+    }
+
+    await updateDoc(doc(db, "Users", id), updateData);
 
     toast.success("Profile updated successfully", {
       toastId: "success-toast",
     });
 
     setLoading(false);
-    router.push(`/profile/${id}`);
+
+    // Redirect back to instructor onboarding if user came from there
+    if (router.query.from === "instructor-onboarding") {
+      window.location.href = "/instructor-onboarding";
+    } else {
+      router.push(`/profile/${id}`);
+    }
   };
 
   if (!id || !userData) {
@@ -225,7 +268,7 @@ function UpdateProfile() {
       const croppedImageDataURL = canvas?.toDataURL();
 
       if (croppedImageDataURL) {
-        const byteString = atob(croppedImageDataURL.split(',')[1]);
+        const byteString = atob(croppedImageDataURL.split(",")[1]);
         const arrayBuffer = new ArrayBuffer(byteString.length);
         const uintArray = new Uint8Array(arrayBuffer);
 
@@ -233,8 +276,8 @@ function UpdateProfile() {
           uintArray[i] = byteString.charCodeAt(i);
         }
 
-        const blob = new Blob([uintArray], { type: 'image/jpeg' });
-        const file = new File([blob], droppedFile.name, { type: 'image/jpeg' });
+        const blob = new Blob([uintArray], { type: "image/jpeg" });
+        const file = new File([blob], droppedFile.name, { type: "image/jpeg" });
 
         setShowCropper(false);
         setDroppedFile(file);
@@ -252,15 +295,19 @@ function UpdateProfile() {
 
       {/* Full Page Drop Overlay - Only shows when dragging */}
       {isDragActive && (
-        <div 
+        <div
           {...getRootProps()}
           className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[10000] backdrop-blur-sm"
         >
           <input {...getInputProps()} />
           <div className="bg-white rounded-3xl p-12 text-center shadow-2xl border-4 border-dashed border-logo-red">
             <CloudUploadIcon className="w-20 h-20 text-logo-red mx-auto mb-6" />
-            <h3 className="text-2xl font-bold text-gray-900 mb-2">Drop your image here</h3>
-            <p className="text-gray-600">Release to upload your profile image</p>
+            <h3 className="text-2xl font-bold text-gray-900 mb-2">
+              Drop your image here
+            </h3>
+            <p className="text-gray-600">
+              Release to upload your profile image
+            </p>
           </div>
         </div>
       )}
@@ -271,7 +318,7 @@ function UpdateProfile() {
           <div className="bg-white rounded-2xl shadow-2xl p-6" tabIndex={0}>
             <Cropper
               src={droppedFile ? URL.createObjectURL(droppedFile) : null}
-              className={'cropper'}
+              className={"cropper"}
               ref={cropperRef}
               tabIndex={0}
               canvas="false"
@@ -300,12 +347,14 @@ function UpdateProfile() {
             <div className="flex justify-center gap-3 mt-6">
               <button
                 className="px-6 py-2 border-2 border-logo-red text-logo-red rounded-lg hover:bg-logo-red hover:text-white transition-colors duration-200 font-medium"
-                onClick={onCancel}>
+                onClick={onCancel}
+              >
                 Cancel
               </button>
               <button
                 className="px-6 py-2 bg-logo-red text-white rounded-lg hover:bg-logo-red/90 transition-colors duration-200 font-medium"
-                onClick={onSave}>
+                onClick={onSave}
+              >
                 Save
               </button>
               <button
@@ -326,19 +375,24 @@ function UpdateProfile() {
           {/* Page Header */}
           <div className="mb-8">
             <h1 className="text-4xl font-bold text-gray-900">Update Profile</h1>
-            <p className="text-gray-600 mt-2">Update your personal information and settings</p>
+            <p className="text-gray-600 mt-2">
+              Update your personal information and settings
+            </p>
           </div>
 
           {/* Form Container */}
           <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8">
             <form onSubmit={onUpdateHandle} className="space-y-8">
-              
               {/* Profile Image Section */}
               <div className="text-center pb-8 border-b border-gray-100">
                 <div className="relative inline-block mb-6">
                   {userData.profileImage || droppedFile ? (
                     <img
-                      src={droppedFile ? URL.createObjectURL(droppedFile) : userData.profileImage}
+                      src={
+                        droppedFile
+                          ? URL.createObjectURL(droppedFile)
+                          : userData.profileImage
+                      }
                       className="w-32 h-32 rounded-full object-cover border-4 border-gray-100"
                       alt="Profile"
                     />
@@ -357,10 +411,15 @@ function UpdateProfile() {
                     <PencilIcon className="w-5 h-5 text-white" />
                   </div>
                 </div>
-                <p className="text-gray-500 text-sm">Drop an image file or click on the edit icon to update your profile picture</p>
-                
+                <p className="text-gray-500 text-sm">
+                  Drop an image file or click on the edit icon to update your
+                  profile picture
+                </p>
+
                 {formErrors.droppedFile && (
-                  <p className="text-red-500 text-sm mt-2">{formErrors.droppedFile}</p>
+                  <p className="text-red-500 text-sm mt-2">
+                    {formErrors.droppedFile}
+                  </p>
                 )}
               </div>
 
@@ -370,7 +429,7 @@ function UpdateProfile() {
                   <UserIcon className="w-5 h-5 text-logo-red mr-2" />
                   Personal Information
                 </h3>
-                
+
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -380,12 +439,16 @@ function UpdateProfile() {
                       defaultValue={userData?.firstName}
                       name="firstName"
                       className={`w-full border-2 rounded-xl p-3 bg-white focus:outline-none focus:border-logo-red focus:ring-1 focus:ring-logo-red transition-colors duration-200 ${
-                        formErrors.firstName ? "border-red-500" : "border-gray-200"
+                        formErrors.firstName
+                          ? "border-red-500"
+                          : "border-gray-200"
                       }`}
                       placeholder="Enter your first name"
                     />
                     {formErrors.firstName && (
-                      <p className="text-red-500 text-sm mt-1">{formErrors.firstName}</p>
+                      <p className="text-red-500 text-sm mt-1">
+                        {formErrors.firstName}
+                      </p>
                     )}
                   </div>
 
@@ -397,12 +460,16 @@ function UpdateProfile() {
                       defaultValue={userData?.lastName}
                       name="lastName"
                       className={`w-full border-2 rounded-xl p-3 bg-white focus:outline-none focus:border-logo-red focus:ring-1 focus:ring-logo-red transition-colors duration-200 ${
-                        formErrors.lastName ? "border-red-500" : "border-gray-200"
+                        formErrors.lastName
+                          ? "border-red-500"
+                          : "border-gray-200"
                       }`}
                       placeholder="Enter your last name"
                     />
                     {formErrors.lastName && (
-                      <p className="text-red-500 text-sm mt-1">{formErrors.lastName}</p>
+                      <p className="text-red-500 text-sm mt-1">
+                        {formErrors.lastName}
+                      </p>
                     )}
                   </div>
 
@@ -420,7 +487,9 @@ function UpdateProfile() {
                       }`}
                     />
                     {formErrors.dob && (
-                      <p className="text-red-500 text-sm mt-1">{formErrors.dob}</p>
+                      <p className="text-red-500 text-sm mt-1">
+                        {formErrors.dob}
+                      </p>
                     )}
                   </div>
 
@@ -442,10 +511,14 @@ function UpdateProfile() {
                       <option value="woman">Woman</option>
                       <option value="man">Man</option>
                       <option value="non-binary">Non-binary</option>
-                      <option value="prefer-not-to-say">Prefer not to say</option>
+                      <option value="prefer-not-to-say">
+                        Prefer not to say
+                      </option>
                     </select>
                     {formErrors.gender && (
-                      <p className="text-red-500 text-sm mt-1">{formErrors.gender}</p>
+                      <p className="text-red-500 text-sm mt-1">
+                        {formErrors.gender}
+                      </p>
                     )}
                   </div>
                 </div>
@@ -457,7 +530,7 @@ function UpdateProfile() {
                   <PhoneIcon className="w-5 h-5 text-logo-red mr-2" />
                   Contact Information
                 </h3>
-                
+
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Phone Number
@@ -466,12 +539,16 @@ function UpdateProfile() {
                     defaultValue={userData?.phoneNumber}
                     name="phoneNumber"
                     className={`w-full border-2 rounded-xl p-3 bg-white focus:outline-none focus:border-logo-red focus:ring-1 focus:ring-logo-red transition-colors duration-200 ${
-                      formErrors.phoneNumber ? "border-red-500" : "border-gray-200"
+                      formErrors.phoneNumber
+                        ? "border-red-500"
+                        : "border-gray-200"
                     }`}
                     placeholder="Enter your phone number"
                   />
                   {formErrors.phoneNumber && (
-                    <p className="text-red-500 text-sm mt-1">{formErrors.phoneNumber}</p>
+                    <p className="text-red-500 text-sm mt-1">
+                      {formErrors.phoneNumber}
+                    </p>
                   )}
                 </div>
               </div>
@@ -482,7 +559,7 @@ function UpdateProfile() {
                   <DocumentTextIcon className="w-5 h-5 text-logo-red mr-2" />
                   About Me
                 </h3>
-                
+
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Profile Description
@@ -492,12 +569,16 @@ function UpdateProfile() {
                     name="profileDescription"
                     rows={4}
                     className={`w-full border-2 rounded-xl p-3 bg-white focus:outline-none focus:border-logo-red focus:ring-1 focus:ring-logo-red transition-colors duration-200 resize-none ${
-                      formErrors.profileDescription ? "border-red-500" : "border-gray-200"
+                      formErrors.profileDescription
+                        ? "border-red-500"
+                        : "border-gray-200"
                     }`}
                     placeholder="Tell others about yourself, your interests, and what makes you unique..."
                   />
                   {formErrors.profileDescription && (
-                    <p className="text-red-500 text-sm mt-1">{formErrors.profileDescription}</p>
+                    <p className="text-red-500 text-sm mt-1">
+                      {formErrors.profileDescription}
+                    </p>
                   )}
                 </div>
               </div>
@@ -512,7 +593,7 @@ function UpdateProfile() {
                   >
                     Cancel
                   </button>
-                  
+
                   {!loading ? (
                     <button
                       type="submit"
@@ -533,7 +614,6 @@ function UpdateProfile() {
                   )}
                 </div>
               </div>
-
             </form>
           </div>
         </div>

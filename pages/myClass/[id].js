@@ -155,7 +155,7 @@ const MyClass = () => {
       setMyClass(temp);
       
       // Also fetch bookings for instructors
-      if (userData?.category === "instructor") {
+      if (userData?.isInstructor) {
         await fetchInstructorBookings(id);
       }
     } catch (error) {
@@ -200,13 +200,13 @@ const MyClass = () => {
   }, [id]);
 
   useEffect(() => {
-    if (id && userData?.category === "student") {
+    if (id && !userData?.isInstructor) {
       getAppointments(id);
     }
   }, [id, userData]);
 
   useEffect(() => {
-    if (id && userData?.category === "instructor") {
+    if (id && userData?.isInstructor) {
       const q = query(
         collection(db, "classes"),
         where("classCreator", "==", id)
@@ -250,7 +250,7 @@ const MyClass = () => {
         <link rel="icon" href="/pc_favicon.ico" />
       </Head>
 
-      {userData?.category === "instructor" && (
+      {userData?.isInstructor && (
         <InstructorClasses
           classes={myClass}
           setMyClass={setMyClass}
@@ -262,7 +262,7 @@ const MyClass = () => {
         />
       )}
 
-      {userData?.category === "student" && (
+      {!userData?.isInstructor && (
         <StudentClasses
           appointments={appointments}
           setMyClass={setMyClass}
