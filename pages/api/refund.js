@@ -7,6 +7,7 @@ import {
   doc,
   getDoc,
   getDocs,
+  updateDoc,
 } from "firebase/firestore";
 import moment from "moment";
 
@@ -74,7 +75,7 @@ export default async function (req, res) {
       });
     }
     // Deduct 5% fees from total amount
-    const refundAmount = paymentIntent.amount * 0.95;
+    const refundAmount = Math.floor(paymentIntent.amount * 0.95);
     const refund = await stripe.refunds.create({
       payment_intent: paymentIntentId,
       amount: refundAmount,
@@ -85,7 +86,9 @@ export default async function (req, res) {
       return res.status(500).json({ error: "Error initiating refund" });
     }
 
-    await deleteDoc(bookingRef);
+    await updateDoc(bookingRef, {
+      status: "Pending",
+    });
     await addDoc(collection(db, "Refunds"), {
       bookingId,
       amount: refundAmount,

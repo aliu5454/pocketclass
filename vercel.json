@@ -5,20 +5,36 @@
       "schedule": "0 0 * * *"
     },
     {
-      "path": "/api/classReminder",
-      "schedule": "0 0 * * *"
-    },
-    {
       "path": "/api/transferPayments",
       "schedule": "0 0 * * *"
     },
     {
-      "path": "/api/sendReviewMail",
+      "path": "/api/notifications/upcomingClassReminder",
+      "schedule": "0 */2 * * *"
+    },
+    {
+      "path": "/api/notifications/oneHourReminder",
+      "schedule": "*/15 * * * *"
+    },
+    {
+      "path": "/api/notifications/thankYouVisit",
       "schedule": "*/30 * * * *"
     },
     {
-      "path": "/api/sendReminderMail",
+      "path": "/api/notifications/reminderRebook",
+      "schedule": "0 10 * * *"
+    },
+    {
+      "path": "/api/notifications/birthdaySpecial",
+      "schedule": "0 9 * * *"
+    },
+    {
+      "path": "/api/notifications/winBackLapsed",
+      "schedule": "0 11 * * *"
+    },
+    {
+      "path": "/api/notifications/welcomeNew",
       "schedule": "*/30 * * * *"
-    }    
+    }
   ]
 }

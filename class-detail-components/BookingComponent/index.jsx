@@ -1226,18 +1226,20 @@ END:VCALENDAR`.trim();
     };
     await addDoc(notificationRef, notificationData);
 
-    await sendEmail(
-      recipientEmails,
-      `New Booking for ${classData.Name} with Pocketclass!`,
-      htmlContent,
-      [
-        {
-          filename: "booking-invite.ics",
-          content: icsContent,
-          type: "text/calendar",
+    // Send new booking notification using our notification service
+    try {
+      await fetch("/api/notifications/newBooking", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
         },
-      ]
-    );
+        body: JSON.stringify({
+          bookingId: bookingRef.id,
+        }),
+      });
+    } catch (error) {
+      console.error("Error sending booking notification:", error);
+    }
 
     setStripeOptions(null);
     toast.success("Booking confirmed!");
@@ -2924,18 +2926,20 @@ END:VCALENDAR`.trim();
       };
       await addDoc(notificationRef, notificationData);
 
-      await sendEmail(
-        recipientEmails,
-        `New Booking for ${classData.Name} with Pocketclass!`,
-        htmlContent,
-        [
-          {
-            filename: "booking-invite.ics",
-            content: icsContent,
-            type: "text/calendar",
+      // Send new booking notification using our notification service
+      try {
+        await fetch("/api/notifications/newBooking", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
           },
-        ]
-      );
+          body: JSON.stringify({
+            bookingId: bookingRef,
+          }),
+        });
+      } catch (error) {
+        console.error("Error sending booking notification:", error);
+      }
 
       // Send create-event request to Google Calendar API
       const calendarResponse = await fetch("/api/calendar/create-event", {

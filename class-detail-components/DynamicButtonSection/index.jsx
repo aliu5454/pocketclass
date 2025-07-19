@@ -95,9 +95,9 @@ function DynamicButtonSection({
   };
 
   return (
-    <div>
+    <div className="sticky top-[120px] z-20 bg-white shadow-md rounded-2xl px-6 py-6">
       {showLogin && <Login setGroupEmails={[]} setNumberOfGroupMembers={0} grouped={grouped} onClose={() => setShowLogin(false)} setShowBooking={setShowBooking} />}
-      <div className="sticky top-[90px] bg-white shadow-md rounded-2xl px-6 py-6">
+      <div>
         <div className="flex justify-center items-stretch flex-col grow-0 shrink-0 basis-auto">
           <Button
             style={below ? { margin: "auto", width: "60%" } : {}}

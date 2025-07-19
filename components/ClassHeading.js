@@ -61,7 +61,7 @@ const ClassHeading = ({
 	const [reviews, setReviews] = useState([]);
 	const [classCreatorData, setClassCreatorData] = useState();
 	const [isInterested, setInterested] = useState(false);
-	const [userCategory, setUserCategory] = useState();
+	const [userIsInstructor, setUserIsInstructor] = useState(false);
 
 	const [chatRooms, setChatRooms] = useState();
 	const [loadingRooms, setLoadingRooms] = useState(false);
@@ -340,7 +340,7 @@ const ClassHeading = ({
 
 	user &&
 		getUserByEmail(user.email).then((res) => {
-			setUserCategory(res.data().category);
+			setUserIsInstructor(res.data().isInstructor || false);
 		});
 
 	// Handle Chat Open
@@ -630,7 +630,7 @@ const ClassHeading = ({
 									</svg>
 									I am Interested
 								</button>
-							) : user && !isInterested && userCategory === "student" ? (
+							) : user && !isInterested && !userIsInstructor ? (
 								<button
 									onClick={(e) => handleInterestButton(e)}
 									className="active:scale-105 w-[200px] active:duration-75 transition-all hover:scale-[1.01]  ease-in-out transform py-2 bg-logo-red rounded-xl text-white font-semibold text-sm"
@@ -666,7 +666,7 @@ const ClassHeading = ({
 									</svg>
 									You showed Interest
 								</button>
-							) : user && userCategory !== "student" && !isInterested ? (
+							) : user && userIsInstructor && !isInterested ? (
 								""
 							) : (
 								<section className="flex justify-center items-center">

@@ -988,18 +988,24 @@ END:VCALENDAR`.trim();
       return `${formattedDate}T${formattedTime}`;
     }
 
-    await sendEmail(
-      recipientEmails,
-      `Booking Rescheduled for ${classData.Name} with Pocketclass!`,
-      htmlContent,
-      [
-        {
-          filename: "booking-invite.ics",
-          content: icsContent,
-          type: "text/calendar",
+    // Call Reschedule Booking API
+
+    try {
+      const rescheduleResponse = await fetch("/api/notifications/rescheduled", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
         },
-      ]
-    );
+        body: JSON.stringify({
+          bookingId: bookingId,
+          newStartTime: startDateTime,
+          oldStartTime: bookingData.startTime,
+        }),
+      });
+    } catch (error) {
+      console.error("Error Sending Email:", error);
+    }
+
     console.log(startDateTime);
     toast.success("Booking rescheduled successfully");
     setTimeout(() => {

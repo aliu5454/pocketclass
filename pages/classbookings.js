@@ -36,7 +36,7 @@ const MyClass = () => {
       router.push("/");
     }
     if (user && user.uid !== id) {
-      router.push(`/classbookings?id=${user.uid}`);
+      router.push(`/mybooking?id=${user.uid}`);
     }
   }, [user, loading]);
 
@@ -107,14 +107,14 @@ const MyClass = () => {
   useEffect(() => {
     if (
       id &&
-      (userData?.category === "student" || userData?.category === "instructor")
+      !userData?.isInstructor
     ) {
       getAppointments(id);
     }
   }, [id, userData]);
 
   useEffect(() => {
-    if (id && userData?.category === "instructor") {
+    if (id && userData?.isInstructor) {
       const q = query(
         collection(db, "classes"),
         where("classCreator", "==", id)

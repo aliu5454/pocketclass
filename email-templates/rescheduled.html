@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Class Rescheduled</title>
+</head>
+<body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+    <div style="background-color: #fff3cd; padding: 20px; border-radius: 8px; margin-bottom: 20px; border-left: 4px solid #ffc107;">
+        <h2 style="color: #856404; margin: 0 0 10px 0;">📅 Class Time Updated</h2>
+        <p style="margin: 0; color: #856404;">Your class schedule has been changed</p>
+    </div>
+
+    <div style="background-color: white; padding: 20px; border-radius: 8px; border: 1px solid #e0e0e0;">
+        <p>Hi {{studentFirstName}},</p>
+        
+        <p>We wanted to let you know that your class with <strong>{{instructorFirstName}} {{instructorLastName}}</strong> has been rescheduled to a new time.</p>
+        
+        <div style="background-color: #f8f9fa; padding: 15px; border-radius: 6px; margin: 20px 0;">
+            <h3 style="margin: 0 0 15px 0; color: #333;">Updated Class Details:</h3>
+            
+            <div style="display: flex; justify-content: space-between; margin-bottom: 15px;">
+                <div style="flex: 1; padding-right: 10px;">
+                    <h4 style="margin: 0 0 10px 0; color: #dc3545;">Previous Time:</h4>
+                    <ul style="margin: 0; padding-left: 20px; color: #666;">
+                        <li>Date: {{oldClassDate}}</li>
+                        <li>Time: {{oldClassTime}}</li>
+                    </ul>
+                </div>
+                <div style="flex: 1; padding-left: 10px;">
+                    <h4 style="margin: 0 0 10px 0; color: #28a745;">New Time:</h4>
+                    <ul style="margin: 0; padding-left: 20px; color: #333;">
+                        <li><strong>Date: {{newClassDate}}</strong></li>
+                        <li><strong>Time: {{newClassTime}}</strong></li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div style="border-top: 1px solid #dee2e6; padding-top: 15px;">
+                <ul style="margin: 0; padding-left: 20px;">
+                    <li><strong>Class:</strong> {{className}}</li>
+                    <li><strong>Duration:</strong> {{classDuration}}</li>
+                    <li><strong>Location:</strong> {{classLocation}}</li>
+                    <li><strong>Booking ID:</strong> #{{bookingId}}</li>
+                </ul>
+            </div>
+        </div>
+
+        <div style="background-color: #e7f3ff; padding: 15px; border-radius: 6px; margin: 20px 0; border-left: 4px solid #007BFF;">
+            <p style="margin: 0; color: #004085;"><strong>💡 Please Note:</strong> Make sure to update your calendar with the new time. We'll send you a reminder before your rescheduled class.</p>
+        </div>
+
+        <p>If this new time doesn't work for you, please contact us as soon as possible to discuss alternatives.</p>
+
+        <div style="text-align: center; margin: 30px 0;">
+            <a href="{{classDetailsLink}}" style="display: inline-block; background-color: #E63F2B; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; margin-right: 10px;">
+                View Updated Details
+            </a>
+            <a href="{{contactLink}}" style="display: inline-block; background-color: #6c757d; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px;">
+                Contact Us
+            </a>
+        </div>
+
+        <p style="font-size: 14px; color: #666; border-top: 1px solid #eee; padding-top: 15px; margin-top: 30px;">
+            We apologize for any inconvenience this may cause. Thank you for your understanding.
+        </p>
+
+        <p>See you at the new time!</p>
+
+        <p>Best regards,<br>
+        <strong>The PocketClass Team</strong></p>
+    </div>
+</body>
+</html>

@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Class Starting Soon</title>
+</head>
+<body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+    <div style="background-color: #fff3cd; padding: 20px; border-radius: 8px; margin-bottom: 20px; border-left: 4px solid #ffc107;">
+        <h2 style="color: #856404; margin: 0 0 10px 0;">⏰ Class Starting in 1 Hour!</h2>
+        <p style="margin: 0; color: #856404;">Time to get ready for your lesson</p>
+    </div>
+
+    <div style="background-color: white; padding: 20px; border-radius: 8px; border: 1px solid #e0e0e0;">
+        <p>Hi {{studentFirstName}},</p>
+        
+        <p>Just a quick reminder that your class with <strong>{{instructorFirstName}} {{instructorLastName}}</strong> is starting in <strong>1 hour</strong>!</p>
+        
+        <div style="background-color: #f8f9fa; padding: 15px; border-radius: 6px; margin: 20px 0;">
+            <h3 style="margin: 0 0 10px 0; color: #333;">Class Details:</h3>
+            <ul style="margin: 0; padding-left: 20px;">
+                <li><strong>Class:</strong> {{className}}</li>
+                <li><strong>Time:</strong> {{classTime}}</li>
+                <li><strong>Location:</strong> {{classLocation}}</li>
+                <li><strong>Duration:</strong> {{classDuration}}</li>
+            </ul>
+        </div>
+
+        <div style="background-color: #e7f3ff; padding: 15px; border-radius: 6px; margin: 20px 0; border-left: 4px solid #007BFF;">
+            <p style="margin: 0; color: #004085;"><strong>💡 Quick Tips:</strong></p>
+            <ul style="margin: 10px 0 0 0; padding-left: 20px; color: #004085;">
+                <li>Arrive 5 minutes early</li>
+                <li>Bring any required materials</li>
+                <li>Have water ready if needed</li>
+            </ul>
+        </div>
+
+        <p>We're excited to see you soon!</p>
+
+        <div style="text-align: center; margin: 30px 0;">
+            <a href="{{classDetailsLink}}" style="display: inline-block; background-color: #E63F2B; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px;">
+                View Class Details
+            </a>
+        </div>
+
+        <p style="font-size: 14px; color: #666; border-top: 1px solid #eee; padding-top: 15px; margin-top: 30px;">
+            Having trouble? Contact us immediately and we'll help you out.
+        </p>
+
+        <p>See you soon!</p>
+
+        <p>Best regards,<br>
+        <strong>The PocketClass Team</strong></p>
+    </div>
+</body>
+</html>

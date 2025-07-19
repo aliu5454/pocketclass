@@ -252,6 +252,7 @@ export default function Schedule() {
   };
 
   useEffect(() => {
+    console.log("dsfsdfdsfs", loaded);
     if (loaded === true) {
       saveSchedule(db, user, generalAvailability, adjustedAvailability);
     }
@@ -303,9 +304,9 @@ export default function Schedule() {
               setMinDays(data?.minDays ? data.minDays : 1);
               setMaxDays(data?.maxDays ? data.maxDays : 30);
               setSelectedTimeZone(data.timezone || "America/Toronto");
-              setLoaded(true);
             }
           }
+          setLoaded(true);
         },
         (error) => {
           console.error("Error loading schedule:", error);
@@ -888,26 +889,31 @@ export default function Schedule() {
       <div className="flex flex-grow flex-col lg:flex-row overflow-hidden bg-gray-50 text-black">
         <div className="overflow-auto p-4 border-r bg-white shadow-md">
           <div>
-            <button className="text-logo-red" onClick={() => setShowModal(true)}>Watch Guide</button>
+            <button
+              className="text-logo-red"
+              onClick={() => setShowModal(true)}
+            >
+              Watch Guide
+            </button>
           </div>
 
           {/* Connect to Mind Body button */}
-          { userData && userData.mindbody && userData.mindbody.accessToken ? (
+          {userData && userData.mindbody && userData.mindbody.accessToken ? (
             <div className="flex items-center mb-4 px-4 py-2 border border-green-500 text-green-600 bg-green-50 rounded-md space-x-2">
               <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
                 <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm1-13h-2v6h2V7zm0 8h-2v2h2v-2z" />
               </svg>
               <span className="font-medium">Mindbody Connected!</span>
-              </div>
-              ) : (
-                <a
-                  href="mindbody-init"
-                  className="hidden lg:inline-flex items-center space-x-2 border-gray-400 border text-gray-600 px-4 py-2 rounded-md my-4 shadow transition duration-200 hover:border-blue-600"
-                  title="Connect your Mindbody account to automatically sync bookings to and update Pocketclass when times are blocked on Mindbody"
-                >
-                  Connect to Mindbody
-                  </a>
-              ) }
+            </div>
+          ) : (
+            <a
+              href="mindbody-init"
+              className="hidden lg:inline-flex items-center space-x-2 border-gray-400 border text-gray-600 px-4 py-2 rounded-md my-4 shadow transition duration-200 hover:border-blue-600"
+              title="Connect your Mindbody account to automatically sync bookings to and update Pocketclass when times are blocked on Mindbody"
+            >
+              Connect to Mindbody
+            </a>
+          )}
           {userData &&
           userData.googleCalendar &&
           userData.googleCalendar.accessToken ? (
@@ -2321,7 +2327,12 @@ export default function Schedule() {
           )}
         </div>
       </div>
-      <VideoPlayer isOpen={showModal} onClose={setShowModal} videoSrc={"/tutorials/Step3.mp4"} title={"Schedule Creation Tutorial"}/>
+      <VideoPlayer
+        isOpen={showModal}
+        onClose={setShowModal}
+        videoSrc={"/tutorials/Step3.mp4"}
+        title={"Schedule Creation Tutorial"}
+      />
 
       <style>{`
         .popup {

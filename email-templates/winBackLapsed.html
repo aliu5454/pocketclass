@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>We Miss You!</title>
+</head>
+<body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+    <div style="background: linear-gradient(135deg, #667eea, #764ba2); padding: 25px; border-radius: 12px; margin-bottom: 20px; text-align: center;">
+        <h2 style="color: white; margin: 0 0 10px 0; font-size: 24px;">💙 We Miss You, {{studentFirstName}}!</h2>
+        <p style="color: white; margin: 0; opacity: 0.9;">Come back and continue your learning journey with us</p>
+    </div>
+
+    <div style="background-color: white; padding: 20px; border-radius: 8px; border: 1px solid #e0e0e0;">
+        <p>Hi {{studentFirstName}},</p>
+        
+        <p>It's been a while since we've seen you at PocketClass, and we wanted to reach out because we genuinely miss having you as part of our learning community!</p>
+        
+        <div style="background-color: #f8f9fa; padding: 15px; border-radius: 6px; margin: 20px 0;">
+            <h3 style="margin: 0 0 10px 0; color: #333;">📅 Your PocketClass Journey:</h3>
+            <ul style="margin: 0; padding-left: 20px;">
+                <li><strong>Last class:</strong> {{lastClassName}} ({{lastClassDate}})</li>
+                <li><strong>Total classes completed:</strong> {{totalClassesCompleted}}</li>
+                <li><strong>Favorite instructor:</strong> {{favoriteInstructorName}}</li>
+                <li><strong>Days since last class:</strong> {{daysSinceLastClass}} days</li>
+            </ul>
+        </div>
+
+        <p>We understand that life gets busy, but we'd love to help you get back on track with your learning goals. Whether you want to pick up where you left off or try something completely new, we're here to support you!</p>
+
+        <div style="background: linear-gradient(135deg, #ff9a9e, #fecfef); padding: 20px; border-radius: 8px; margin: 25px 0; text-align: center;">
+            <h3 style="color: #721c24; margin: 0 0 15px 0;">🎁 Welcome Back Offer</h3>
+            <div style="background-color: white; padding: 15px; border-radius: 6px; margin: 15px 0;">
+                <p style="margin: 0; color: #333; font-size: 20px; font-weight: bold;">30% OFF</p>
+                <p style="margin: 5px 0; color: #333; font-size: 16px;">Your comeback class</p>
+                <p style="margin: 5px 0 0 0; color: #666; font-size: 14px;">Use code: <strong style="color: #E63F2B;">COMEBACK30</strong></p>
+            </div>
+            <p style="color: #721c24; margin: 10px 0 0 0; font-size: 14px; opacity: 0.8;">Valid for the next 14 days only</p>
+        </div>
+
+        <div style="background-color: #e7f3ff; padding: 15px; border-radius: 6px; margin: 20px 0;">
+            <h4 style="margin: 0 0 10px 0; color: #004085;">✨ What's New Since You've Been Away:</h4>
+            <ul style="margin: 10px 0 0 0; padding-left: 20px; color: #004085; font-size: 14px;">
+                <li>New instructors have joined in {{newInstructorCategories}}</li>
+                <li>{{newClassCount}}+ new class types added</li>
+                <li>Improved booking system for easier scheduling</li>
+                <li>New group class options available</li>
+            </ul>
+        </div>
+
+        <p>{{favoriteInstructorName}} specifically asked about you recently, and they'd love to see you back in class! But if you're ready to try something new, we have some amazing new instructors who would be perfect for your next learning adventure.</p>
+
+        <div style="text-align: center; margin: 30px 0;">
+            <a href="{{comebackBookingLink}}" style="display: inline-block; background: linear-gradient(135deg, #E63F2B, #ff6b6b); color: white; padding: 15px 30px; text-decoration: none; border-radius: 8px; font-size: 16px; font-weight: bold; margin-bottom: 10px;">
+                🏃‍♀️ Book My Comeback Class
+            </a>
+        </div>
+
+        <div style="background-color: #fff3cd; padding: 15px; border-radius: 6px; margin: 20px 0;">
+            <p style="margin: 0; color: #856404; font-size: 14px; text-align: center;">
+                <strong>💪 Remember:</strong> The best time to restart your learning journey is now. Every expert was once a beginner who never gave up!
+            </p>
+        </div>
+
+        <p>We're here whenever you're ready to jump back in. Whether it's today, tomorrow, or next week, we'll be excited to welcome you back to the PocketClass family!</p>
+
+        <p style="font-size: 14px; color: #666; border-top: 1px solid #eee; padding-top: 15px; margin-top: 30px;">
+            If these emails aren't helpful, no worries! You can unsubscribe anytime. But we really hope to see you back soon.
+        </p>
+
+        <p>Can't wait to have you back!</p>
+
+        <p>With love and excitement,<br>
+        <strong>The PocketClass Team 💜</strong></p>
+    </div>
+</body>
+</html>

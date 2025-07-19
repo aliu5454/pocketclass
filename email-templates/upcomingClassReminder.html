@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Upcoming Class Reminder</title>
+</head>
+<body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+    <div style="background-color: #f8f9fa; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
+        <h2 style="color: #E63F2B; margin: 0 0 10px 0;">Your Class is Coming Up!</h2>
+        <p style="margin: 0; color: #666;">Don't forget about your upcoming lesson</p>
+    </div>
+
+    <div style="background-color: white; padding: 20px; border-radius: 8px; border: 1px solid #e0e0e0;">
+        <p>Hi {{studentFirstName}},</p>
+        
+        <p>This is a friendly reminder that you have a class with <strong>{{instructorFirstName}} {{instructorLastName}}</strong> coming up in 24 hours! 🎉</p>
+        
+        <div style="background-color: #f8f9fa; padding: 15px; border-radius: 6px; margin: 20px 0;">
+            <h3 style="margin: 0 0 10px 0; color: #333;">Class Details:</h3>
+            <ul style="margin: 0; padding-left: 20px;">
+                <li><strong>Class:</strong> {{className}}</li>
+                <li><strong>Date & Time:</strong> {{classDate}} at {{classTime}}</li>
+                <li><strong>Duration:</strong> {{classDuration}}</li>
+                <li><strong>Location:</strong> {{classLocation}}</li>
+            </ul>
+        </div>
+
+        <p>We're excited to see you there! If you need to make any changes to your booking, please let us know as soon as possible.</p>
+
+        <div style="text-align: center; margin: 30px 0;">
+            <a href="{{rescheduleLink}}" style="display: inline-block; background-color: #007BFF; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; margin-right: 10px;">
+                Reschedule
+            </a>
+            <a href="{{cancelLink}}" style="display: inline-block; background-color: #6c757d; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px;">
+                Cancel
+            </a>
+        </div>
+
+        <p style="font-size: 14px; color: #666; border-top: 1px solid #eee; padding-top: 15px; margin-top: 30px;">
+            If you have any questions or need assistance, feel free to reply to this email.
+        </p>
+
+        <p>Looking forward to your class!</p>
+
+        <p>Best regards,<br>
+        <strong>The PocketClass Team</strong></p>
+    </div>
+</body>
+</html>

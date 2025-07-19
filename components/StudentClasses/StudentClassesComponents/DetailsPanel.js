@@ -9,7 +9,7 @@ import {
   FaRegCalendarAlt,
   FaRegCommentDots,
   FaTimesCircle,
-  FaSchool
+  FaSchool,
 } from "react-icons/fa";
 import {
   collection,
@@ -107,7 +107,7 @@ const renderDetails = ({
         photo: studentData.photoURL || "",
         review: feedback.trim(),
         qualityRating: rating,
-				userId: studentId,
+        userId: studentId,
         recommendRating: rating,
         safetyRating: rating,
         createdAt: new Date(),
@@ -183,7 +183,7 @@ const renderDetails = ({
         if (!refundRes.ok || !refundData.success) {
           throw new Error(refundData.message || "Refund failed");
         }
-        refundAmount = refundData.amount ? refundData.amount / 100 : null; // assuming amount is in cents
+        refundAmount = refundData.refund.amount ? refundData.refund.amount / 100 : null; // assuming amount is in cents
       }
 
       // Delete calendar event
@@ -202,6 +202,23 @@ const renderDetails = ({
             timeZone: bookingData.timeZone || "America/Toronto",
           }),
         });
+      }
+
+      try {
+        await fetch("/api/notifications/cancelled", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            bookingId: selectedAppointment.id,
+            studentId,
+            classId: classData.id,
+            instructorId: classData.classCreator,
+            refundAmount,
+            cancellationReason: refundReason || "Manual cancellation",
+          }),
+        });
+      } catch (error) {
+        console.error("Error sending cancellation notification:", error);
       }
 
       await deleteDoc(bookingRef);

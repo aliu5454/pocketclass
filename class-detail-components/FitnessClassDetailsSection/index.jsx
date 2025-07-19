@@ -1,4 +1,5 @@
 import EnhancedImageGallery from "../EnhancedImageGallery";
+import Gallery from "../Gallery";
 import FitnessProfileSection from "../FitnessProfileSection";
 import FitnessScheduleMindfulnessDisplay from "../FitnessScheduleMindfulnessDisplay";
 import FitnessReviewSectionWidget from "../FitnessReviewSectionWidget";
@@ -6,7 +7,7 @@ import DynamicButtonSection from "../DynamicButtonSection";
 import SvgIcon1 from "./icons/SvgIcon1";
 import SvgIcon3 from "./icons/SvgIcon3";
 import SvgIcon5 from "./icons/SvgIcon5";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { db } from "../../firebaseConfig";
 import {
   doc,
@@ -42,6 +43,24 @@ function FitnessClassDetailsSection({
   const [classData, setClassData] = useState(null);
   const [reviews, setReviews] = useState([]);
   const [classCreatorData, setClassCreatorData] = useState(null);
+  const [isMobile, setIsMobile] = useState(false);
+  const instructorRef = useRef(null);
+  const bookingRef = useRef(null);
+  const reviewsRef = useRef(null);
+  const faqRef = useRef(null);
+  const [isTablet, setIsTablet] = useState(false);
+
+  useEffect(() => {
+    const checkWidth = () => {
+      const width = window.innerWidth;
+      setIsMobile(width <= 500);
+      setIsTablet(width > 500 && width <= 1024);
+    };
+
+    checkWidth();
+    window.addEventListener("resize", checkWidth);
+    return () => window.removeEventListener("resize", checkWidth);
+  }, []);
 
   useEffect(() => {
     const getClassCreatorData = async () => {
@@ -138,6 +157,44 @@ function FitnessClassDetailsSection({
   };
   return (
     <div className="flex justify-start items-center flex-col grow-0 shrink-0 basis-auto mt-6 md:mt-14 section-spacing">
+      {isTablet && (
+        <div className="fixed self-start z-30 bg-white border-b border-gray-200 py-3 px-4 w-full">
+          <div className="flex gap-6 justify-start overflow-x-auto max-w-full">
+            <button
+              onClick={() =>
+                instructorRef.current?.scrollIntoView({ behavior: "smooth" })
+              }
+              className="text-sm font-medium text-[#261f22] whitespace-nowrap"
+            >
+              Instructor
+            </button>
+            <button
+              onClick={() =>
+                bookingRef.current?.scrollIntoView({ behavior: "smooth" })
+              }
+              className="text-sm font-medium text-[#261f22] whitespace-nowrap"
+            >
+              Booking
+            </button>
+            <button
+              onClick={() =>
+                reviewsRef.current?.scrollIntoView({ behavior: "smooth" })
+              }
+              className="text-sm font-medium text-[#261f22] whitespace-nowrap"
+            >
+              Reviews
+            </button>
+            <button
+              onClick={() =>
+                faqRef.current?.scrollIntoView({ behavior: "smooth" })
+              }
+              className="text-sm font-medium text-[#261f22] whitespace-nowrap"
+            >
+              FAQ
+            </button>
+          </div>
+        </div>
+      )}
       <div className="flex justify-between items-start flex-col lg:flex-row gap-2 w-full max-w-[1312px] grow-0 shrink-0 basis-auto box-border">
         {!classData ? (
           <div className="grow-0 shrink-0 basis-auto animate-pulse">
@@ -167,21 +224,21 @@ function FitnessClassDetailsSection({
             </div>
           </div>
         ) : (
-          <div className="grow-0 shrink-0 basis-auto  lg:max-w-[70%]">
+          <div className="grow-0 shrink-0 basis-auto w-full max-w-[1312px]">
             <p className="[font-family:'DM_Sans',sans-serif] text-3xl md:text-4xl lg:text-5xl font-bold lg:leading-[56px] text-[#261f22] m-0 p-0">
               {classData?.Name}
             </p>
-            <div className="flex justify-start items-center flex-row flex-wrap md:flex-nowrap gap-5 md:gap-8 mt-2 md:mt-4">
-              <div className="flex justify-start items-center flex-row grow-0 shrink-0 basis-auto">
-                <SvgIcon1 className="w-5 h-5 text-[#261f22] flex grow-0 shrink-0 basis-auto" />
-                <p className="[font-family:'DM_Sans',sans-serif] text-base font-bold text-[#261f22] grow-0 shrink-0 basis-auto ml-[3px] m-0 p-0">
-                  {avgReview.toFixed(1)}
-                </p>
-                <p className="[font-family:'DM_Sans',sans-serif] text-base font-normal text-[#261f22] grow-0 shrink-0 basis-auto ml-1.5 m-0 p-0">
-                  ({currentClassReview?.length || 0} reviews)
-                </p>
-              </div>
+            <div className="flex justify-between items-center flex-row flex-wrap md:flex-nowrap gap-5 md:gap-8 mt-2 md:mt-4">
               <div className="flex justify-start items-center flex-row flex-wrap md:flex-nowrap gap-[20px] md:gap-[35px] grow-0 shrink-0 basis-auto max-w-[100vw]">
+                <div className="flex justify-start items-center flex-row grow-0 shrink-0 basis-auto">
+                  <SvgIcon1 className="w-5 h-5 text-[#261f22] flex grow-0 shrink-0 basis-auto" />
+                  <p className="[font-family:'DM_Sans',sans-serif] text-base font-bold text-[#261f22] grow-0 shrink-0 basis-auto ml-[3px] m-0 p-0">
+                    {avgReview.toFixed(1)}
+                  </p>
+                  <p className="[font-family:'DM_Sans',sans-serif] text-base font-normal text-[#261f22] grow-0 shrink-0 basis-auto ml-1.5 m-0 p-0">
+                    ({currentClassReview?.length || 0} reviews)
+                  </p>
+                </div>
                 <div className="flex justify-start items-center flex-row grow-0 shrink-0 basis-auto">
                   <div className="flex justify-start items-center flex-row grow-0 shrink-0 basis-auto">
                     <img
@@ -248,48 +305,38 @@ function FitnessClassDetailsSection({
                   </p>
                 </div>
               </div>
-            </div>
-          </div>
-        )}
-
-        <div className="flex justify-start flex-row grow-0 shrink-0 basis-auto">
-          {userId ? (
-            isFavoriteLoading ? (
-              <div className="flex items-center animate-pulse">
-                <div className="w-6 h-6 bg-gray-200 rounded-full"></div>
-                <div className="h-4 w-24 bg-gray-200 rounded ml-[7px]"></div>
-              </div>
-            ) : (
-              <div className="flex flex-col">
+              <div className="flex gap-4 items-center">
                 <div
                   onClick={toggleFavorite}
-                  className="cursor-pointer flex items-center"
+                  className="cursor-pointer flex w-10 h-10 rounded-full border border-gray-300 flex items-center justify-center"
                 >
                   {isFavorite ? (
                     <AiFillHeart className="w-6 h-6 text-red-500" />
                   ) : (
                     <AiOutlineHeart className="w-6 h-6" />
                   )}
-                  <p className="[font-family:Inter,sans-serif] text-base font-semibold text-[#261f22] ml-[7px] m-0 p-0">
-                    {isFavorite ? "Remove Favorite" : "Add to Favorite"}
-                  </p>
                 </div>
-
                 {classCreatorData?.userUid === userId && (
                   <Link href={`/updateClass/${classId}`}>
-                    <button className="mt-2 text-base font-semibold text-red-600 border border-red-600 px-4 py-1 rounded hover:bg-red-600 hover:text-white transition">
+                    <button className="text-base font-semibold text-red-600 border border-red-600 px-4 py-1 rounded hover:bg-red-600 hover:text-white transition">
                       Edit
                     </button>
                   </Link>
                 )}
               </div>
-            )
-          ) : null}
-        </div>
+            </div>
+          </div>
+        )}
+      </div>
+      <div className="mt-10 w-full max-w-[1312px]">
+        {isMobile ? (
+          <EnhancedImageGallery images={classData?.Images || []} />
+        ) : (
+          <Gallery coverImages={classData?.Images || []} />
+        )}
       </div>
       <div className="flex flex-col-reverse lg:flex-row gap-20 lg:gap-10 w-full max-w-[1312px] grow-0 shrink-0 basis-auto box-border mt-9">
-        <div className="grow-0 shrink basis-auto xl:max-w-[calc(100vw-500px)]">
-          <EnhancedImageGallery images={classData?.Images || []} />
+        <div className="grow-0 shrink basis-auto xl:max-w-[calc(100vw)]">
           <div
             onClick={() => {
               router.push(
@@ -347,17 +394,21 @@ function FitnessClassDetailsSection({
               )}
             </div>
           </div>
-          <FitnessProfileSection
-            classId={classId}
-            instructorData={classCreatorData}
-            classData={classData}
-          />
-          <BookingComponent
-            classId={classId}
-            instructorId={classCreatorData?.userUid}
-            classData={classData}
-            classPackages={classData?.Packages}
-          />
+          <div ref={instructorRef}>
+            <FitnessProfileSection
+              classId={classId}
+              instructorData={classCreatorData}
+              classData={classData}
+            />
+          </div>
+          <div ref={bookingRef}>
+            <BookingComponent
+              classId={classId}
+              instructorId={classCreatorData?.userUid}
+              classData={classData}
+              classPackages={classData?.Packages}
+            />
+          </div>
           {/* <FitnessScheduleMindfulnessDisplay
             classData={classData}
             timeSlotOptions={timeSlotOptions}
@@ -368,23 +419,15 @@ function FitnessClassDetailsSection({
             reviewCountsArray={reviewCountsArray}
             classId={classId}
           /> */}
-          <FitnessReviewSectionWidget
-            classTitle={classData?.Name}
-            classId={classId}
-            reviewCountsArray1={reviewCountsArray1}
-            classData={classData}
-            classCreatorData={classCreatorData}
-          />
-          <div className="max-w-[952px]">
-            <RecommendedClassesSection
+          <div ref={reviewsRef}>
+            <FitnessReviewSectionWidget
+              classTitle={classData?.Name}
               classId={classId}
-              currentClassData={classData}
+              reviewCountsArray1={reviewCountsArray1}
+              classData={classData}
+              classCreatorData={classCreatorData}
             />
           </div>
-          <FAQAccordion
-            instructorId={classCreatorData?.userUid}
-            classId={classId}
-          />
         </div>
         <div className="hidden xl:block w-full max-w-[320px]">
           <DynamicButtonSection
@@ -393,6 +436,16 @@ function FitnessClassDetailsSection({
             instructorId={classCreatorData?.userUid}
           />
         </div>
+      </div>
+      <div className="mt-10 w-full max-w-[1312px]">
+        <RecommendedClassesSection
+          classId={classId}
+          currentClassData={classData}
+        />
+        <FAQAccordion
+          instructorId={classCreatorData?.userUid}
+          classId={classId}
+        />
       </div>
     </div>
   );

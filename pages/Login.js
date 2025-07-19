@@ -109,7 +109,7 @@ function Login() {
       const docSnap = await getDoc(docRef);
       if (docSnap.exists()) {
         const data = docSnap.data();
-        if (!data.stripeAccountId && data.category === "instructor") {
+        if (!data.stripeAccountId && data.isInstructor) {
           toast.error(
             "Please connect your Stripe account to continue as an Instructor"
           );

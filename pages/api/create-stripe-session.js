@@ -1,7 +1,7 @@
 import stripe from "../../utils/stripe";
 export default async function (req, res) {
   try {
-    const { uid, uEmail, uName, classId, insId, price } = req.body;
+    const { uid, uEmail, uName, classId, insId, price, type = 'booking' } = req.body;
 
     // Create or retrieve Stripe customer
     let customer;
@@ -26,22 +26,48 @@ export default async function (req, res) {
       console.error("Error creating/retrieving customer:", error);
     }
 
+    // Base price for premium is $5, add processing fee
+    let finalPrice = price;
+    let description = "PocketClass Booking";
+    let metadata = {
+      price: price,
+      customer_id: uid,
+      customer_name: uName,
+      customer_email: uEmail,
+      type: type,
+    };
+
+    if (type === 'premium') {
+      // Premium subscription: $5 + processing fee (2.9% + $0.80)
+      const processingFee = price * 0.029 + 0.80;
+      finalPrice = price + processingFee;
+      description = "PocketClass Premium Subscription (1 month)";
+      metadata = {
+        ...metadata,
+        subscription_type: "premium",
+        subscription_duration: "1_month",
+        base_price: price,
+        processing_fee: processingFee.toFixed(2),
+      };
+    } else {
+      // Booking payment
+      metadata = {
+        ...metadata,
+        instructor_id: insId,
+        class_id: classId,
+      };
+    }
+
     const paymentIntent = await stripe.paymentIntents.create({
-      amount: price * 100,
+      amount: Math.round(finalPrice * 100), // Convert to cents and round
       currency: "cad",
-      customer: customer?.id, // Add customer to PaymentIntent,
+      customer: customer?.id,
       automatic_payment_methods: {
         enabled: true,
       },
-      setup_future_usage: "on_session", // This saves the payment method
-      metadata: {
-        price: price,
-        customer_id: uid,
-        customer_name: uName,
-        customer_email: uEmail,
-        instructor_id: insId,
-        class_id: classId,
-      },
+      setup_future_usage: "on_session",
+      description: description,
+      metadata: metadata,
     });
     const customerSession = await stripe.customerSessions.create({
       customer: customer?.id,
