@@ -17,6 +17,14 @@ const AddMedia = ({ setMediaPreview, setMedia }) => {
 			}
 
 			const file = e?.target?.files?.[0];
+			const MAX_FILE_SIZE = 20 * 1024 * 1024; // 20MB limit
+
+			if (file.size > MAX_FILE_SIZE) {
+				alert("File size exceeds 20MB limit");
+				setMedia(null);
+				setMediaPreview(null);
+				return;
+			}
 			setMedia(file);
 			const reader = new FileReader();
 			reader.onload = (e) => {
@@ -51,6 +59,7 @@ const AddMedia = ({ setMediaPreview, setMedia }) => {
 			role="button"
 			type="file"
 			onChange={addMedia}
+			accept="image/*,video/*,audio/*"
 		/>
 	);
 };
