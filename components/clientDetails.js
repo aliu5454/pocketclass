@@ -1,3 +1,5 @@
+"use client";
+
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/router";
 import {
@@ -17,21 +19,167 @@ import {
   CurrencyDollarIcon,
   StarIcon,
 } from "@heroicons/react/outline";
+import dynamic from "next/dynamic";
+
+// Import React Quill dynamically to avoid SSR issues
+const ReactQuill = dynamic(() => import("react-quill"), { ssr: false });
+import "react-quill/dist/quill.snow.css";
+
+// Custom styles for Quill editor
+const quillModules = {
+  toolbar: [
+    ["bold", "italic", "underline", "strike"],
+    [{ list: "ordered" }, { list: "bullet" }],
+    ["link", "image", "video"],
+  ],
+  clipboard: {
+    // toggle to add extra line breaks when pasting HTML:
+    matchVisual: false,
+  },
+  imageResize: {
+    modules: ["Resize", "DisplaySize"],
+  },
+};
+
+// Custom inline styles for Quill container
+const quillEditorStyles = {
+  container: {
+    marginBottom: "1rem",
+  },
+  editor: {
+    fontSize: "14px",
+    lineHeight: "1.5",
+    overflow: "auto",
+  },
+};
+
+// Rich content view styles
+const richContentStyles = `
+  .rich-text-content {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    line-height: 1.6;
+  }
+  .rich-text-content h1, .rich-text-content h2, .rich-text-content h3, 
+  .rich-text-content h4, .rich-text-content h5, .rich-text-content h6 {
+    margin-top: 1.5em;
+    margin-bottom: 0.5em;
+    font-weight: 600;
+    line-height: 1.25;
+  }
+  .rich-text-content h1 { font-size: 2em; }
+  .rich-text-content h2 { font-size: 1.5em; }
+  .rich-text-content h3 { font-size: 1.25em; }
+  .rich-text-content p { margin-bottom: 1em; }
+  .rich-text-content img { 
+    max-width: 100%; 
+    height: auto;
+    margin: 1em 0;
+    border-radius: 4px;
+  }
+  .rich-text-content blockquote {
+    border-left: 4px solid #e5e7eb;
+    padding-left: 1em;
+    margin-left: 0;
+    color: #6b7280;
+  }
+  .rich-text-content pre {
+    background-color: #f9fafb;
+    padding: 1em;
+    border-radius: 4px;
+    overflow: auto;
+  }
+  .rich-text-content ul, .rich-text-content ol {
+    padding-left: 2em;
+    margin-bottom: 1em;
+  }
+  .rich-text-content a {
+    color: #E63F2B;
+    text-decoration: underline;
+  }
+  .rich-text-content a:hover {
+    text-decoration: none;
+  }
+    .ql-tooltip {
+  z-index: 9999; /* Ensure it's above everything */
+  transform: none !important; /* Reset any transforms */
+}
+
+.ql-tooltip[data-mode="link"],
+.ql-tooltip[data-mode="video"] {
+  left: unset !important;
+}
+`;
+
+// Helper component to render HTML content safely
+const RichTextContent = ({ html }) => {
+  return (
+    <div
+      className="rich-text-content"
+      dangerouslySetInnerHTML={{ __html: html }}
+    />
+  );
+};
+
+const quillFormats = [
+  "header",
+  "bold",
+  "italic",
+  "underline",
+  "strike",
+  "list",
+  "bullet",
+  "indent",
+  "link",
+  "image",
+  "video",
+  "align",
+  "color",
+  "background",
+  "font",
+  "size",
+  "script",
+  "blockquote",
+  "code-block",
+];
 
 const ClientDetailsPanel = ({ selectedClient, onBack, instructorId }) => {
   const [activeTab, setActiveTab] = useState("overview");
   const [notes, setNotes] = useState([]);
   const [newNote, setNewNote] = useState("");
+  const [newNoteTitle, setNewNoteTitle] = useState("");
+  const [isNoteModalOpen, setIsNoteModalOpen] = useState(false);
+  const [viewingNote, setViewingNote] = useState(null);
+  const [isViewNoteModalOpen, setIsViewNoteModalOpen] = useState(false);
   const [editingNoteId, setEditingNoteId] = useState(null);
   const [editingNoteText, setEditingNoteText] = useState("");
+  const [editingNoteTitle, setEditingNoteTitle] = useState("");
   const [isLoadingNotes, setIsLoadingNotes] = useState(false);
   const [isSavingNote, setIsSavingNote] = useState(false);
   const [clientBookings, setClientBookings] = useState([]);
   const [isLoadingBookings, setIsLoadingBookings] = useState(false);
   const [reviews, setReviews] = useState([]);
+  const [isGeneratingTitle, setIsGeneratingTitle] = useState(false);
+  const [isSummarizingNote, setIsSummarizingNote] = useState(false);
 
   const router = useRouter();
   // Helper functions
+  useEffect(() => {
+    const loadImageResize = async () => {
+      if (typeof window !== "undefined") {
+        const RQ = await import("react-quill");
+        const Quill = RQ.Quill || RQ.default?.Quill; // Fallbacks for various exports
+
+        if (Quill && !Quill?.imports?.["modules/imageResize"]) {
+          const ImageResize = (await import("quill-image-resize-module-react"))
+            .default;
+          Quill.register("modules/imageResize", ImageResize);
+        }
+
+      }
+    };
+
+    loadImageResize();
+  }, []);
 
   useEffect(() => {
     // Get Reviews for the selected client
@@ -52,7 +200,9 @@ const ClientDetailsPanel = ({ selectedClient, onBack, instructorId }) => {
         const filteredReviews = reviewsData
           .filter((review) =>
             selectedClient.allBookings?.some(
-              (booking) => (booking.classDetails?.id === review.classID && review.classID !== undefined)
+              (booking) =>
+                booking.classDetails?.id === review.classID &&
+                review.classID !== undefined
             )
           )
           .map((review) => {
@@ -158,6 +308,7 @@ const ClientDetailsPanel = ({ selectedClient, onBack, instructorId }) => {
       const noteId = Date.now().toString();
       const note = {
         id: noteId,
+        title: newNoteTitle.trim() || "Untitled",
         text: newNote.trim(),
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
@@ -184,6 +335,8 @@ const ClientDetailsPanel = ({ selectedClient, onBack, instructorId }) => {
 
       setNotes(updatedNotes);
       setNewNote("");
+      setNewNoteTitle("");
+      setIsNoteModalOpen(false);
       toast.success("Note added successfully");
     } catch (error) {
       console.error("Error adding note:", error);
@@ -193,7 +346,7 @@ const ClientDetailsPanel = ({ selectedClient, onBack, instructorId }) => {
     }
   };
 
-  const updateNote = async (noteId, newText) => {
+  const updateNote = async (noteId, newText, newTitle) => {
     if (!newText.trim()) return;
 
     setIsSavingNote(true);
@@ -208,6 +361,7 @@ const ClientDetailsPanel = ({ selectedClient, onBack, instructorId }) => {
         note.id === noteId
           ? {
               ...note,
+              title: newTitle.trim() || "Untitled",
               text: newText.trim(),
               updatedAt: new Date().toISOString(),
             }
@@ -234,6 +388,8 @@ const ClientDetailsPanel = ({ selectedClient, onBack, instructorId }) => {
       setNotes(updatedNotes);
       setEditingNoteId(null);
       setEditingNoteText("");
+      setEditingNoteTitle("");
+      setIsNoteModalOpen(false);
       toast.success("Note updated successfully");
     } catch (error) {
       console.error("Error updating note:", error);
@@ -284,11 +440,31 @@ const ClientDetailsPanel = ({ selectedClient, onBack, instructorId }) => {
   const startEditing = (note) => {
     setEditingNoteId(note.id);
     setEditingNoteText(note.text);
+    setEditingNoteTitle(note.title || "Untitled");
+    setIsNoteModalOpen(true);
   };
 
   const cancelEditing = () => {
     setEditingNoteId(null);
     setEditingNoteText("");
+    setEditingNoteTitle("");
+    setIsNoteModalOpen(false);
+  };
+
+  const openNewNoteModal = () => {
+    setNewNote("");
+    setNewNoteTitle("");
+    setIsNoteModalOpen(true);
+  };
+
+  const openViewNoteModal = (note) => {
+    setViewingNote(note);
+    setIsViewNoteModalOpen(true);
+  };
+
+  const closeViewNoteModal = () => {
+    setViewingNote(null);
+    setIsViewNoteModalOpen(false);
   };
 
   const formatDate = (dateInput) => {
@@ -323,6 +499,93 @@ const ClientDetailsPanel = ({ selectedClient, onBack, instructorId }) => {
     }
   };
 
+  // AI functions
+  const generateNoteTitle = async () => {
+    const text = editingNoteId ? editingNoteText : newNote;
+    if (!text.trim()) {
+      toast.error("Please add some content to generate a title");
+      return;
+    }
+
+    setIsGeneratingTitle(true);
+    try {
+      // Remove and store img/iframe elements from current text
+      const imgElements = text.match(/<img[^>]*>/g) || [];
+      const iframeElements = text.match(/<iframe[^>]*><\/iframe>/g) || [];
+      const cleanedText = text.replace(/<img[^>]*>/g, "").replace(/<iframe[^>]*><\/iframe>/g, "");
+      const response = await fetch('/api/ai/generate-title', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ text: cleanedText }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to generate title');
+      }
+
+      const data = await response.json();
+      
+      if (editingNoteId) {
+        setEditingNoteTitle(data.title);
+      } else {
+        setNewNoteTitle(data.title);
+      }
+      
+      toast.success('Title generated successfully');
+    } catch (error) {
+      console.error('Error generating title:', error);
+      toast.error('Failed to generate title');
+    } finally {
+      setIsGeneratingTitle(false);
+    }
+  };
+
+  const summarizeNote = async () => {
+    const text = editingNoteId ? editingNoteText : newNote;
+    if (!text.trim()) {
+      toast.error("Please add some content to summarize");
+      return;
+    }
+
+    setIsSummarizingNote(true);
+    try {
+      // Remove and store img/iframe elements from current text
+      const imgElements = text.match(/<img[^>]*>/g) || [];
+      const iframeElements = text.match(/<iframe[^>]*><\/iframe>/g) || [];
+      const cleanedText = text.replace(/<img[^>]*>/g, "").replace(/<iframe[^>]*><\/iframe>/g, "");
+      const response = await fetch('/api/ai/summarize', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ text: cleanedText }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to summarize note');
+      }
+
+      const data = await response.json();
+      
+      if (editingNoteId) {
+        data.summary = data.summary + imgElements.join("") + iframeElements.join("");
+        setEditingNoteText(data.summary);
+      } else {
+        data.summary = data.summary + imgElements.join("") + iframeElements.join("");
+        setNewNote(data.summary);
+      }
+      
+      toast.success('Note summarized successfully');
+    } catch (error) {
+      console.error('Error summarizing note:', error);
+      toast.error('Failed to summarize note');
+    } finally {
+      setIsSummarizingNote(false);
+    }
+  };
+
   if (!selectedClient) {
     return (
       <div className="flex items-center justify-center h-64 text-gray-500">
@@ -353,6 +616,7 @@ const ClientDetailsPanel = ({ selectedClient, onBack, instructorId }) => {
 
   return (
     <div className="bg-white max-h-screen h-full flex flex-col lg:grid lg:grid-cols-5">
+      <style dangerouslySetInnerHTML={{ __html: richContentStyles }} />
       {/* Left Panel - Client Information (Desktop) */}
       <div className="hidden lg:block lg:col-span-2 border-r border-gray-200 max-h-screen overflow-y-auto">
         {/* Mobile Header with back button (shown on mobile) */}
@@ -757,28 +1021,142 @@ const ClientDetailsPanel = ({ selectedClient, onBack, instructorId }) => {
                 </span>
               </div>
 
-              {/* Add New Note */}
+              {/* Add New Note Button */}
               <div className="bg-gray-50 p-4 rounded-lg">
-                <h4 className="text-sm font-medium text-gray-700 mb-3">
-                  Add New Note
-                </h4>
-                <div className="flex gap-3">
-                  <textarea
-                    value={newNote}
-                    onChange={(e) => setNewNote(e.target.value)}
-                    placeholder="Write a note about this client..."
-                    className="flex-1 p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#E63F2B] focus:border-transparent resize-none"
-                    rows="3"
-                  />
+                <div className="flex justify-between items-center">
+                  <h4 className="text-sm font-medium text-gray-700">
+                    Client Notes
+                  </h4>
                   <button
-                    onClick={addNote}
-                    disabled={!newNote.trim() || isSavingNote}
-                    className="px-4 py-2 bg-[#E63F2B] text-white rounded-lg hover:bg-[#D63426] disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors text-sm font-medium h-fit"
+                    onClick={openNewNoteModal}
+                    className="px-4 py-2 bg-[#E63F2B] text-white rounded-lg hover:bg-[#D63426] transition-colors text-sm font-medium"
                   >
-                    {isSavingNote ? "Adding..." : "Add Note"}
+                    Add New Note
                   </button>
                 </div>
               </div>
+
+              {/* Note Modal */}
+              {isNoteModalOpen && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4 mt-0" style={{
+                  marginTop: "0px", // Ensure modal is centered vertically
+                }}>
+                  <div className="bg-white rounded-lg shadow-xl w-full max-w-[80vw] max-h-[90vh] flex flex-col">
+                    <div className="p-4 border-b border-gray-200">
+                      <h3 className="text-lg font-medium text-gray-900">
+                        {editingNoteId ? "Edit Note" : "New Note"}
+                      </h3>
+                    </div>
+
+                    <div className="p-4 flex-1 overflow-y-auto">
+                      {/* Title Input with Generate button */}
+                      <div className="flex gap-3 mb-4 flex-col md:flex-row">
+                        <input
+                          type="text"
+                          value={editingNoteId ? editingNoteTitle : newNoteTitle}
+                          onChange={(e) =>
+                            editingNoteId
+                              ? setEditingNoteTitle(e.target.value)
+                              : setNewNoteTitle(e.target.value)
+                          }
+                          placeholder="Untitled"
+                          className="flex-1 p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#E63F2B] focus:border-transparent"
+                          autoFocus
+                        />
+                        <button
+                          onClick={generateNoteTitle}
+                          disabled={isGeneratingTitle}
+                          className="px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium disabled:bg-gray-400"
+                        >
+                          {isGeneratingTitle ? (
+                            <span className="flex items-center">
+                              <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                              </svg>
+                              Generating...
+                            </span>
+                          ) : (
+                            "Generate Title"
+                          )}
+                        </button>
+                      </div>
+
+                      {/* Quill Editor */}
+                      <div style={quillEditorStyles.container} className="mb-4">
+                        <ReactQuill
+                          theme="snow"
+                          value={editingNoteId ? editingNoteText : newNote}
+                          onChange={
+                            editingNoteId ? setEditingNoteText : setNewNote
+                          }
+                          className="h-full"
+                          style={quillEditorStyles.editor}
+                          modules={quillModules}
+                          formats={quillFormats}
+                          placeholder="Write your note content here..."
+                        />
+                      </div>
+                    </div>
+
+                    <div className="p-4 border-t border-gray-200 flex flex-col md:flex-row gap-3 justify-between">
+                      <div className="space-x-2">
+                        <button
+                          onClick={summarizeNote}
+                          disabled={isSummarizingNote}
+                          className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors text-sm font-medium disabled:bg-gray-300 disabled:cursor-not-allowed"
+                        >
+                          {isSummarizingNote ? (
+                            <span className="flex items-center">
+                              <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                              </svg>
+                              Summarizing...
+                            </span>
+                          ) : (
+                            "Refine & Summarize"
+                          )}
+                        </button>
+                      </div>
+                      
+                      <div className="space-x-2">
+                        <button
+                          onClick={cancelEditing}
+                          className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 text-sm font-medium"
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          onClick={() => {
+                            if (editingNoteId) {
+                              updateNote(
+                                editingNoteId,
+                                editingNoteText,
+                                editingNoteTitle
+                              );
+                            } else {
+                              addNote();
+                            }
+                          }}
+                          disabled={
+                            !(editingNoteId ? editingNoteText : newNote).trim() ||
+                            isSavingNote
+                          }
+                          className="px-4 py-2 bg-[#E63F2B] text-white rounded-lg hover:bg-[#D63426] disabled:bg-gray-300 disabled:cursor-not-allowed text-sm font-medium"
+                        >
+                          {isSavingNote
+                            ? "Saving..."
+                            : editingNoteId
+                            ? "Update Note"
+                            : "Add Note"}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
 
               {/* Notes List */}
               {isLoadingNotes ? (
@@ -798,107 +1176,80 @@ const ClientDetailsPanel = ({ selectedClient, onBack, instructorId }) => {
                     .map((note) => (
                       <div
                         key={note.id}
-                        className="bg-white border border-gray-200 rounded-lg p-4"
+                        className="bg-white border border-gray-200 rounded-lg p-4 cursor-pointer hover:border-logo-red text-gray-900 hover:text-logo-red"
+                        onClick={() => startEditing(note)}
                       >
-                        {editingNoteId === note.id ? (
-                          // Edit Mode
-                          <div className="space-y-3">
-                            <textarea
-                              value={editingNoteText}
-                              onChange={(e) =>
-                                setEditingNoteText(e.target.value)
-                              }
-                              className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#E63F2B] focus:border-transparent resize-none"
-                              rows="3"
-                            />
-                            <div className="flex justify-end gap-2">
+                        <div>
+                          <div className="flex items-start justify-between mb-2">
+                            <div
+                              className="flex-1 cursor-pointer"
+                              onClick={() => openViewNoteModal(note)}
+                            >
+                              <h4 className="text-base font-medium">
+                                {note.title || "Untitled"}
+                              </h4>
+                            </div>
+                            <div className="flex items-center gap-1 ml-4">
                               <button
-                                onClick={cancelEditing}
-                                className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                                onClick={() => startEditing(note)}
+                                className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
+                                title="Edit note"
                               >
-                                Cancel
+                                <svg
+                                  className="w-4 h-4"
+                                  fill="none"
+                                  stroke="currentColor"
+                                  viewBox="0 0 24 24"
+                                >
+                                  <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth={2}
+                                    d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                                  />
+                                </svg>
                               </button>
                               <button
-                                onClick={() =>
-                                  updateNote(note.id, editingNoteText)
-                                }
-                                disabled={
-                                  !editingNoteText.trim() || isSavingNote
-                                }
-                                className="px-3 py-1.5 text-sm bg-[#E63F2B] text-white rounded-lg hover:bg-[#D63426] disabled:bg-gray-300 transition-colors"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  deleteNote(note.id);
+                                }}
+                                disabled={isSavingNote}
+                                className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors disabled:opacity-50"
+                                title="Delete note"
                               >
-                                {isSavingNote ? "Saving..." : "Save"}
+                                <svg
+                                  className="w-4 h-4"
+                                  fill="none"
+                                  stroke="currentColor"
+                                  viewBox="0 0 24 24"
+                                >
+                                  <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth={2}
+                                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                                  />
+                                </svg>
                               </button>
                             </div>
                           </div>
-                        ) : (
-                          // View Mode
-                          <div>
-                            <div className="flex items-start justify-between mb-2">
-                              <div className="flex-1">
-                                <p className="text-gray-900 whitespace-pre-wrap">
-                                  {note.text}
-                                </p>
-                              </div>
-                              <div className="flex items-center gap-1 ml-4">
-                                <button
-                                  onClick={() => startEditing(note)}
-                                  className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
-                                  title="Edit note"
-                                >
-                                  <svg
-                                    className="w-4 h-4"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    viewBox="0 0 24 24"
-                                  >
-                                    <path
-                                      strokeLinecap="round"
-                                      strokeLinejoin="round"
-                                      strokeWidth={2}
-                                      d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
-                                    />
-                                  </svg>
-                                </button>
-                                <button
-                                  onClick={() => deleteNote(note.id)}
-                                  disabled={isSavingNote}
-                                  className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors disabled:opacity-50"
-                                  title="Delete note"
-                                >
-                                  <svg
-                                    className="w-4 h-4"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    viewBox="0 0 24 24"
-                                  >
-                                    <path
-                                      strokeLinecap="round"
-                                      strokeLinejoin="round"
-                                      strokeWidth={2}
-                                      d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                                    />
-                                  </svg>
-                                </button>
-                              </div>
-                            </div>
-                            <div className="flex items-center justify-between text-xs text-gray-500">
-                              <span>
-                                Created:{" "}
-                                {note.createdAt
-                                  ? formatDate(note.createdAt)
-                                  : "Unknown"}
-                              </span>
-                              {note.updatedAt &&
-                                new Date(note.updatedAt).getTime() !==
-                                  new Date(note.createdAt).getTime() && (
-                                  <span>
-                                    Updated: {formatDate(note.updatedAt)}
-                                  </span>
-                                )}
-                            </div>
+                          <div className="flex items-center justify-between text-xs text-gray-500">
+                            <span>
+                              Created:{" "}
+                              {note.createdAt
+                                ? formatDate(note.createdAt)
+                                : "Unknown"}
+                            </span>
+                            {note.updatedAt &&
+                              new Date(note.updatedAt).getTime() !==
+                                new Date(note.createdAt).getTime() && (
+                                <span>
+                                  Updated: {formatDate(note.updatedAt)}
+                                </span>
+                              )}
                           </div>
-                        )}
+                        </div>
                       </div>
                     ))}
                 </div>
@@ -954,14 +1305,26 @@ const ClientDetailsPanel = ({ selectedClient, onBack, instructorId }) => {
                         </p>
                         <span
                           className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium mt-1 ${
-                            ((review.qualityRating + review.safetyRating + review.recommendRating)/3) >= 4
+                            (review.qualityRating +
+                              review.safetyRating +
+                              review.recommendRating) /
+                              3 >=
+                            4
                               ? "bg-green-100 text-green-800"
-                              : ((review.qualityRating + review.safetyRating + review.recommendRating)/3) === 3
+                              : (review.qualityRating +
+                                  review.safetyRating +
+                                  review.recommendRating) /
+                                  3 ===
+                                3
                               ? "bg-yellow-100 text-yellow-800"
                               : "bg-red-100 text-red-800"
                           }`}
                         >
-                          {(review.qualityRating + review.safetyRating + review.recommendRating)/3} Stars
+                          {(review.qualityRating +
+                            review.safetyRating +
+                            review.recommendRating) /
+                            3}{" "}
+                          Stars
                         </span>
                       </div>
                     </div>
