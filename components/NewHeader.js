@@ -268,36 +268,36 @@ const NewHeader = ({ activeCategory, handleCategorySelection }) => {
 
   // Scroll effects
   useEffect(() => {
-    const handleScroll = () => {
-      if (!isHome) return;
+  const handleScroll = () => {
+    if (!isHome) return;
 
-      const scrollY = window.scrollY;
+    const scrollY = window.scrollY;
 
-      // Desktop scroll effects
-      if (window.innerWidth >= 768) {
-        if (scrollY > 5 && !isSearchExpanded) {
-          setIsMenuShrunk(true);
-        } else if (scrollY <= 5 && !isSearchExpanded) {
-          setIsMenuShrunk(false);
-        }
+    // Desktop scroll effects with hysteresis
+    if (window.innerWidth >= 768 && !isSearchExpanded) {
+      if (scrollY == 0 && isMenuShrunk) {
+        setIsMenuShrunk(false);
       }
-
-      // Mobile scroll effects
-      if (scrollY > 25) {
-        setHideIcons(true);
-      } else if (scrollY <= 25) {
-        setHideIcons(false);
+      else {
+        setIsMenuShrunk(true);
       }
-    };
-
-    if (isHome) {
-      window.addEventListener("scroll", handleScroll);
     }
 
-    return () => {
-      window.removeEventListener("scroll", handleScroll);
-    };
-  }, [isSearchExpanded, isHome]);
+    // Mobile scroll effects with hysteresis
+    if (window.innerWidth < 768) {
+      if (scrollY = 0 && hideIcons) {
+        setHideIcons(false);
+      }
+      else {
+        setHideIcons(true);
+      }
+    }
+  };
+
+  window.addEventListener("scroll", handleScroll);
+  return () => window.removeEventListener("scroll", handleScroll);
+}, [isSearchExpanded, isHome, isMenuShrunk, hideIcons]);
+
 
   // Reset states on route change
   useEffect(() => {
@@ -316,7 +316,7 @@ const NewHeader = ({ activeCategory, handleCategorySelection }) => {
           !classCreated ||
           !scheduleCreated ||
           !profileCompleted) && (
-          <div className=" bg-gray-50 py-[2px]">
+          <div className="transition-all bg-gray-50 py-[2px]">
             <div className="flex items-center text-logo-red px-2 justify-center text-base text-center lg:text-xl mt-3 mb-4 font-semibold">
               Please complete these steps to publish your class!
             </div>
@@ -410,7 +410,7 @@ const NewHeader = ({ activeCategory, handleCategorySelection }) => {
         )}
 
       <div
-        className={`flex flex-col md:gap-1 bg-white pb-4 md:pb-[2rem] sticky top-0 w-full dm2:z-50 z-[900] transition-all duration-500 ${
+        className={`transition-all flex flex-col md:gap-1 bg-white pb-4 md:pb-[2rem] sticky top-0 w-full dm2:z-50 z-[900] transition-all duration-500 ${
           isMenuShrunk
             ? "h-[90px] dm2:h-[100px]"
             : `${isMenuSmall ? "h-auto dm2:h-[100px]" : "h-auto"}`
@@ -527,7 +527,7 @@ const NewHeader = ({ activeCategory, handleCategorySelection }) => {
                   {/* Become an Instructor Button */}
                   {!userData?.isInstructor && (
                     <Link href="/instructor-onboarding">
-                      <button className="bg-gray-100 text-gray-700 px-4 py-2 rounded-full text-sm font-medium hover:bg-gray-200 transition-colors mr-4">
+                      <button className="hidden md:inline-block bg-gray-100 text-gray-700 px-4 py-2 rounded-full text-sm font-medium hover:bg-gray-200 transition-colors mr-4">
                         Become an Instructor
                       </button>
                     </Link>
@@ -816,7 +816,7 @@ const NewHeader = ({ activeCategory, handleCategorySelection }) => {
         {/* Mobile Category Buttons - Only shown on homepage */}
         {isHome && (
           <div
-            className={`ease-in-out overflow-hidden w-full justify-center md:hidden flex ${
+            className={`transition-all ease-in-out overflow-hidden w-full justify-center md:hidden flex ${
               hideIcons
                 ? "mb-0 max-h-0 opacity-0"
                 : "mb-3 max-h-[200px] opacity-100"
@@ -861,7 +861,7 @@ const NewHeader = ({ activeCategory, handleCategorySelection }) => {
         <div
           className={`${
             isMenuShrunk || (isMenuSmall && screenWidth > 800)
-              ? "flex items-center justify-center h-full absolute inset-0"
+              ? "transition-all flex items-center justify-center h-full absolute inset-0"
               : "relative"
           }`}
         >
