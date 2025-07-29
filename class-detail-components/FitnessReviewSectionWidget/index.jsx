@@ -1,6 +1,7 @@
 import DynamicButtonSection from "../DynamicButtonSection";
 import FitnessReviewSectionContainer from "../FitnessReviewSectionContainer";
 import ReviewSectionWidget from "../ReviewSectionWidget";
+import ClassLocationMap from "../../components/ClassPageLocation";
 
 function FitnessReviewSectionWidget({
   classId,
@@ -21,6 +22,13 @@ function FitnessReviewSectionWidget({
           instructorId={classCreatorData?.userUid}
         />
       </div>
+      {classData?.longitude && classData?.latitude && (
+        <ClassLocationMap
+          longitude={classData.longitude}
+          latitude={classData.latitude}
+          address={classData.Address}
+        />
+      )}
       <FitnessReviewSectionContainer
         classId={classId}
         reviewCountsArray1={reviewCountsArray1}

@@ -54,6 +54,68 @@ import ToggleSwitch from "../components/toggle";
 import VideoPlayer from "../components/VideoPlayer";
 import { Switch } from "antd";
 
+const SortableImage = ({ image, onRemove }) => {
+  const { attributes, listeners, setNodeRef, transform, transition } =
+    useSortable({
+      id: image.name,
+    });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+  };
+  console.log(image);
+  const isImage = image.type?.startsWith("image");
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className="relative touch-none"
+      {...attributes} // only structural attributes
+    >
+      <button
+        type="button"
+        className="text-logo-red absolute top-2 right-2 z-20"
+        onClick={(e) => {
+          e.stopPropagation();
+          onRemove(e, image.name);
+        }}
+        onMouseDown={(e) => e.stopPropagation()}
+      >
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          fill="#e73f2b"
+          viewBox="0 0 30 30"
+          strokeWidth={2}
+          stroke="currentColor"
+          className="w-5 h-5 mr-1"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            d="M 14.984375 2.4863281 A 1.0001 1.0001 0 0 0 14 3.5 L 14 4 L 8.5 4 A 1.0001 1.0001 0 0 0 7.4863281 5 L 6 5 A 1.0001 1.0001 0 1 0 6 7 L 24 7 A 1.0001 1.0001 0 1 0 24 5 L 22.513672 5 A 1.0001 1.0001 0 0 0 21.5 4 L 16 4 L 16 3.5 A 1.0001 1.0001 0 0 0 14.984375 2.4863281 z M 6 9 L 7.7929688 24.234375 C 7.9109687 25.241375 8.7633438 26 9.7773438 26 L 20.222656 26 C 21.236656 26 22.088031 25.241375 22.207031 24.234375 L 24 9 L 6 9 z"
+          ></path>
+        </svg>
+      </button>
+      {isImage ? (
+        <img
+          src={image.src}
+          alt={`Preview ${image.name}`}
+          className="w-full h-48 object-cover rounded-lg border"
+        />
+      ) : (
+        <video src={image.src} className="object-cover rounded-lg w-full h-48" />
+      )}
+
+      <div
+        {...listeners}
+        className="absolute bottom-0 h-full w-full px-2 py-1 rounded shadow cursor-grab z-10"
+      ></div>
+    </div>
+  );
+};
+
 export default function CreateClass() {
   const [previewImages, setPreviewImages] = useState([]);
   const [imageError, setImageError] = useState(null);
