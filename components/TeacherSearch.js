@@ -81,6 +81,7 @@ const TeacherSearch = ({ expandMenu, user }) => {
   const containerRef = useRef(null);
   const dropdownRef = useRef(null);
   const { activeStyle, updateIndicator, resetActiveBG } = useActiveIndicator();
+  console.log("")
 
   const dropdownVariants = {
     hidden: {
