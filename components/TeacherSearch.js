@@ -1,3 +1,5 @@
+"use client"
+
 import React, { useState, useEffect, useRef, useMemo } from "react";
 import { useRouter } from "next/router";
 import { SearchIcon } from "@heroicons/react/solid";
@@ -10,7 +12,6 @@ import "react-day-picker/dist/style.css";
 import { useActiveIndicator } from "../hooks/useActiveIndicator";
 import { collection, getDocs, query } from "firebase/firestore";
 import { db } from "../firebaseConfig";
-import { motion, AnimatePresence } from "framer-motion";
 
 const DayPicker = dynamic(
   () => import("react-day-picker").then((mod) => mod.DayPicker),
@@ -82,24 +83,6 @@ const TeacherSearch = ({ expandMenu, user }) => {
   const dropdownRef = useRef(null);
   const { activeStyle, updateIndicator, resetActiveBG } = useActiveIndicator();
 
-  const dropdownVariants = {
-    hidden: {
-      opacity: 0,
-      y: -10,
-      transition: { duration: 0.15, ease: "easeInOut" },
-    },
-    visible: {
-      opacity: 1,
-      y: 0,
-      transition: { duration: 0.2, ease: "easeOut" },
-    },
-    exit: {
-      opacity: 0,
-      y: 0,
-      transition: { duration: 0.5, ease: "easeInOut" },
-    },
-  };
-
   useEffect(() => {
     const handleOutsideClick = (e) => {
       if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
@@ -135,34 +118,33 @@ const TeacherSearch = ({ expandMenu, user }) => {
   }, [router.pathname, router.query]);
 
   const filteredSearchOptions = useMemo(() => {
-  const term = searchTerm.toLowerCase().trim();
-  if (!term) return initialSearchOptions;
+    const term = searchTerm.toLowerCase().trim();
+    if (!term) return initialSearchOptions;
 
-  const startsWith = [];
-  const includes = [];
-  const fromClasses = [];
+    const startsWith = [];
+    const includes = [];
+    const fromClasses = [];
 
-  for (const item of initialSearchOptions) {
-    const label = item.label.toLowerCase();
+    for (const item of initialSearchOptions) {
+      const label = item.label.toLowerCase();
 
-    if (label.startsWith(term)) {
-      startsWith.push(item);
-    } else if (label.includes(term)) {
-      includes.push(item);
-    } else if (
-      filteredClasses.some(
-        (cls) =>
-          cls.Category?.toLowerCase() === label ||
-          cls.SubCategory?.toLowerCase() === label
-      )
-    ) {
-      fromClasses.push(item);
+      if (label.startsWith(term)) {
+        startsWith.push(item);
+      } else if (label.includes(term)) {
+        includes.push(item);
+      } else if (
+        filteredClasses.some(
+          (cls) =>
+            cls.Category?.toLowerCase() === label ||
+            cls.SubCategory?.toLowerCase() === label
+        )
+      ) {
+        fromClasses.push(item);
+      }
     }
-  }
 
-  return [...startsWith, ...includes, ...fromClasses];
-}, [searchTerm, filteredClasses]);
-
+    return [...startsWith, ...includes, ...fromClasses];
+  }, [searchTerm, filteredClasses]);
 
   useEffect(() => {
     if (Object.keys(router.query).length && initialSearchOptions.length) {
@@ -380,6 +362,27 @@ const TeacherSearch = ({ expandMenu, user }) => {
       }`}
       ref={dropdownRef}
     >
+      <style jsx global>{`
+        .menu-dropdown {
+          position: absolute;
+          top: calc(100% + 10px);
+          background: white;
+          border-radius: 16px;
+          box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+          z-index: 100;
+          opacity: 0;
+          transform: translateY(-10px);
+          pointer-events: none;
+          transition: opacity 0.2s ease, transform 0.2s ease;
+        }
+        
+        .menu-dropdown.active {
+          opacity: 1;
+          transform: translateY(0);
+          pointer-events: auto;
+        }
+      `}</style>
+      
       <div className="transition duration-500 h-full">
         <div className="relative h-full">
           <div className="absolute top-0 left-0 w-full h-full">
@@ -506,136 +509,115 @@ const TeacherSearch = ({ expandMenu, user }) => {
             </button>
           </div>
 
-          <AnimatePresence>
-            {activeDropdown === "sub" && !isShrunk && (
-              <motion.div
-                className="menu-dropdown left-0 max-w-[400px] !pr-0 overflow-auto"
-                initial="hidden"
-                animate="visible"
-                exit="exit"
-                variants={dropdownVariants}
-              >
-                <div className="max-h-[calc(100vh_-_250px)]">
-                  <ul className="flex flex-col dm2:gap-1 pr-5">
-                    {filteredSearchOptions.map((item, index) => (
-                      <motion.li
-                        key={index}
-                        initial={{ opacity: 0, y: -5 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.3, delay: index * 0.03 }}
+          {/* Search Options Dropdown */}
+          <div
+            className={`menu-dropdown left-0 max-w-[400px] !pr-0 overflow-auto ${
+              activeDropdown === "sub" && !isShrunk ? "active" : ""
+            }`}
+          >
+            <div className="max-h-[calc(100vh_-_250px)]">
+              <ul className="flex flex-col dm2:gap-1 pr-5">
+                {filteredSearchOptions.map((item, index) => (
+                  <li
+                    key={index}
+                    onClick={() => {
+                      setSelectedItem(item);
+                      setSearchTerm(item.label);
+                      toggleDropdown("picker");
+                      updateIndicator(1);
+                    }}
+                    className="flex gap-3 items-center rounded-lg hover:bg-gray-100 transition p-2"
+                  >
+                    <div className="size-12 shrink-0 rounded flex justify-center items-center bg-gray-50">
+                      <img
+                        src={item.icon}
+                        alt={item.label}
+                        className="w-[80%] h-full object-contain"
+                      />
+                    </div>
+                    <div>
+                      <span className="font-medium">{item.label}</span>
+                      {item.payload?.description && (
+                        <p>{item.payload.description}</p>
+                      )}
+                    </div>
+                  </li>
+                ))}
+              </ul>
+
+              {filteredClasses.length > 0 && (
+                <div className="mt-4">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-3">
+                    Classes
+                  </h3>
+                  <ul className="space-y-1">
+                    {filteredClasses.map((cls) => (
+                      <li
+                        key={cls.id}
+                        className="flex items-center gap-3 p-2 hover:bg-gray-50 transition rounded-lg cursor-pointer"
                         onClick={() => {
-                          setSelectedItem(item);
-                          setSearchTerm(item.label);
-                          toggleDropdown("picker");
-                          updateIndicator(1);
+                          router.push(`/classes/${cls.id}`);
+                          setActiveDropdown(null);
                         }}
-                        className="flex gap-3 items-center rounded-lg hover:bg-gray-100 transition p-2"
                       >
                         <div className="size-12 shrink-0 rounded flex justify-center items-center bg-gray-50">
-                          <img
-                            src={item.icon}
-                            alt={item.label}
-                            className="w-[80%] h-full object-contain"
-                          />
-                        </div>
-                        <div>
-                          <span className="font-medium">{item.label}</span>
-                          {item.payload?.description && (
-                            <p>{item.payload.description}</p>
+                          {cls.Images && cls.Images.length > 0 ? (
+                            <img
+                              src={cls.Images[0]}
+                              alt={cls.Name}
+                              className="w-full h-full object-cover rounded"
+                            />
+                          ) : (
+                            <div className="w-full h-full bg-gray-200 rounded flex items-center justify-center">
+                              <span className="text-gray-400 text-xs">
+                                No Image
+                              </span>
+                            </div>
                           )}
                         </div>
-                      </motion.li>
+                        <div className="flex-1">
+                          <h4 className="font-medium whitespace-nowrap text-gray-900">
+                            {cls.Name.length > 30
+                              ? `${cls.Name.slice(0, 30)}...`
+                              : cls.Name}
+                          </h4>
+                          <p className="text-sm text-gray-500">
+                            {cls.Category} •{" "}
+                            {cls.Address || "Location not specified"}
+                          </p>
+                        </div>
+                      </li>
                     ))}
                   </ul>
-
-                  {filteredClasses.length > 0 && (
-                    <motion.div
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      transition={{ delay: 0.1 }}
-                      className="mt-4"
-                    >
-                      <h3 className="text-lg font-semibold text-gray-900 mb-3">
-                        Classes
-                      </h3>
-                      <ul className="space-y-1">
-                        {filteredClasses.map((cls) => (
-                          <motion.li
-                            key={cls.id}
-                            initial={{ opacity: 0, y: -5 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ duration: 0.1 }}
-                            className="flex items-center gap-3 p-2 hover:bg-gray-50 transition rounded-lg cursor-pointer"
-                            onClick={() => {
-                              router.push(`/classes/${cls.id}`);
-                              setActiveDropdown(null);
-                            }}
-                          >
-                            <div className="size-12 shrink-0 rounded flex justify-center items-center bg-gray-50">
-                              {cls.Images && cls.Images.length > 0 ? (
-                                <img
-                                  src={cls.Images[0]}
-                                  alt={cls.Name}
-                                  className="w-full h-full object-cover rounded"
-                                />
-                              ) : (
-                                <div className="w-full h-full bg-gray-200 rounded flex items-center justify-center">
-                                  <span className="text-gray-400 text-xs">
-                                    No Image
-                                  </span>
-                                </div>
-                              )}
-                            </div>
-                            <div className="flex-1">
-                              <h4 className="font-medium whitespace-nowrap text-gray-900">
-                                {cls.Name.length > 30
-                                  ? `${cls.Name.slice(0, 30)}...`
-                                  : cls.Name}
-                              </h4>
-                              <p className="text-sm text-gray-500">
-                                {cls.Category} •{" "}
-                                {cls.Address || "Location not specified"}
-                              </p>
-                            </div>
-                          </motion.li>
-                        ))}
-                      </ul>
-                    </motion.div>
-                  )}
                 </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
+              )}
+            </div>
+          </div>
 
-          <AnimatePresence>
-            {activeDropdown === "picker" && !isShrunk && (
-              <motion.div
-                className="menu-dropdown right-0 !w-fit z-50"
-                initial="hidden"
-                animate="visible"
-                exit="exit"
-                variants={dropdownVariants}
-              >
-                <div onClick={(e) => e.stopPropagation()}>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Available Between
-                  </label>
-                  <DayPicker
-                    mode="range"
-                    selected={selectedRange}
-                    onSelect={(range) => {
-                      setSelectedRange(range);
-                      if (range?.from && range?.to) {
-                        setDateRange([range.from, range.to]);
-                      }
-                    }}
-                    className="p-2 bg-white-100 text-sm"
-                    disabled={{ before: new Date() }}
-                  />
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
+          {/* Date Picker Dropdown */}
+          <div
+            className={`menu-dropdown right-0 !w-fit z-50 ${
+              activeDropdown === "picker" && !isShrunk ? "active" : ""
+            }`}
+          >
+            <div onClick={(e) => e.stopPropagation()}>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Available Between
+              </label>
+              <DayPicker
+                mode="range"
+                selected={selectedRange}
+                onSelect={(range) => {
+                  setSelectedRange(range);
+                  if (range?.from && range?.to) {
+                    setDateRange([range.from, range.to]);
+                  }
+                }}
+                className="p-2 bg-white-100 text-sm"
+                disabled={{ before: new Date() }}
+              />
+            </div>
+          </div>
         </div>
       </div>
     </div>
