@@ -922,7 +922,7 @@ const NewHeader = ({ activeCategory, handleCategorySelection }) => {
           style={{
             transform:
               isMenuShrunk || (isMenuSmall && screenWidth > 800)
-                ? "scale(0.85) translateY(-5px)"
+                ? "scale(0.85) translateY(0px)"
                 : "scale(1) translateY(0)",
             opacity:
               isMenuShrunk || (isMenuSmall && screenWidth > 800) ? 0.85 : 1,
