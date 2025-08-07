@@ -1,4 +1,4 @@
-"use client"
+"use client";
 
 import React, { useState, useEffect, useRef, useMemo } from "react";
 import { useRouter } from "next/router";
@@ -78,29 +78,33 @@ const TeacherSearch = ({ expandMenu, user }) => {
   const [selectedRange, setSelectedRange] = useState();
   const [isShrunk, setIsShrunk] = useState(false);
   const [isMenuSmall, setIsMenuSmall] = useState(true);
-  const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
-  const [viewportHeight, setViewportHeight] = useState(
-    typeof window !== "undefined" ? window.innerHeight : 0
-  );
+  const inputRef = useRef(null);
 
   const containerRef = useRef(null);
   const dropdownRef = useRef(null);
-  const searchInputRef = useRef(null);
   const { activeStyle, updateIndicator, resetActiveBG } = useActiveIndicator();
 
   useEffect(() => {
     const handleOutsideClick = (e) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(e.target) &&
+        containerRef.current &&
+        !containerRef.current.contains(e.target)
+      ) {
+        inputRef.current?.blur();
         setActiveDropdown(null);
       }
     };
 
     const handleScroll = () => {
       setActiveDropdown(null);
+      inputRef.current?.blur();
     };
 
     const handleResize = () => {
       setActiveDropdown(null);
+      inputRef.current?.blur();
     };
 
     document.addEventListener("mousedown", handleOutsideClick);
@@ -121,34 +125,6 @@ const TeacherSearch = ({ expandMenu, user }) => {
       router.pathname === "/" && Object.keys(router.query).length === 0;
     setIsMenuSmall(!isHomePage);
   }, [router.pathname, router.query]);
-
-  useEffect(() => {
-    const handleViewportResize = () => {
-      if (typeof window !== "undefined") {
-        const newHeight = window.visualViewport?.height || window.innerHeight;
-        setViewportHeight(newHeight);
-
-        // Check if keyboard is visible (viewport height reduced by more than 30%)
-        const isKeyboardOpen = newHeight < window.innerHeight * 0.7;
-        setIsKeyboardVisible(isKeyboardOpen);
-      }
-    };
-
-    if (typeof window !== "undefined") {
-      window.visualViewport?.addEventListener("resize", handleViewportResize);
-      window.addEventListener("resize", handleViewportResize);
-    }
-
-    return () => {
-      if (typeof window !== "undefined") {
-        window.visualViewport?.removeEventListener(
-          "resize",
-          handleViewportResize
-        );
-        window.removeEventListener("resize", handleViewportResize);
-      }
-    };
-  }, []);
 
   const filteredSearchOptions = useMemo(() => {
     const term = searchTerm.toLowerCase().trim();
@@ -382,14 +358,6 @@ const TeacherSearch = ({ expandMenu, user }) => {
     }
   };
 
-  // Calculate dropdown height based on keyboard visibility
-  const getDropdownHeight = () => {
-    if (isKeyboardVisible && typeof window !== "undefined") {
-      return `calc(${viewportHeight}px - 100px)`;
-    }
-    return "calc(100vh - 250px)";
-  };
-
   return (
     <div
       className={`menu-search-bar transition-all duration-500 mx-auto max-dm2:px-3 ${
@@ -416,66 +384,13 @@ const TeacherSearch = ({ expandMenu, user }) => {
           pointer-events: none;
           transition: opacity 0.2s ease, transform 0.2s ease;
         }
-        
+
         .menu-dropdown.active {
           opacity: 1;
           transform: translateY(0);
           pointer-events: auto;
         }
-
-        /* Mobile-specific styles */
-        @media (max-width: 640px) {
-          .menu-dropdown {
-            position: fixed;
-            top: auto;
-            bottom: 0;
-            left: 0;
-            width: 100%;
-            max-height: ${getDropdownHeight()};
-            border-radius: 16px 16px 0 0;
-            transform: translateY(100%);
-            transition: transform 0.3s ease, max-height 0.3s ease;
-            overflow-y: auto;
-            z-index: 1000;
-          }
-
-          .menu-dropdown.active {
-            transform: translateY(0);
-          }
-
-          .date-picker-dropdown {
-            height: auto;
-            max-height: 60vh;
-            top: auto !important;
-            bottom: 0;
-          }
-        }
-
-        .dropdown-overlay {
-          display: none;
-          position: fixed;
-          top: 0;
-          left: 0;
-          right: 0;
-          bottom: 0;
-          background: rgba(0, 0, 0, 0.5);
-          z-index: 999;
-        }
-
-        @media (max-width: 640px) {
-          .dropdown-overlay.active {
-            display: block;
-          }
-        }
       `}</style>
-
-      {/* Overlay for mobile dropdowns */}
-      <div
-        className={`dropdown-overlay ${
-          activeDropdown && !isShrunk ? "active" : ""
-        }`}
-        onClick={() => setActiveDropdown(null)}
-      />
 
       <div className="transition duration-500 h-full">
         <div className="relative h-full">
@@ -491,6 +406,10 @@ const TeacherSearch = ({ expandMenu, user }) => {
           <div
             ref={containerRef}
             className="search-bar-wrapper transition-transform"
+            onClick={() => {
+              if (activeDropdown !== "sub") setActiveDropdown("sub");
+              inputRef.current?.focus();
+            }}
           >
             {!isShrunk ||
               (isShrunk && (
@@ -516,11 +435,6 @@ const TeacherSearch = ({ expandMenu, user }) => {
                 handleOptionClick("sub", 0);
                 if (activeDropdown !== "sub") {
                   setActiveDropdown("sub");
-                  setTimeout(() => {
-                    if (searchInputRef.current) {
-                      searchInputRef.current.focus();
-                    }
-                  }, 100);
                 }
               }}
             >
@@ -535,7 +449,7 @@ const TeacherSearch = ({ expandMenu, user }) => {
               </div>
               {!isShrunk && (
                 <input
-                  ref={searchInputRef}
+                  ref={inputRef}
                   type="text"
                   placeholder="Explore your interests"
                   value={searchTerm}
@@ -611,7 +525,7 @@ const TeacherSearch = ({ expandMenu, user }) => {
 
           {/* Search Options Dropdown */}
           <div
-            className={`menu-dropdown search-options-dropdown !left-0 !max-w-[400px] !pr-0 !overflow-auto ${
+            className={`menu-dropdown left-0 max-w-[400px] !pr-0 overflow-auto ${
               activeDropdown === "sub" && !isShrunk ? "active" : ""
             }`}
           >
@@ -696,7 +610,7 @@ const TeacherSearch = ({ expandMenu, user }) => {
 
           {/* Date Picker Dropdown */}
           <div
-            className={`menu-dropdown date-picker-dropdown !right-0 !w-fit !z-50 ${
+            className={`menu-dropdown right-0 !w-fit z-50 ${
               activeDropdown === "picker" && !isShrunk ? "active" : ""
             }`}
           >
