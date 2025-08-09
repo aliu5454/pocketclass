@@ -236,7 +236,7 @@ function TopClassesSection({
         </p>
       </div>
       <div>
-        <div id="classes-grid" className="gap-8 max-w-[100%] box-border mt-8">
+        <div id="classes-grid" className="gap-8 min-h-[250px] max-w-[100%] box-border mt-8">
           {loading
             ? Array(4)
                 .fill(null)
