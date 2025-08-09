@@ -14,6 +14,9 @@ function SuperInstructorCard({
   const [isFavorite, setIsFavorite] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [user] = useAuthState(auth);
+  const imageUrl =
+    instructorImg ||
+    "https://s3-alpha-sig.figma.com/img/0a4e/e6d8/04f1b8bc98ca9140f475bc83c632e5c6?Expires=1732492800&Key-Pair-Id=APKAQ4GOSFWCVNEHN3O4&Signature=SfAp96~SAW71bK5RsMaHR94JrlWn4y2lSq4S04HFSW07iiQJ5oUMcwNnELdYWkYjOfWBZ9bEFcvW950C-PhcgDmW~s12XGrEaUtIZd5gLo5L2-9lYO-YVQqha6XUZxwLVwPnEaySbyZW~BY89p2z-EfTAtMpbEf6FpO7fAX-RNIge2H4bgL9Kq4BBPPBU~E5Aj-G6bVSznIbwxtjiIfBWESPoedzrpVM1sD4t9m6uNbWWIbhc24ysqRbEvRYvhKbJ615L78etjqmNcwY5NO-YVC5CO~l71Fob43W2sQC4WojfZjGMslkcx6BNWY1kyl6UkJFRyCkh6tu8L2lE~Va~A__";
 
   useEffect(() => {
     checkFavoriteStatus();
@@ -61,10 +64,7 @@ function SuperInstructorCard({
       <div className="absolute top-0 left-0 -z-10 w-full h-full rounded-2xl overflow-hidden">
         {/* Background Image */}
         <img
-          src={
-            instructorImg ||
-            "https://s3-alpha-sig.figma.com/img/0a4e/e6d8/04f1b8bc98ca9140f475bc83c632e5c6?Expires=1732492800&Key-Pair-Id=APKAQ4GOSFWCVNEHN3O4&Signature=SfAp96~SAW71bK5RsMaHR94JrlWn4y2lSq4S04HFSW07iiQJ5oUMcwNnELdYWkYjOfWBZ9bEFcvW950C-PhcgDmW~s12XGrEaUtIZd5gLo5L2-9lYO-YVQqha6XUZxwLVwPnEaySbyZW~BY89p2z-EfTAtMpbEf6FpO7fAX-RNIge2H4bgL9Kq4BBPPBU~E5Aj-G6bVSznIbwxtjiIfBWESPoedzrpVM1sD4t9m6uNbWWIbhc24ysqRbEvRYvhKbJ615L78etjqmNcwY5NO-YVC5CO~l71Fob43W2sQC4WojfZjGMslkcx6BNWY1kyl6UkJFRyCkh6tu8L2lE~Va~A__"
-          }
+          src={imageUrl}
           alt="Instructor Background"
           loading="lazy"
           className="w-full h-full object-cover"
@@ -76,13 +76,10 @@ function SuperInstructorCard({
         {/* Foreground Image (Normal Size) */}
         <div className="absolute inset-0 flex justify-center items-center">
           <img
-            src={
-              instructorImg ||
-              "https://s3-alpha-sig.figma.com/img/0a4e/e6d8/04f1b8bc98ca9140f475bc83c632e5c6?Expires=1732492800&Key-Pair-Id=APKAQ4GOSFWCVNEHN3O4&Signature=SfAp96~SAW71bK5RsMaHR94JrlWn4y2lSq4S04HFSW07iiQJ5oUMcwNnELdYWkYjOfWBZ9bEFcvW950C-PhcgDmW~s12XGrEaUtIZd5gLo5L2-9lYO-YVQqha6XUZxwLVwPnEaySbyZW~BY89p2z-EfTAtMpbEf6FpO7fAX-RNIge2H4bgL9Kq4BBPPBU~E5Aj-G6bVSznIbwxtjiIfBWESPoedzrpVM1sD4t9m6uNbWWIbhc24ysqRbEvRYvhKbJ615L78etjqmNcwY5NO-YVC5CO~l71Fob43W2sQC4WojfZjGMslkcx6BNWY1kyl6UkJFRyCkh6tu8L2lE~Va~A__"
-            }
+            src={imageUrl}
             alt="Instructor"
             loading="lazy"
-            className="max-h-full max-w-full rounded-xl shadow-lg object-contain"
+            className="max-h-full max-w-full shadow-lg object-contain"
           />
         </div>
       </div>
