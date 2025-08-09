@@ -18,18 +18,12 @@ function TopInstructorsSectionWithButton({ activeFilter }) {
         onClassesLoad={(count) => setClassCount(count)}
       />
 
-      {classCount === 0 ? (
-        <p className="text-center text-lg font-semibold mt-8">
-          No classes available
-        </p>
-      ) : displayCount < classCount && (
-        <Button
-          onClick={handleSeeMore}
-          className="bg-transparent [font-family:Inter,sans-serif] self-center w-full md:w-44 text-center text-base font-semibold text-[#261f22] min-w-[176px] h-[47px] cursor-pointer box-border mt-12 rounded-full border-2 border-solid border-[#261f22]"
-        >
-          See More
-        </Button>
-      )}
+      <Button
+        onClick={handleSeeMore}
+        className="bg-transparent [font-family:Inter,sans-serif] self-center w-full md:w-44 text-center text-base font-semibold text-[#261f22] min-w-[176px] h-[47px] cursor-pointer box-border mt-12 rounded-full border-2 border-solid border-[#261f22]"
+      >
+        See More
+      </Button>
     </div>
   );
 }

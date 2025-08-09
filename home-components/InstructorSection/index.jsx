@@ -7,7 +7,6 @@ import SvgIcon2 from "../MusicianCard/icons/SvgIcon2";
 import { useEffect, useState } from "react";
 import { doc, getDoc } from "firebase/firestore";
 import { db } from "../../firebaseConfig";
-import { AiOutlineMan } from "react-icons/ai";
 
 function InstructorSection({ classId, instructor, loading, reviews }) {
   const router = useRouter();
@@ -16,18 +15,22 @@ function InstructorSection({ classId, instructor, loading, reviews }) {
   const reviewCount = classReviews.length;
   const [classData, setClassData] = useState(null);
   useEffect(() => {
-    const getClassData = async () => {
-      // Fetch class data if needed
-      // Fetch from classes collection in firebas
-      if (!classId) return;
-      const classRef = doc(db, "classes", classId);
-      const classSnap = await getDoc(classRef);
-      if (classSnap.exists()) {
-        setClassData(classSnap.data());
-      }
+    if (!classId) return;
 
-    };
-    getClassData();
+    const controller = new AbortController();
+
+    (async () => {
+      try {
+        const classSnap = await getDoc(doc(db, "classes", classId));
+        classSnap.exists() && setClassData(classSnap.data());
+      } catch (error) {
+        if (error.name !== "AbortError") {
+          console.error("Error fetching class data:", error);
+        }
+      }
+    })();
+
+    return () => controller.abort();
   }, [classId]);
 
   if (loading) {
@@ -77,12 +80,12 @@ function InstructorSection({ classId, instructor, loading, reviews }) {
           <MusicianProfileCard1 instructor={instructor} router={router} />
         </div>
 
-          {/* First class free */}
-          {classData?.firstFree && (
-            <p className="border border-green-400 flex flex-row items-center justify-center px-3 rounded-lg text-sm text-green-500 grow-0 py-[2px] shrink-0 basis-auto mx-[8px] w-max m-0 p-0">
-              First Class Free
-            </p>
-          )}
+        {/* First class free */}
+        {classData?.firstFree && (
+          <p className="border border-green-400 flex flex-row items-center justify-center px-3 rounded-lg text-sm text-green-500 grow-0 py-[2px] shrink-0 basis-auto mx-[8px] w-max m-0 p-0">
+            First Class Free
+          </p>
+        )}
         {/* Bottom Section - fixed at bottom */}
         <div className="flex items-center cursor-default gap-2 justify-between px-[15px] mt-auto w-full">
           <div className="flex items-center gap-1 flex-shrink-0">
@@ -108,7 +111,7 @@ function InstructorSection({ classId, instructor, loading, reviews }) {
               <p className="text-base font-bold truncate ">
                 By{" "}
                 {(() => {
-                  const name = instructor?.instructorName || "instructor";
+                  const name = instructor?.instructorName || "Instructor";
                   const [first] = name.trim().split(/\s+/);
                   return first;
                 })()}
