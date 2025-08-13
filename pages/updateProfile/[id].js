@@ -38,6 +38,7 @@ function UpdateProfile() {
   const [showCropper, setShowCropper] = useState(false);
   const [isDragActive, setIsDragActive] = useState(false);
   const [dragCounter, setDragCounter] = useState(0);
+  const [hasAttemptedSubmit, setHasAttemptedSubmit] = useState(false);
 
   const router = useRouter();
   const { id } = router.query;
@@ -187,6 +188,16 @@ function UpdateProfile() {
   const onUpdateHandle = async (e) => {
     e.preventDefault();
     console.log("Update Profile Form Submitted");
+    setHasAttemptedSubmit(true);
+
+    // Check if image is required and missing
+    if (!userData.profileImage && !droppedFile) {
+      toast.error("Please upload your profile picture before submitting", {
+        toastId: "missing-image-toast",
+      });
+      return;
+    }
+
     const data = {
       firstName: e.target.firstName.value,
       lastName: e.target.lastName.value,
@@ -452,6 +463,11 @@ function UpdateProfile() {
                   profile picture
                 </p>
 
+                {hasAttemptedSubmit && !userData.profileImage && !droppedFile && (
+                  <p className="text-red-500 text-sm mt-2">
+                    Please upload your profile picture
+                  </p>
+                )}
                 {formErrors.droppedFile && (
                   <p className="text-red-500 text-sm mt-2">
                     {formErrors.droppedFile}
@@ -459,6 +475,7 @@ function UpdateProfile() {
                 )}
               </div>
 
+                
               {/* Personal Information */}
               <div>
                 <h3 className="text-lg font-semibold text-gray-900 mb-6 flex items-center">
