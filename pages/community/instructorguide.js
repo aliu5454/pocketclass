@@ -4,9 +4,9 @@ import Head from "next/head";
 import Image from "next/image";
 import Link from "next/link";
 import styles from "../../styles/Instructorguide.module.css";
-import React, { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect } from "react";
 import VideoPlayer from "../../components/VideoPlayer";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 
 export default function InstructorGuide() {
   const [hoveredIndex, setHoveredIndex] = useState(0);
@@ -19,33 +19,35 @@ export default function InstructorGuide() {
   const features = [
     {
       title: "Message Automations",
-      description: "Keep students engaged and informed automatically. Send pre-class reminders, cancellation notices, birthday vouchers, and follow-up prompts. Fully customizable templates save you hours.",
+      description1: "Keep students engaged with pre-class reminders and follow-ups",
+      description2: "Send automatic cancellation notices and birthday vouchers",
+      description3: "Customizable templates save 80% of admin work",
       image: "/features/pc-upcoming-class-reminder-muted-bg.svg",
       mockup: "automation-interface"
     },
     {
       title: "Notes & Progress Tracking",
-      description: "Track each student's journey with detailed notes. Leverage AI to refine your notes, generate titles, and make progress tracking effortless.",
+      description1: "Record and track every student’s progress in one place",
+      description2: "Use AI to refine and structure notes",
+      description3: "Quickly review past lessons before each class",
       image: "/features/pocketclass_notes_hero_full.svg",
       mockup: "notes-interface"
     },
     {
       title: "Smart Calendar & Integrations",
-      description: "Set your availability once and let PocketClass handle the rest. Accept real-time bookings across platforms with integrated scheduling.",
+      description1: "Accept real-time bookings 24/7 across platforms",
+      description2: "Reduce scheduling headaches and last-minute changes",
+      description3: "Set availability once - PocketClass syncs it everywhere",
       image: "/features/pc-manage-schedule-flat-calendar.svg",
       mockup: "calendar-interface"
     },
     {
-      title: "Custom Class Pages with Payments",
-      description: "Showcase your classes with beautifully designed pages. Accept secure payments directly from students, complete with built-in protections.",
+      title: "Client Management & Insights",
+      description1: "Use pre-built dashboards to plan your next steps and grow retention",
+      description2: "View a full snapshot of your active and inactive clients",
+      description3: "Identify students who haven’t booked recently for targeted outreach",
       image: "/features/pc-client-dashboard-hero.svg",
       mockup: "custom-class-pages-interface"
-    },
-    {
-      title: "Retention & Sales Tools",
-      description: "Tiered reputation, loyalty programs, and analytics to keep students coming back.",
-      image: "/features/calendar.svg",
-      mockup: "retention-sales-tools-interface"
     }
   ];
 
@@ -167,15 +169,13 @@ export default function InstructorGuide() {
 
   const FeatureImage = ({ src, alt }) => {
     return (
-      <div className="bg-gradient-to-br from-purple-50 to-blue-50 rounded-2xl p-8 h-64 flex items-center justify-center overflow-hidden">
+      <div className="w-full h-auto flex items-center justify-center overflow-hidden bg-slate-200/70 rounded-2xl shadow-lg border-2 border-gray-200 transform transition duration-300 ease-out lg:hover:scale-[1.04] lg:hover:-translate-y-1 lg:hover:shadow-xl">
         <img
           src={src}
           alt={alt}
-          className="max-w-full max-h-full object-contain"
+          className="w-full h-full object-contain rounded"
           loading="lazy"
-          style={{
-            imageRendering: 'crisp-edges', // or 'pixelated' for pixel art
-          }}
+          style={{ imageRendering: 'crisp-edges' }}
         />
       </div>
     );
@@ -276,34 +276,79 @@ export default function InstructorGuide() {
             </p>
           </div>
 
-          {/* Features Grid */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 mb-20">
-            {features.slice(0, 2).map((feature, index) => (
-              <div key={index} className="group">
-                <div className="bg-white rounded-3xl p-8 shadow-sm border border-gray-100 hover:shadow-xl transition-all duration-500 hover:-translate-y-2">
-                  <FeatureImage src={feature.image} alt={feature.title} />
-                  <div className="mt-8">
-                    <h3 className="text-2xl font-bold text-gray-900 mb-4">{feature.title}</h3>
-                    <p className="text-gray-600 leading-relaxed text-lg">{feature.description}</p>
+          {/* Features - Desktop Version */}
+          <div className="hidden lg:block space-y-20">
+            {features.map((feature, index) => (
+              <div key={index} className="bg-gray-50">
+                <div className={`grid grid-cols-2 gap-12 items-center ${index % 2 === 1 ? 'flex-row-reverse' : ''}`}>
+                  {/* Image Column */}
+                  <div className={`${index % 2 === 1 ? 'order-2' : 'order-1'} flex justify-center`}>
+                      <FeatureImage src={feature.image} alt={feature.title} />
+                  </div>
+                  
+                  {/* Text Column */}
+                  <div className={`${index % 2 === 1 ? 'order-1' : 'order-2'} space-y-6`}>
+                    <h3 className="text-3xl font-bold text-gray-900">{feature.title}</h3>
+                    <div className="space-y-4">
+                      <div className="flex items-start space-x-3">
+                        <svg className="w-5 h-5 text-green-500 mt-1 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                        </svg>
+                        <p className="text-gray-600 text-lg leading-relaxed">{feature.description1}</p>
+                      </div>
+                      <div className="flex items-start space-x-3">
+                        <svg className="w-5 h-5 text-green-500 mt-1 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                        </svg>
+                        <p className="text-gray-600 text-lg leading-relaxed">{feature.description2}</p>
+                      </div>
+                      <div className="flex items-start space-x-3">
+                        <svg className="w-5 h-5 text-green-500 mt-1 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                        </svg>
+                        <p className="text-gray-600 text-lg leading-relaxed">{feature.description3}</p>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
             ))}
           </div>
 
-          {/* Bottom Features */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12">
-            {features.slice(2, 4).map((feature, index) => (
-              <div key={index + 2} className="group">
-                <div className="bg-white rounded-3xl p-8 shadow-sm border border-gray-100 hover:shadow-xl transition-all duration-500 hover:-translate-y-2">
-                  <FeatureImage src={feature.image} alt={feature.title} />
-                  <div className="mt-8">
-                    <h3 className="text-2xl font-bold text-gray-900 mb-4">{feature.title}</h3>
-                    <p className="text-gray-600 leading-relaxed text-lg">{feature.description}</p>
+          {/* Features - Mobile Version (Keep Current Look) */}
+          <div className="lg:hidden">
+            <div className="grid grid-cols-1 gap-8">
+              {features.map((feature, index) => (
+                <div key={index} className="group">
+                  <div className="bg-white rounded-3xl shadow-sm border border-gray-100 hover:shadow-xl transition-all duration-500 hover:-translate-y-2">
+                    <FeatureImage src={feature.image} alt={feature.title} />
+                    <div className="my-8 px-8">
+                      <h3 className="text-2xl font-bold text-gray-900 mb-4">{feature.title}</h3>
+                      <div className="space-y-4">
+                        <div className="flex items-start space-x-3">
+                          <svg className="w-5 h-5 text-green-500 mt-1 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                          </svg>
+                          <p className="text-gray-600 leading-relaxed text-lg">{feature.description1}</p>
+                        </div>
+                        <div className="flex items-start space-x-3">
+                          <svg className="w-5 h-5 text-green-500 mt-1 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                          </svg>
+                          <p className="text-gray-600 leading-relaxed text-lg">{feature.description2}</p>
+                        </div>
+                        <div className="flex items-start space-x-3">
+                          <svg className="w-5 h-5 text-green-500 mt-1 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                          </svg>
+                          <p className="text-gray-600 leading-relaxed text-lg">{feature.description3}</p>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
         </div>
       </section>
