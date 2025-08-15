@@ -133,7 +133,7 @@ function RecentlyViewedSection({ activeFilter = null, onClassesLoad }) {
   if (!loading && classes.length === 0) return null;
 
   return (
-    <div className="mt-6 flex flex-col w-full section-spacing py-8">
+    <div className="mt-6 flex flex-col w-full section-spacing py-8 overflow-x-hidden">
       {!activeFilter && (
         <p className="section-heading !text-left">Recently Viewed</p>
       )}
@@ -161,7 +161,7 @@ function RecentlyViewedSection({ activeFilter = null, onClassesLoad }) {
         {/* Class Cards */}
         <div
           ref={scrollRef}
-          className="gap-8 max-w-full mt-8 overflow-x-auto flex px-12"
+          className="gap-8 max-w-full mt-8 overflow-x-auto overflow-y-hidden flex px-12 hide-x-scrollbar"
         >
           {loading
             ? Array(4).fill(null).map((_, idx) => (
