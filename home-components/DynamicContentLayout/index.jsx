@@ -36,7 +36,7 @@ function DynamicContentLayout() {
       </div>
       {/* Button Component starts here. We've generated code using MUI Base. See other options in "Component library" dropdown in Settings */}
       <Link href="/browse/All">
-        <Button className="bg-logo-red [font-family:Inter,sans-serif] text-sm font-semibold text-[white] min-w-[220px] h-[45px] w-[220px] cursor-pointer block box-border self-center grow-0 shrink-0 basis-auto mt-10 rounded-[100px] border-[none]">
+        <Button className="bg-[#261f22] [font-family:Inter,sans-serif] text-sm font-semibold text-[white] min-w-[220px] h-[45px] w-[220px] cursor-pointer block box-border self-center grow-0 shrink-0 basis-auto mt-10 rounded-[100px] border-[none]">
           Find Classes
         </Button>
       </Link>

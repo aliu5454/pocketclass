@@ -462,7 +462,7 @@ const NewHeader = ({ activeCategory, handleCategorySelection }) => {
         )}
 
       <div
-        className={`flex flex-col dm2:gap-1 bg-white pb-4 dm2:pb-[2rem] sticky top-0 w-full dm2:z-50 z-[900] transition-all duration-1000 hide-x-scrollbar ${
+        className={`transition-all flex flex-col dm2:gap-1 bg-white pb-4 dm2:pb-[2rem] sticky top-0 w-full dm2:z-50 z-[900] transition-all duration-1000 hide-x-scrollbar ${
           isMenuShrunk
             ? "h-[90px] dm2:h-[100px]"
             : `${isMenuSmall ? "h-auto dm2:h-[100px]" : "h-auto"}`

@@ -17,7 +17,7 @@ function MusicianProfileCard1({ instructor, router }) {
   };
 
   return (
-    <div className="flex z-[0] cursor-default flex-col justify-between rounded-2xl w-full px-[15px] py-4 pb-0 backdrop-blur-[16px] backdrop-saturate-150 ">
+    <div className="flex z-[0] cursor-default flex-col justify-between rounded-2xl w-full px-[15px] py-4 pb-0 bg-white rounded-lg">
       {/* Top Info Section */}
       <div>
         <div className="flex justify-between items-start gap-2 w-full">
@@ -47,13 +47,9 @@ function MusicianProfileCard1({ instructor, router }) {
           {/* Price Section */}
           <div className="flex flex-col items-end shrink-0 min-w-[90px]">
             <p className="text-xl font-bold leading-6 text-[#261f22]">
-              {groupPrice && groupPrice != price ? (
-                <>
-                  ${groupPrice}-${price}
-                </>
-              ) : (
-                `$${price}`
-              )}
+              ${groupPrice}
+              {groupPrice ? "-$" : ""}
+              {price}
             </p>
             <p className="text-base font-normal text-[#261f22]">per hour</p>
           </div>
