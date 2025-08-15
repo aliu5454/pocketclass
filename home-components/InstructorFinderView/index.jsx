@@ -309,11 +309,21 @@ export default function InstructorFinderView() {
   const marqueeSpeed = 40; // 0 will render static for assistive users
 
   return (
-    <section className="relative left-1/2 -translate-x-1/2 w-screen py-14 md:py-20 bg-orange-25 overflow-x-hidden">
+    <section className="relative w-screen py-14 md:py-20 bg-orange-25 overflow-x-hidden">
       {/* background layers (if heavy, consider simplifying) */}
       <div className="pointer-events-none absolute inset-0">
         <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_25%_25%,rgba(255,165,0,0.12),transparent_40%)]" />
         <div className="absolute top-0 right-0 w-full h-full bg-[radial-gradient(circle_at_75%_15%,rgba(255,140,0,0.08),transparent_35%)]" />
+        <div className="absolute bottom-0 left-0 w-full h-full bg-[radial-gradient(circle_at_15%_85%,rgba(255,200,87,0.10),transparent_45%)]" />
+        <div className="absolute bottom-0 right-0 w-full h-full bg-[radial-gradient(circle_at_85%_75%,rgba(255,178,102,0.09),transparent_40%)]" />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full bg-[radial-gradient(ellipse_at_center,rgba(255,220,180,0.06),transparent_60%)]" />
+      </div>
+      {/* Floating geometric shapes */}
+      <div className="pointer-events-none absolute inset-0 overflow-hidden">
+        <div className="absolute top-20 left-10 w-32 h-32 rounded-full bg-orange-200/20 blur-xl" />
+        <div className="absolute top-40 right-20 w-24 h-24 rounded-full bg-amber-200/15 blur-lg" />
+        <div className="absolute bottom-32 left-1/4 w-40 h-40 rounded-full bg-orange-100/25 blur-2xl" />
+        <div className="absolute bottom-20 right-1/3 w-28 h-28 rounded-full bg-yellow-200/20 blur-xl" />
       </div>
 
       <div className="text-center max-w-2xl mx-auto mb-12 px-4 md:px-0 relative z-10">
