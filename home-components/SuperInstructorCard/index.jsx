@@ -58,8 +58,8 @@ function SuperInstructorCard({
     }
   };
   return (
-    <div className="-z-0 relative h-full w-full overflow-hidden rounded-t-2xl  backdrop-blur-[16px] backdrop-saturate-150 p-6">
-      <div className="absolute inset-3 sm:inset-4 -z-10 rounded-2xl overflow-hidden">
+    <div className="-z-0 relative h-full w-full overflow-hidden rounded-2xl">
+      <div className="absolute top-0 left-0 -z-10 w-full h-full rounded-2xl overflow-hidden">
         {/* Background Image */}
         <img
           src={imageUrl}
@@ -69,7 +69,7 @@ function SuperInstructorCard({
         />
 
         {/* Blur and Brightness Overlay */}
-        <div className="absolute inset-0 backdrop-blur-sm brightness-70 rounded-2xl"></div>
+        <div className="absolute inset-0 backdrop-blur-sm brightness-70"></div>
 
         {/* Foreground Image (Normal Size) */}
         <div className="absolute inset-0 flex justify-center items-center">
@@ -83,10 +83,10 @@ function SuperInstructorCard({
       </div>
 
       <div className="box-border flex justify-start h-full w-full items-stretch flex-row grow-0 shrink-0 basis-auto pt-4 pb-[172px] px-4 relative bg-center -z-1">
-        <div className="box-border absolute top-2 left-2 right-3 z-20 flex justify-between items-center">
+        <div className="box-border absolute flex justify-between items-center w-full left-0 px-2">
           <div className="w-[55.15%] grow-0 shrink-0 basis-auto box-border pb-3.5">
             {superInstructor && (
-              <Button className="bg-white [font-family:'DM_Sans',sans-serif] text-sm font-bold text-[#261f22] cursor-pointer inline-flex items-center px-2 py-1 rounded-full shadow-sm border border-white/60">
+              <Button className="bg-[white] [font-family:'DM_Sans',sans-serif] text-sm font-bold text-[#261f22] min-w-[135px] h-[26px] w-[135px] cursor-pointer block box-border rounded-[100px] border-[none]">
                 Super Instructor
               </Button>
             )}

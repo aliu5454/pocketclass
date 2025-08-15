@@ -246,7 +246,7 @@ function RecommendedClassesSection({
   if (!displayRec) return null;
 
   return (
-    <div className={`flex flex-col w-full py-8 overflow-x-hidden ${currentClassData ? "px-0" : "section-spacing"}`}>
+    <div className={`flex flex-col w-full py-8 ${currentClassData ? "px-0" : "section-spacing"}`}>
       {!activeFilter && (
         <p className="section-heading !text-left">
           {currentClassData ? "Similar Classes" : "Recommended"}
@@ -272,7 +272,7 @@ function RecommendedClassesSection({
 
         <div
           ref={scrollRef}
-          className="gap-8 max-w-full mt-8 overflow-x-auto overflow-y-hidden flex px-12 hide-x-scrollbar"
+          className="gap-8 max-w-full mt-8 overflow-x-auto flex px-12"
         >
           {loading
             ? Array(4).fill(0).map((_, i) => (
