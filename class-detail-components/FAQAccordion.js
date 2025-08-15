@@ -1,6 +1,5 @@
 "use client";
 import { useState } from "react";
-import { ChevronDownIcon } from "@heroicons/react/outline";
 import { useAuthState } from "react-firebase-hooks/auth";
 import { auth } from "../firebaseConfig";
 import { toast } from "react-toastify";
@@ -75,10 +74,10 @@ const FAQAccordion = ({ instructorId, classId}) => {
       question: "How Do I Ask A Question?",
       answer: (
         <span>
-          Have a question? We’re here to help! Simply click the "Send a Message" button to reach out to your instructor or{" "}
+          Have a question? We're here to help! Simply click the "Send a Message" button to reach out to your instructor or{" "}
           <button
             onClick={handleChatButton}
-            className="text-blue-500 underline cursor-pointer"
+            className="text-blue-500 underline cursor-pointer hover:text-blue-600 transition-colors duration-200"
           >
             Contact Us
           </button>. 
@@ -109,31 +108,39 @@ const FAQAccordion = ({ instructorId, classId}) => {
 
   return (
     <div className="mx-auto p-6 px-0 my-4 rounded-lg">
-      <h2 className="text-2xl font-bold text-center mb-8">
+      <h2 className="text-2xl font-bold text-center mb-8 text-gray-900">
         Frequently Asked Questions
       </h2>
-      <div className="space-y-2">
+      <div className="space-y-3">
         {faqs.map((faq, index) => (
-          <div key={index} className="border rounded-lg bg-white">
+          <div key={index} className="bg-white/80 rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-all duration-200 overflow-hidden">
             <button
-              className={`w-full text-left px-4 py-3 ${openIndex === index ? "pb-0" : ""} flex justify-between items-center focus:outline-none`}
+              className={`w-full px-6 py-4 text-left flex items-center justify-between hover:bg-gray-50/80 transition-colors duration-200 ${
+                openIndex === index ? 'bg-gray-50/80' : ''
+              }`}
               onClick={() => toggleFAQ(index)}
             >
-              <span className="font-medium">{faq.question}</span>
-              <span
-                className={`transform transition-transform ${
-                  openIndex === index ? "rotate-180" : "rotate-0"
-                }`}
-              >
-                <ChevronDownIcon className="h-5 w-5 text-gray-500" />
-              </span>
+              <h4 className="font-semibold text-gray-900 pr-4">{faq.question}</h4>
+              <div className="flex-shrink-0">
+                {openIndex === index ? (
+                  <svg className="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 12H4" />
+                  </svg>
+                ) : (
+                  <svg className="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                  </svg>
+                )}
+              </div>
             </button>
             <div
               className={`overflow-hidden transition-all duration-300 ease-in-out ${
-                openIndex === index ? "max-h-96" : "max-h-0"
+                openIndex === index ? 'max-h-[500px]' : 'max-h-0'
               }`}
             >
-              <p className="px-4 py-2 text-gray-700">{faq.answer}</p>
+              <div className="px-6 pb-4 text-gray-700 leading-relaxed">
+                {faq.answer}
+              </div>
             </div>
           </div>
         ))}
