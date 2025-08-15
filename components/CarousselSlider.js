@@ -1,49 +1,53 @@
-import { Swiper, SwiperSlide } from "swiper/react";
-import "swiper/css";
-import "swiper/css/autoplay";
+import Marquee from "react-fast-marquee";
+import Image from "next/image";
 
-import SwiperCore, { Autoplay } from "swiper";
-
-SwiperCore.use([Autoplay]);
-
+// Keep original images list intact
 const images = [
-    "./assets/Partnerships/DMZ.png",
-    "./assets/Partnerships/Estrelar.jpeg",
-    "./assets/Partnerships/iCube.png",
-    "./assets/Partnerships/Speedy_Golf.jpg",
-    "./assets/Partnerships/TMU.jpg",
-    "./assets/Partnerships/uoft.jpg",
-    "./assets/Partnerships/HockeyPylon.png",
-    "./assets/Partnerships/UNITYLogo.jpg",
-    "./assets/Partnerships/munchwell.png"
+  "/assets/Partnerships/DMZ.png",
+  "/assets/Partnerships/Estrelar.jpeg",
+  "/assets/Partnerships/iCube.png",
+  "/assets/Partnerships/Speedy_Golf.jpg",
+  "/assets/Partnerships/TMU.jpg",
+  "/assets/Partnerships/uoft.jpg",
+  "/assets/Partnerships/HockeyPylon.png",
+  "/assets/Partnerships/UNITYLogo.jpg",
+  "/assets/Partnerships/munchwell.png",
 ];
 
 const CarousselSlider = () => {
   return (
-    <div className="">
-      <h1 className="[font-family:'DM_Sans',sans-serif] text-[32px] md:text-[40px] font-bold text-center leading-[40px] md:leading-[48px] text-[#261f22] max-w-[642px] mx-auto box-border m-0 p-0 mb-10">Our Partners</h1>
-      <Swiper
-        spaceBetween={20} 
-        slidesPerView={"auto"} 
-        loop="true"
-        autoplay={{
-          delay: 0, 
-          disableOnInteraction: false, 
-        }}
-        speed={3000} x
-        freeMode={true} 
-      >
-        {images.map((image, index) => (
-          <SwiperSlide key={index} style={{ width: "auto" }}>
-            <img src={image} className="h-24" alt={`Image ${index + 1}`} />
-          </SwiperSlide>
-        ))}
-        {images.map((image, index) => (
-          <SwiperSlide key={index} style={{ width: "auto" }}>
-            <img src={image} className="h-24" alt={`Dup Image ${index + 1}`} />
-          </SwiperSlide>
-        ))}
-      </Swiper>
+    <div className="relative m-12 p-4">
+      {/* <h1 className="[font-family:'DM_Sans',sans-serif] text-[32px] md:text-[40px] font-bold text-center leading-[40px] md:leading-[48px] text-[#261f22] max-w-[642px] mx-auto mb-10">
+        Our Partners
+      </h1> */}
+      
+      {/* Left blur overlay */}
+      <div className="absolute left-0 top-0 w-20 h-full bg-gradient-to-r from-white to-transparent z-10 pointer-events-none"></div>
+      
+      {/* Right blur overlay */}
+      <div className="absolute right-0 top-0 w-20 h-full bg-gradient-to-l from-white to-transparent z-10 pointer-events-none"></div>
+
+        <Marquee
+          speed={50} 
+          gradient={false}
+          pauseOnHover={true}
+          pauseOnClick={false}
+          autoFill={true}
+        >
+          {images.map((src, i) => (
+            <div key={i} className="mx-12 flex items-center justify-center h-24 select-none">
+              <Image
+                src={src}
+                alt={`Partner ${i + 1}`}
+                width={125}
+                height={64}
+                priority={i < 3}
+                draggable={false}
+                className="h-16 w-auto object-contain opacity-70 grayscale hover:opacity-100 hover:grayscale-0 transition-all duration-500 ease-out hover:scale-110"
+              />
+            </div>
+          ))}
+        </Marquee>
     </div>
   );
 };
