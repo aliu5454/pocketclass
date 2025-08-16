@@ -237,15 +237,15 @@ export default function InstructorGuide() {
             <div className="absolute top-32 -right-40 w-64 h-64 bg-gradient-to-bl from-orange-150 via-peach-50 to-transparent opacity-25 rounded-full blur-xl"></div>
             <div className="relative mx-auto w-full max-w-7xl rounded-3xl border border-gray-300/70 shadow-2xl overflow-hidden bg-white">
               <Image
-                src="/assets/dashboard/dashboard_2.webp"
+                src="/assets/dashboard/clientPanel.png"
                 alt="PocketClass dashboard preview"
                 width={1280}
                 height={800}
                 sizes="(min-width: 1280px) 1280px, (min-width: 1024px) 1024px, 100vw"
                 className="w-full h-auto block"
                 priority
-                placeholder="blur"
-                blurDataURL="data:image/webp;base64,UklGRpoAAABXRUJQVlA4WAoAAAAQAAAADwAABwAAQUxQSDIAAAARL0AmbZurmr57yyIiqE8oiG0bejIYEQTgqiDA9vqnsUSI6H+oAERp2HZ65qP/VIAWAFZQOCBCAAAA8AEAnQEqEAAIAAVAfCWkAALp8sF8rgRgAP7o9FDvMCkMde9PK7euH5M1m6VWoDXf2FkP3BqV0ZYbO6NA/VFIAAAA"
+                // placeholder="blur"
+                // blurDataURL="data:image/webp;base64,UklGRpoAAABXRUJQVlA4WAoAAAAQAAAADwAABwAAQUxQSDIAAAARL0AmbZurmr57yyIiqE8oiG0bejIYEQTgqiDA9vqnsUSI6H+oAERp2HZ65qP/VIAWAFZQOCBCAAAA8AEAnQEqEAAIAAVAfCWkAALp8sF8rgRgAP7o9FDvMCkMde9PK7euH5M1m6VWoDXf2FkP3BqV0ZYbO6NA/VFIAAAA"
               />
             </div>
           </div>
