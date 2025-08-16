@@ -7,8 +7,8 @@ import Link from "next/link";
 function DynamicContentLayout() {
   // How PocketClass Works
   return (
-    <div className="flex justify-start items-stretch flex-col w-[100.00%] box-border mt-10">
-      <div className="flex flex-col md:flex-row justify-between items-start gap-[30px] grow-0 shrink-0 basis-auto">
+    <div className="flex justify-center items-stretch flex-col w-[100.00%] box-border mt-10">
+      <div className="flex flex-col md:flex-row justify-between items-center md:items-start gap-[30px] grow-0 shrink-0 basis-auto">
         <div className="max-w-[343px] grow shrink basis-[0.00] box-border text-center md:text-left">
           <img
             src="/assets/image_42111b0a.png"
