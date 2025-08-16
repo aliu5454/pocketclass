@@ -16,7 +16,7 @@ const images = [
 
 const CarousselSlider = () => {
   return (
-    <div className="relative m-12 p-4">
+    <div className="relative mx-2 my-12 md:m-12 p-4">
       {/* <h1 className="[font-family:'DM_Sans',sans-serif] text-[32px] md:text-[40px] font-bold text-center leading-[40px] md:leading-[48px] text-[#261f22] max-w-[642px] mx-auto mb-10">
         Our Partners
       </h1> */}
@@ -35,16 +35,17 @@ const CarousselSlider = () => {
           autoFill={true}
         >
           {images.map((src, i) => (
-            <div key={i} className="mx-12 flex items-center justify-center h-24 select-none">
-              <Image
-                src={src}
-                alt={`Partner ${i + 1}`}
-                width={125}
-                height={64}
-                priority={i < 3}
-                draggable={false}
-                className="h-16 w-auto object-contain opacity-70 grayscale hover:opacity-100 hover:grayscale-0 transition-all duration-500 ease-out hover:scale-110"
-              />
+            <div key={i} className="mx-2 md:mx-12 flex items-center justify-center h-24 select-none overflow-visible">
+              <div className="relative w-[125px] h-16 transition-all duration-500 ease-out hover:scale-110">
+                <Image
+                  src={src}
+                  alt={`Partner ${i + 1}`}
+                  layout="fill"
+                  priority={true}
+                  draggable={false}
+                  className="object-contain opacity-70 hover:opacity-100 transition-opacity duration-500 ease-out"
+                />
+              </div>
             </div>
           ))}
         </Marquee>
