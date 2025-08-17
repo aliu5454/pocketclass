@@ -54,7 +54,7 @@ function PricingSection({ classData }) {
                     1-on-1s
                   </p>
                   <p className="[font-family:'DM_Sans',sans-serif] text-base text-left text-[#707E92] m-0 p-0">
-                    {classData?.Price}
+                    ${classData?.Price}
                   </p>
                 </div>
               </div>
@@ -67,7 +67,7 @@ function PricingSection({ classData }) {
                     Group Class
                   </p>
                   <p className="[font-family:'DM_Sans',sans-serif] text-base text-left text-[#707E92] m-0 p-0">
-                    {classData?.groupPrice}
+                    ${classData?.groupPrice}
                   </p>
                 </div>
               </div>
@@ -84,14 +84,14 @@ function PricingSection({ classData }) {
                     </p>
                     <p className="[font-family:'DM_Sans',sans-serif] text-base text-nowrap text-left  text-[#707E92] m-0 p-0">
                       <p className="line-through inline">
-                        {pkg.Price}
+                        ${pkg.Price}
                       </p>{" "}
                       <p className="text-logo-red inline">
                         ({pkg.Discount}% off)
                       </p>
                     </p>
                     <p className="[font-family:'DM_Sans',sans-serif] text-base text-left text-[#707E92] m-0 p-0">
-                      {(pkg.Price - (pkg.Discount * pkg.Price) / 100)}
+                      ${pkg.Price - (pkg.Discount * pkg.Price) / 100}
                     </p>
                     </div>
                 </div>

@@ -35,9 +35,12 @@ export default function ClassLocationMap({ longitude, latitude, address }) {
       <div ref={mapContainer} className="w-full h-[200px] rounded-xl mb-4" />
       <button 
         onClick={handleAddressClick}
-        className="text-left text-gray-600 hover:text-logo-red transition-colors duration-200"
+        className="text-left text-gray-600 hover:text-logo-red transition-colors duration-200 w-full block"
+        title={address} // Show full address on hover
       >
-        📍 {address}
+        <span className="block truncate">
+          📍 {address}
+        </span>
       </button>
     </div>
   );

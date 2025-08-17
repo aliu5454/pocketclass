@@ -245,11 +245,10 @@ function FitnessClassDetailsSection({
               <button
                 key={key}
                 onClick={() => scrollToRef(ref, offset)}
-                className={`text-sm font-medium text-[#261f22] whitespace-nowrap relative pb-1 transition-all duration-300 ${
-                  activeSection === key
+                className={`text-sm font-medium text-[#261f22] whitespace-nowrap relative pb-1 transition-all duration-300 ${activeSection === key
                     ? "border-b-2 border-black"
                     : "border-b-2 border-transparent"
-                }`}
+                  }`}
               >
                 {label}
               </button>
@@ -287,7 +286,7 @@ function FitnessClassDetailsSection({
           </div>
         ) : (
           <div className="grow-0 shrink-0 basis-auto w-full max-w-[1312px]">
-            <p className="[font-family:'DM_Sans',sans-serif] text-3xl md:text-4xl lg:text-5xl font-bold lg:leading-[56px] text-[#261f22] m-0 p-0">
+            <p className="[font-family:'DM_Sans',sans-serif] text-3xl md:text-4xl lg:text-5xl font-bold lg:leading-[56px] text-[#261f22] m-0 pt-7 md:p-0">
               {classData?.Name}
             </p>
             <div className="flex justify-between items-center flex-row flex-wrap md:flex-nowrap gap-5 md:gap-8 mt-2 md:mt-4">
@@ -331,24 +330,23 @@ function FitnessClassDetailsSection({
                 <div className="flex justify-start items-center flex-row grow-0 shrink-0 basis-auto">
                   <SvgIcon3 className="w-5 h-5 text-[#7d797a] flex grow-0 shrink-0 basis-auto" />
                   <p className="[font-family:'DM_Sans',sans-serif] text-base font-bold text-[#7d797a] grow-0 shrink-0 basis-auto ml-[7px] m-0 p-0">
-                    ${classData?.groupPrice + "-" + classData?.Price || "0"} per
-                    hour
+                    ${classData?.groupPrice == classData?.Price
+                      ? (classData?.Price || "0")
+                      : (classData?.groupPrice + " - $" + classData?.Price || "0")} per hour
                   </p>
                 </div>
                 <div className="flex justify-start items-center flex-row grow-0 shrink-0 basis-auto">
                   {/* Boces to show if class in Online or In Person */}
                   <p
-                    className={`[font-family:'DM_Sans',sans-serif] border border-[#7d797a] flex flex-row items-center justify-center ${
-                      classData?.Mode === "Online"
+                    className={`[font-family:'DM_Sans',sans-serif] border border-[#7d797a] flex flex-row items-center justify-center ${classData?.Mode === "Online"
                         ? "text-green-500"
                         : "text-[#7d797a]"
-                    } px-3 rounded-lg text-sm text-[#7d797a] grow-0 py-[2px] shrink-0 basis-auto ml-[7px] m-0 p-0`}
+                      } px-3 rounded-lg text-sm text-[#7d797a] grow-0 py-[2px] shrink-0 basis-auto ml-[7px] m-0 p-0`}
                   >
                     {/* Man Icon for In_Person and a Dot for Online */}
                     <span
-                      className={`mr-2 ${
-                        classData?.Mode === "Online" ? "" : "hidden"
-                      }`}
+                      className={`mr-2 ${classData?.Mode === "Online" ? "" : "hidden"
+                        }`}
                     >
                       <img
                         className="w-4 h-4 flex grow-0 shrink-0 basis-auto object-contain"
@@ -357,9 +355,8 @@ function FitnessClassDetailsSection({
                       />
                     </span>
                     <span
-                      className={`mr-2 ${
-                        classData?.Mode === "Online" ? "hidden" : ""
-                      }`}
+                      className={`mr-2 ${classData?.Mode === "Online" ? "hidden" : ""
+                        }`}
                     >
                       <UserIcon className="w-4 h-4 flex grow-0 shrink-0 basis-auto" />
                     </span>
@@ -371,12 +368,26 @@ function FitnessClassDetailsSection({
                       First Class Free
                     </p>
                   )}
+                  {/* Heart icon for mobile - positioned right beside price and badges */}
+                  <div className="md:hidden ml-3">
+                    <div
+                      onClick={toggleFavorite}
+                      className="cursor-pointer flex w-8 h-8 rounded-full border border-gray-300 items-center justify-center hover:bg-gray-50 transition-colors"
+                    >
+                      {isFavorite ? (
+                        <AiFillHeart className="w-5 h-5 text-red-500" />
+                      ) : (
+                        <AiOutlineHeart className="w-5 h-5" />
+                      )}
+                    </div>
+                  </div>
                 </div>
               </div>
-              <div className="flex gap-4 items-center">
+              {/* Heart icon and edit button for desktop */}
+              <div className="hidden md:flex gap-4 items-center">
                 <div
                   onClick={toggleFavorite}
-                  className="cursor-pointer flex w-10 h-10 rounded-full border border-gray-300 flex items-center justify-center"
+                  className="cursor-pointer flex w-10 h-10 rounded-full border border-gray-300 items-center justify-center"
                 >
                   {isFavorite ? (
                     <AiFillHeart className="w-6 h-6 text-red-500" />
@@ -403,8 +414,21 @@ function FitnessClassDetailsSection({
           <Gallery coverImages={classData?.Images || []} />
         )}
       </div>
+      
+          {/* Mobile DynamicButtonSection - shown between gallery and instructor */}
+          {isMobile && (
+            <div className="w-full px-4 -mx-4">
+              <DynamicButtonSection
+                classId={classId}
+                classData={classData}
+                instructorId={classData?.classCreator}
+                below={true}
+              />
+            </div>
+          )}
+      
       <div ref={instructorRef}></div>
-      <div className="flex flex-col-reverse lg:flex-row gap-20 lg:gap-10 w-full max-w-[1312px] grow-0 shrink-0 basis-auto box-border mt-9">
+      <div className="flex flex-col-reverse lg:flex-row gap-20 lg:gap-10 w-full max-w-[1312px] grow-0 shrink-0 basis-auto box-border mt-2 md:mt-9">
         <div className="grow-0 shrink basis-auto xl:max-w-[calc(100vw)]">
           <div
             onClick={() => {
@@ -412,56 +436,71 @@ function FitnessClassDetailsSection({
                 `/instructor?class=${classId}&creator=${classCreatorData.userUid}`
               );
             }}
-            className="cursor-pointer flex justify-start items-start gap-2 flex-col md:flex-row w-[100.00%] box-border mt-8"
-          >
-            {!classCreatorData?.profileImage ? (
-              <div className="w-20 h-20 md:h-[122px] md:w-[124px] rounded-full bg-gray-200 animate-pulse" />
-            ) : (
-              <img
-                src={classCreatorData.profileImage}
-                className="cursor-pointer w-20 h-20 md:h-[122px] md:w-[124px] max-w-[initial] object-cover rounded-full block box-border shrink-0"
-              />
-            )}
-
-            <div className="grow-0 shrink basis-auto md:ml-[31.5px]">
-              {!classCreatorData ? (
-                <div className="animate-pulse">
-                  <div className="h-8 bg-gray-200 rounded w-48"></div>
-                </div>
+            className="cursor-pointer w-[100.00%] box-border mt-8"
+            >
+            {/* Instructor image, name and reviews section */}
+            <div className="flex justify-start items-start gap-2 flex-row">
+              {!classCreatorData?.profileImage ? (
+                <div className="w-20 h-20 md:h-[122px] md:w-[124px] rounded-full bg-gray-200 animate-pulse" />
               ) : (
-                <p className="[font-family:'DM_Sans',sans-serif] text-2xl font-bold text-[#261f22] m-0 p-0 cursor-pointer">
-                  {`${classCreatorData.firstName} ${classCreatorData.lastName}`}
-                </p>
+                <img
+                  src={classCreatorData.profileImage}
+                  className="cursor-pointer w-20 h-20 md:h-[122px] md:w-[124px] max-w-[initial] object-cover rounded-full block box-border shrink-0"
+                />
               )}
 
-              {!reviews.length ? (
-                <div className="flex justify-start items-center flex-row animate-pulse mt-[0.5rem]">
-                  <div className="w-5 h-5 bg-gray-200 rounded-full"></div>
-                  <div className="w-12 h-4 bg-gray-200 rounded ml-[3px]"></div>
-                  <div className="w-20 h-4 bg-gray-200 rounded ml-1.5"></div>
-                </div>
-              ) : (
-                <div className="flex justify-start items-center flex-row">
-                  <SvgIcon5 className="w-5 h-5 text-[#261f22] flex grow-0 shrink-0 basis-auto" />
-                  <p className="[font-family:'DM_Sans',sans-serif] text-base font-bold text-[#261f22] grow-0 shrink-0 basis-auto ml-[3px] m-0 p-0">
-                    {avgReview.toFixed(1)}
+              <div className="grow-0 shrink basis-auto ml-3 md:ml-[31.5px] flex-1">
+                {!classCreatorData ? (
+                  <div className="animate-pulse">
+                    <div className="h-8 bg-gray-200 rounded w-48"></div>
+                  </div>
+                ) : (
+                  <p className="[font-family:'DM_Sans',sans-serif] text-xl md:text-2xl font-bold text-[#261f22] m-0 p-0 cursor-pointer">
+                    {`${classCreatorData.firstName} ${classCreatorData.lastName}`}
                   </p>
-                  <p className="[font-family:'DM_Sans',sans-serif] text-base font-normal text-[#261f22] grow-0 shrink-0 basis-auto ml-1.5 m-0 p-0">
-                    ({currentClassReview.length} reviews)
-                  </p>
-                </div>
-              )}
+                )}
 
-              {!classData ? (
-                <div className="animate-pulse mt-[18px]">
-                  <div className="h-20 bg-gray-200 rounded w-full"></div>
-                </div>
-              ) : (
-                <p className="[font-family:'DM_Sans',sans-serif] whitespace-pre-wrap text-base font-medium text-left leading-6 text-[#261f22] w-[90.00%] box-border mt-[18px] m-0 p-0 md:ml-[.4rem]">
-                  {classCreatorData?.profileDescription}
-                </p>
-              )}
+                {!reviews.length ? (
+                  <div className="flex justify-start items-center flex-row animate-pulse mt-2 md:mt-[0.5rem]">
+                    <div className="w-5 h-5 bg-gray-200 rounded-full"></div>
+                    <div className="w-12 h-4 bg-gray-200 rounded ml-[3px]"></div>
+                    <div className="w-20 h-4 bg-gray-200 rounded ml-1.5"></div>
+                  </div>
+                ) : (
+                  <div className="flex justify-start items-center flex-row mt-1 md:mt-0">
+                    <SvgIcon5 className="w-5 h-5 text-[#261f22] flex grow-0 shrink-0 basis-auto" />
+                    <p className="[font-family:'DM_Sans',sans-serif] text-base font-bold text-[#261f22] grow-0 shrink-0 basis-auto ml-[3px] m-0 p-0">
+                      {avgReview.toFixed(1)}
+                    </p>
+                    <p className="[font-family:'DM_Sans',sans-serif] text-base font-normal text-[#261f22] grow-0 shrink-0 basis-auto ml-1.5 m-0 p-0">
+                      ({currentClassReview.length} reviews)
+                    </p>
+                  </div>
+                )}
+
+                {/* Description for desktop only */}
+                {!classData ? (
+                  <div className="animate-pulse mt-3 md:mt-[18px] hidden md:block">
+                    <div className="h-20 bg-gray-200 rounded w-full"></div>
+                  </div>
+                ) : (
+                  <p className="[font-family:'DM_Sans',sans-serif] whitespace-pre-wrap text-base font-medium text-left leading-6 text-[#261f22] w-[90.00%] box-border mt-[18px] m-0 p-0 ml-[.4rem] hidden md:block">
+                    {classCreatorData?.profileDescription}
+                  </p>
+                )}
+              </div>
             </div>
+
+            {/* Description for mobile only - appears below the entire instructor section */}
+            {!classData ? (
+              <div className="animate-pulse mt-4 md:hidden">
+                <div className="h-20 bg-gray-200 rounded w-full"></div>
+              </div>
+            ) : (
+              <p className="[font-family:'DM_Sans',sans-serif] whitespace-pre-wrap text-base font-medium text-left leading-6 text-[#261f22] w-full box-border mt-4 m-0 p-0 md:hidden">
+                {classCreatorData?.profileDescription}
+              </p>
+            )}
           </div>
           <div>
             <FitnessProfileSection
