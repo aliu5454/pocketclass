@@ -95,16 +95,15 @@ function DynamicButtonSection({
   };
 
   return (
-    <div className="sticky top-[120px] z-20 bg-white shadow-md rounded-2xl px-6 py-6">
+    <div className={`${below ? 'bg-transparent shadow-none px-0 py-4' : 'sticky top-[120px] z-20 bg-white shadow-md rounded-2xl px-6 py-6'}`}>
       {showLogin && <Login setGroupEmails={[]} setNumberOfGroupMembers={0} grouped={grouped} onClose={() => setShowLogin(false)} setShowBooking={setShowBooking} />}
       <div>
         <div className="flex justify-center items-stretch flex-col grow-0 shrink-0 basis-auto">
           <Button
-            style={below ? { margin: "auto", width: "60%" } : {}}
             onClick={() =>
               scrollToBookings()
             }
-            className="bg-[#261f22] [font-family:Inter,sans-serif] text-base font-semibold text-[white] w-full h-[45px] cursor-pointer block box-border grow-0 shrink-0 basis-auto rounded-[100px] border-[none] transition-all duration-300 ease-in-out hover:bg-[#3d3438] hover:shadow-lg hover:scale-105"
+            className={`bg-[#261f22] [font-family:Inter,sans-serif] text-base font-semibold text-[white] ${below ? 'w-full' : 'w-full'} h-[45px] cursor-pointer block box-border grow-0 shrink-0 basis-auto rounded-[100px] border-[none] transition-all duration-300 ease-in-out hover:bg-[#3d3438] hover:shadow-lg hover:scale-105`}
           >
             <span className="[font-family:Inter,sans-serif] text-base font-semibold">
               Booking schedule
@@ -112,15 +111,14 @@ function DynamicButtonSection({
           </Button>
           <Button
             id="message-button"
-            style={below ? { margin: "auto", width: "60%", marginTop: "1rem" } : {}}
             onClick={handleChatButton}
-            className="mb-[1rem] mt-2 bg-transparent [font-family:Inter,sans-serif] text-base font-semibold text-[#261f22] w-full h-[45px] cursor-pointer block box-border grow-0 shrink-0 basis-auto rounded-[100px] border-2 border-solid border-[#261f22] transition-all duration-300 ease-in-out hover:bg-[#f8f8f8] hover:shadow-md hover:scale-105"
+            className={`${below ? 'mb-0 mt-3' : 'mb-[1rem] mt-2'} bg-transparent [font-family:Inter,sans-serif] text-base font-semibold text-[#261f22] ${below ? 'w-full' : 'w-full'} h-[45px] cursor-pointer block box-border grow-0 shrink-0 basis-auto rounded-[100px] border-2 border-solid border-[#261f22] transition-all duration-300 ease-in-out hover:bg-[#f8f8f8] hover:shadow-md hover:scale-105`}
           >
             Send message
           </Button>
 
           {classData && (
-            <div className="mb-8">
+            <div className="mb-8 hidden md:block">
               {/* <h3 className="text-lg font-bold mb-4">Location</h3> */}
               <ClassLocationMap
                 longitude={classData.longitude}

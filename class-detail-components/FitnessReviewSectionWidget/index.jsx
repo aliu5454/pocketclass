@@ -16,11 +16,11 @@ function FitnessReviewSectionWidget({
         className="xl:hidden flex mb-12 bg-[white] box-border justify-start items-stretch flex-col w-full lg:max-w-[300px] rounded-xl md:rounded-2xl lg:rounded-3x xl:fixed xl:right-[2rem]"
         style={{ zIndex: 1 }}
       >
-        <DynamicButtonSection
+        {/* <DynamicButtonSection
           classId={classId}
           classData={classData}
           instructorId={classData?.classCreator}
-        />
+        /> */}
       </div>
       {classData?.longitude && classData?.latitude && (
         <ClassLocationMap
