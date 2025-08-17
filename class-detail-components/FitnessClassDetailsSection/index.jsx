@@ -330,9 +330,9 @@ function FitnessClassDetailsSection({
                 <div className="flex justify-start items-center flex-row grow-0 shrink-0 basis-auto">
                   <SvgIcon3 className="w-5 h-5 text-[#7d797a] flex grow-0 shrink-0 basis-auto" />
                   <p className="[font-family:'DM_Sans',sans-serif] text-base font-bold text-[#7d797a] grow-0 shrink-0 basis-auto ml-[7px] m-0 p-0">
-                    ${classData?.groupPrice === classData?.Price
+                    ${classData?.groupPrice == classData?.Price
                       ? (classData?.Price || "0")
-                      : (classData?.groupPrice + "-" + classData?.Price || "0")} per hour
+                      : (classData?.groupPrice + " - $" + classData?.Price || "0")} per hour
                   </p>
                 </div>
                 <div className="flex justify-start items-center flex-row grow-0 shrink-0 basis-auto">
