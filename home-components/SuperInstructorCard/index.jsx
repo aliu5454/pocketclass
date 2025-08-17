@@ -65,6 +65,7 @@ function SuperInstructorCard({
           src={imageUrl}
           alt="Instructor Background"
           loading="lazy"
+          priority="true"
           className="w-full h-full object-cover"
         />
 
