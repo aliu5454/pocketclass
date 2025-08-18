@@ -26,7 +26,8 @@ function RecommendedClassesSection({
   const [loading, setLoading] = useState(true);
   const [user] = useAuthState(auth);
   const scrollRef = useRef(null);
-  const [displayRec, setDisplayRec] = useState(true);
+  // Track whether user has any history (viewed or booked) to decide label & scoring
+  const [hadHistory, setHadHistory] = useState(false);
 
   useEffect(() => {
     const unsubscribe = onSnapshot(collection(db, "Reviews"), (snapshot) => {
@@ -56,9 +57,8 @@ function RecommendedClassesSection({
         }
 
         const allViewed = [...localViewed, ...firestoreViewed];
-        if (!allViewed.length && !booked.length) {
-          setDisplayRec(false);
-          return;
+        if (allViewed.length || booked.length) {
+          setHadHistory(true);
         }
 
         const viewedIds = new Set(allViewed.map((v) => typeof v === "string" ? v : v.id));
@@ -102,10 +102,11 @@ function RecommendedClassesSection({
 
         const allBookings = allBookingsSnap.docs.map((doc) => doc.data());
 
-        const recommendations = await Promise.all(
+    const recommendations = await Promise.all(
           allClassSnap.docs.map(async (doc) => {
             const data = { id: doc.id, ...doc.data() };
-            if (viewedIds.has(data.id) || bookedIds.has(data.id)) return null;
+      // If we have history, avoid already viewed/booked; else include all for popular list
+      if (hadHistory && (viewedIds.has(data.id) || bookedIds.has(data.id))) return null;
 
             const instructorDoc = await getDoc(firestoreDoc(db, "Users", data.classCreator));
             const instructor = instructorDoc.exists() ? instructorDoc.data() : {};
@@ -196,13 +197,19 @@ function RecommendedClassesSection({
               else locationScore = 2;
             }
 
-            data.recommendationScore = (
-              0.3 * bookingSimilarity +
-              0.2 * viewingBehavior +
-              0.2 * contentMatch +
-              0.15 * quality +
-              0.15 * locationScore
-            );
+            if (hadHistory) {
+              data.recommendationScore = (
+                0.3 * bookingSimilarity +
+                0.2 * viewingBehavior +
+                0.2 * contentMatch +
+                0.15 * quality +
+                0.15 * locationScore
+              );
+            } else {
+              // Popular score when no history: emphasize quality, rating, engagement
+              const engagement = Math.min(data.reviewCount * 0.5, 10);
+              data.recommendationScore = quality * 0.5 + data.averageRating * 0.4 + engagement * 0.1;
+            }
 
             return data;
           })
@@ -244,7 +251,7 @@ function RecommendedClassesSection({
     scrollRef.current?.scrollBy({ left: 300, behavior: "smooth" });
   }, []);
 
-  if (!displayRec) return null;
+  // Always show section; header adapts based on hadHistory
 
   return (
     <div className={`flex flex-col w-full py-8 ${currentClassData ? "px-0" : "section-spacing"}`}>
