@@ -50,6 +50,7 @@
     "jspdf-invoice-template": "^1.4.3",
     "langchain": "^0.3.30",
     "leaflet-geosearch": "^4.0.0",
+    "lucide-react": "^0.539.0",
     "mapbox-gl": "^2.15.0",
     "micro": "^10.0.1",
     "moment": "^2.29.4",
