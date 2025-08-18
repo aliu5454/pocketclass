@@ -4,7 +4,7 @@ import { Button } from "@mui/base";
 
 function ClassroomFooter({ isHome = true }) {
   return (
-    <div className="flex justify-start items-stretch flex-col pt-20 pb-4 section-spacing">
+    <div className="flex justify-start items-stretch flex-col pt-20 pb-4 ">
       {isHome && <ClassroomLayout />}
       <div className="flex justify-between items-center flex-col md:flex-row gap-10 md:gap-2 w-full md:w-[80%] self-center mt-24 [font-family:Inter,sans-serif] text-base font-semibold text-[#261f22] grow-0 shrink-0 basis-auto m-0 p-0">
         <div className="flex justify-start items-center flex-col md:flex-row gap-1 md:gap-[30px]">

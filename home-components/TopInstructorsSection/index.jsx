@@ -70,8 +70,7 @@ function TopClassesSection({
         setRawClasses(classesData);
       } catch (error) {
         console.error("Error fetching classes:", error);
-      } finally {
-        setLoading(false);
+        setLoading(false); // Set loading to false even on error
       }
     };
 
@@ -167,6 +166,9 @@ function TopClassesSection({
         setClassesWithInstructors(results);
       } catch (err) {
         console.error("Error in fetchInstructors:", err);
+      } finally {
+        // Only set loading to false after instructor data is ready
+        setLoading(false);
       }
     };
 
