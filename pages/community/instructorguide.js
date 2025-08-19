@@ -192,50 +192,85 @@ export default function InstructorGuide() {
         <link rel="icon" href="/pc_favicon.ico" />
       </Head>
       {/* Hero Section */}
-      <section className="relative overflow-hidden py-14 sm:py-20 bg-gradient-to-b from-gray-50 via-white to-white">
+      <motion.section 
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.8 }}
+        className="relative overflow-hidden py-14 sm:py-20 bg-gradient-to-b from-gray-50 via-white to-white"
+      >
         {/* subtle grid/shine background */}
         <div className="pointer-events-none absolute inset-0 [background:radial-gradient(60%_40%_at_10%_10%,rgba(230,63,43,0.08),transparent_60%),radial-gradient(40%_30%_at_90%_20%,rgba(59,130,246,0.08),transparent_60%)]" />
 
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           {/* Top content */}
           <div className="grid lg:grid-cols-12 gap-8 lg:gap-12 items-start max-w-6xl mx-auto">
-            <div className="lg:col-span-7">
+            <motion.div 
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.8, delay: 0.2 }}
+              className="lg:col-span-7"
+            >
               <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-gray-900 leading-tight max-w-3xl">
                 Grow your <span className="text-logo-red">classes</span>. Keep your <span className="text-logo-red">time</span>.
               </h1>
-            </div>
-            <div className="lg:col-span-5 lg:ml-auto max-w-md">
+            </motion.div>
+            <motion.div 
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.8, delay: 0.4 }}
+              className="lg:col-span-5 lg:ml-auto max-w-md"
+            >
               <p className="text-lg sm:text-xl text-gray-600 leading-relaxed">
                 From real-time bookings to automated messaging and secure payments, PocketClass handles the admin so you can focus on teaching.
               </p>
               <div className="mt-6 flex flex-col sm:flex-row gap-3 sm:gap-4">
                 <Link href="/instructor-onboarding">
-                  <button className="bg-logo-red text-white px-6 py-3 sm:py-3.5 rounded-xl text-base sm:text-lg font-semibold hover:bg-red-600 transition-all shadow-lg hover:shadow-xl">
+                  <motion.button 
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    className="bg-logo-red text-white px-6 py-3 sm:py-3.5 rounded-xl text-base sm:text-lg font-semibold hover:bg-red-600 transition-all shadow-lg hover:shadow-xl"
+                  >
                     Try it for free
-                  </button>
+                  </motion.button>
                 </Link>
-                <button
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
                   onClick={scrollToFeatures}
                   className="bg-white text-gray-800 px-6 py-3 sm:py-3.5 rounded-xl text-base sm:text-lg font-semibold border border-gray-200 hover:border-gray-300 hover:bg-gray-50 transition-all"
                 >
                   See how it works
-                </button>
+                </motion.button>
               </div>
-              <div className="mt-6 flex flex-wrap items-center gap-x-6 gap-y-2 text-sm text-gray-500">
+              <motion.div 
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.8, delay: 0.6 }}
+                className="mt-6 flex flex-wrap items-center gap-x-6 gap-y-2 text-sm text-gray-500"
+              >
                 <span className="flex items-center gap-2"><svg className="w-4 h-4 text-green-500" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" /></svg>Free to start</span>
                 <span className="flex items-center gap-2"><svg className="w-4 h-4 text-green-500" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" /></svg>Setup in 10 minutes</span>
                 <span className="flex items-center gap-2"><svg className="w-4 h-4 text-green-500" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" /></svg>No monthly fees</span>
-              </div>
-            </div>
+              </motion.div>
+            </motion.div>
           </div>
 
           {/* Dashboard preview */}
-          <div className="mt-10 sm:mt-14 relative">
+          <motion.div 
+            initial={{ opacity: 0, y: 50 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 1, delay: 0.8 }}
+            className="mt-10 sm:mt-14 relative"
+          >
             {/* Organic orange gradient backgrounds */}
             <div className="absolute -top-20 -left-32 w-96 h-96 bg-gradient-to-br from-orange-200 via-orange-100 to-transparent opacity-40 rounded-full blur-3xl"></div>
             <div className="absolute -bottom-16 -right-24 w-80 h-80 bg-gradient-to-tl from-amber-200 via-orange-50 to-transparent opacity-30 rounded-full blur-2xl"></div>
             <div className="absolute top-32 -right-40 w-64 h-64 bg-gradient-to-bl from-orange-150 via-peach-50 to-transparent opacity-25 rounded-full blur-xl"></div>
-            <div className="relative mx-auto w-full max-w-7xl rounded-3xl border border-gray-300/70 shadow-2xl overflow-hidden bg-white">
+            <motion.div 
+              whileHover={{ scale: 1.02 }}
+              transition={{ duration: 0.3 }}
+              className="relative mx-auto w-full max-w-7xl rounded-3xl border border-gray-300/70 shadow-2xl overflow-hidden bg-white"
+            >
               <Image
                 src="/assets/dashboard/dashboard_2.webp"
                 alt="PocketClass dashboard preview"
@@ -247,18 +282,35 @@ export default function InstructorGuide() {
                 placeholder="blur"
                 blurDataURL="data:image/webp;base64,UklGRpoAAABXRUJQVlA4WAoAAAAQAAAADwAABwAAQUxQSDIAAAARL0AmbZurmr57yyIiqE8oiG0bejIYEQTgqiDA9vqnsUSI6H+oAERp2HZ65qP/VIAWAFZQOCBCAAAA8AEAnQEqEAAIAAVAfCWkAALp8sF8rgRgAP7o9FDvMCkMde9PK7euH5M1m6VWoDXf2FkP3BqV0ZYbO6NA/VFIAAAA"
               />
-            </div>
-          </div>
+            </motion.div>
+          </motion.div>
         </div>
-      </section>
+      </motion.section>
 
 
       {/* Feature Highlights Section */}
-      <section id="features-section" className="py-7 bg-gray-50">
+      <motion.section 
+        initial={{ opacity: 0 }}
+        whileInView={{ opacity: 1 }}
+        viewport={{ once: true }}
+        transition={{ duration: 0.8 }}
+        id="features-section" 
+        className="py-7 bg-gray-50"
+      >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           {/* Header */}
-          <div className="text-center mb-16">
-            <div className="inline-flex items-center justify-center w-24 h-24 rounded-full bg-white shadow-lg m-6 overflow-hidden">
+          <motion.div 
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.8 }}
+            className="text-center mb-16"
+          >
+            <motion.div 
+              whileHover={{ scale: 1.1, rotate: 5 }}
+              transition={{ duration: 0.3 }}
+              className="inline-flex items-center justify-center w-24 h-24 rounded-full bg-white shadow-lg m-6 overflow-hidden"
+            >
               <Image
                 src="/Teacher_icon_transparent_bg.svg"
                 alt="Illustration of a Teacher"
@@ -267,14 +319,14 @@ export default function InstructorGuide() {
                 className="object-contain"
                 loading="lazy"
               />
-            </div>
+            </motion.div>
             <h2 className="text-4xl lg:text-5xl font-bold text-gray-900 mb-6">
               Native AI-powered teaching
             </h2>
             <p className="text-xl text-gray-600 max-w-4xl mx-auto">
               Work with a co-pilot you can trust to manage your classes and interact with your students.
             </p>
-          </div>
+          </motion.div>
 
           {/* Features - Desktop Version */}
           <div className="hidden lg:block space-y-20">
@@ -351,7 +403,261 @@ export default function InstructorGuide() {
             </div>
           </div>
         </div>
-      </section>
+      </motion.section>
+
+      {/* Pricing Section */}
+      <motion.section 
+        initial={{ opacity: 0 }}
+        whileInView={{ opacity: 1 }}
+        viewport={{ once: true }}
+        transition={{ duration: 0.8 }}
+        className="py-20 sm:py-24 bg-gradient-to-br from-red-50/30 via-white to-red-50/20"
+      >
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+          {/* Header */}
+          <motion.div 
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.8 }}
+            className="text-center mb-16"
+          >
+            <motion.div 
+              whileHover={{ scale: 1.1, rotate: 5 }}
+              transition={{ duration: 0.3 }}
+              className="inline-flex items-center justify-center w-24 h-24 rounded-full bg-white shadow-lg m-6 overflow-hidden"
+            >
+              <Image
+                src="/PaymentIcon.svg"
+                alt="Payment Icon"
+                width={70}
+                height={70}
+                className="object-contain"
+                loading="lazy"
+              />
+            </motion.div>
+            <h2 className="text-4xl lg:text-5xl font-bold text-gray-900 mb-6 tracking-tight">
+              Choose your plan
+            </h2>
+            <p className="text-xl text-gray-600 max-w-2xl mx-auto leading-relaxed">
+              Start teaching for free and unlock powerful features as you grow
+            </p>
+          </motion.div>
+
+          {/* Pricing Cards */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 max-w-4xl mx-auto">
+            {/* Free Plan */}
+            <motion.div 
+              initial={{ opacity: 0, y: 30 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.8, delay: 0.2 }}
+              className="group relative"
+            >
+              <div className="absolute inset-0 bg-gradient-to-r from-gray-100 to-gray-200 rounded-3xl blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+              <div className="relative bg-white rounded-3xl p-8 border border-gray-200/60 shadow-sm hover:shadow-xl hover:shadow-gray-200/50 transition-all duration-500 hover:-translate-y-1">
+                <div className="text-center mb-8">
+                  <div className="w-16 h-16 bg-gradient-to-br from-gray-100 to-gray-200 rounded-2xl flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform duration-300">
+                    <svg className="w-8 h-8 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                    </svg>
+                  </div>
+                  <h3 className="text-2xl font-bold text-gray-900 mb-2">Free</h3>
+                  <p className="text-gray-500 text-sm mb-4">Launch your teaching journey with zero upfront cost</p>
+                  <div className="mb-6">
+                    <span className="text-5xl font-bold text-gray-900">$0</span>
+                    <span className="text-gray-500 text-lg">/month</span>
+                  </div>
+                </div>
+
+                <div className="space-y-3 mb-6">
+                  <div className="flex items-center space-x-3">
+                    <svg className="w-4 h-4 text-green-500 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                    </svg>
+                    <span className="text-gray-700 text-sm">Create and manage unlimited classes with ease</span>
+                  </div>
+                  <div className="flex items-center space-x-3">
+                    <svg className="w-4 h-4 text-green-500 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                    </svg>
+                    <span className="text-gray-700 text-sm">Keep track of every student with built-in client management</span>
+                  </div>
+                  <div className="flex items-center space-x-3">
+                    <svg className="w-4 h-4 text-green-500 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                    </svg>
+                    <span className="text-gray-700 text-sm">Jot down student progress with our smart note-taking features</span>
+                  </div>
+                  <div className="flex items-center space-x-3">
+                    <svg className="w-4 h-4 text-green-500 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                    </svg>
+                    <span className="text-gray-700 text-sm">Stay organized with your schedule and bookings all in one place</span>
+                  </div>
+                  <div className="flex items-center space-x-3">
+                    <svg className="w-4 h-4 text-green-500 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                    </svg>
+                    <span className="text-gray-700 text-sm">Communicate directly with your students through in-app messaging</span>
+                  </div>
+                  <div className="flex items-center space-x-3">
+                    <svg className="w-4 h-4 text-green-500 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                    </svg>
+                    <span className="text-gray-700 text-sm">Securely manage payments with your PocketClass wallet</span>
+                  </div>
+                  <div className="flex items-center space-x-3">
+                    <svg className="w-4 h-4 text-green-500 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                    </svg>
+                    <span className="text-gray-700 text-sm">Send up to 2 automated messages (like reminders or follow-ups)</span>
+                  </div>
+                  <div className="flex items-center space-x-3">
+                    <svg className="w-4 h-4 text-green-500 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                    </svg>
+                    <span className="text-gray-700 text-sm">Create and sell class packages to keep students coming back</span>
+                  </div>
+                </div>
+
+                <div className="mb-6 p-4 bg-gray-50 rounded-xl">
+                  <p className="text-sm text-gray-600">
+                    <span className="font-medium text-gray-700">👉 Best for:</span> New instructors who want to test the waters, save time on admin, and start booking students right away.
+                  </p>
+                </div>
+
+                <Link href="/instructor-onboarding">
+                  <button className="w-full bg-gray-900 text-white py-3 px-6 rounded-2xl font-semibold hover:bg-gray-800 transition-all duration-300 hover:scale-[1.02] active:scale-[0.98] shadow-lg hover:shadow-xl">
+                    Start Free Today
+                  </button>
+                </Link>
+              </div>
+            </motion.div>
+
+            {/* Pro Plan */}
+            <div className="group relative">
+              <div className="absolute inset-0 bg-gradient-to-r from-red-100 to-orange-200 rounded-3xl blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+              <div className="relative bg-gradient-to-br from-white to-red-50/30 rounded-3xl p-8 border-2 border-red-200/60 shadow-lg hover:shadow-2xl hover:shadow-red-200/30 transition-all duration-500 hover:-translate-y-1">
+                {/* Popular Badge */}
+                <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
+                  <div className="bg-gradient-to-r from-logo-red to-red-600 text-white px-4 py-1.5 rounded-full text-sm font-semibold shadow-lg">
+                    Most Popular
+                  </div>
+                </div>
+                
+                <div className="text-center mb-8">
+                  <div className="w-16 h-16 bg-gradient-to-br from-logo-red to-red-600 rounded-2xl flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform duration-300">
+                    <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
+                    </svg>
+                  </div>
+                  <h3 className="text-2xl font-bold text-gray-900 mb-2">Premium</h3>
+                  <p className="text-gray-500 text-sm mb-4">Unlock advanced automation, analytics, and client engagement</p>
+                  <div className="mb-6">
+                    <span className="text-5xl font-bold text-gray-900">$5</span>
+                    <span className="text-gray-500 text-lg">/month</span>
+                  </div>
+                </div>
+
+                <div className="space-y-3 mb-6">
+                  <div className="flex items-center space-x-3">
+                    <svg className="w-4 h-4 text-logo-red flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                    </svg>
+                    <span className="text-gray-700 text-sm">Everything in Free — plus much more</span>
+                  </div>
+                  <div className="flex items-center space-x-3">
+                    <svg className="w-4 h-4 text-logo-red flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                    </svg>
+                    <span className="text-gray-700 text-sm">Unlimited customized message automations (never forget a reminder again)</span>
+                  </div>
+                  <div className="flex items-center space-x-3">
+                    <svg className="w-4 h-4 text-logo-red flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                    </svg>
+                    <span className="text-gray-700 text-sm">Run customer retention campaigns to keep students booking regularly</span>
+                  </div>
+                  <div className="flex items-center space-x-3">
+                    <svg className="w-4 h-4 text-logo-red flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                    </svg>
+                    <span className="text-gray-700 text-sm">Create and share exclusive vouchers to attract and reward students</span>
+                  </div>
+                  <div className="flex items-center space-x-3">
+                    <svg className="w-4 h-4 text-logo-red flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                    </svg>
+                    <span className="text-gray-700 text-sm">Send automatic birthday vouchers — let your students feel valued</span>
+                  </div>
+                  <div className="flex items-center space-x-3">
+                    <svg className="w-4 h-4 text-logo-red flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                    </svg>
+                    <span className="text-gray-700 text-sm">Track your growth with email & message analytics</span>
+                  </div>
+                  <div className="flex items-center space-x-3">
+                    <svg className="w-4 h-4 text-logo-red flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                    </svg>
+                    <span className="text-gray-700 text-sm">Connect seamlessly to Google Calendar & Mindbody to sync your schedule everywhere</span>
+                  </div>
+                </div>
+
+                <div className="mb-6 p-4 bg-gray-50 rounded-xl">
+                  <p className="text-sm text-gray-600">
+                    <span className="font-medium text-gray-700">👉 Best for:</span> Instructors ready to scale their business, fill more spots, and turn one-time students into loyal clients.
+                  </p>
+                </div>
+
+                <Link href="/instructor-onboarding">
+                  <button className="w-full bg-gradient-to-r from-logo-red to-red-600 text-white py-3 px-6 rounded-2xl font-semibold hover:from-red-600 hover:to-red-700 transition-all duration-300 hover:scale-[1.02] active:scale-[0.98] shadow-lg hover:shadow-xl shadow-red-500/25">
+                      Try Premium Free for 30 Days
+                  </button>
+                </Link>
+              </div>
+            </div>
+          </div>
+
+          {/* Elegant Footer */}
+          <div className="text-center mt-16">
+            {/* Desktop Layout */}
+            <div className="hidden md:inline-flex items-center justify-center space-x-8 text-sm text-gray-500">
+              <div className="flex items-center space-x-2">
+                <div className="w-1.5 h-1.5 bg-logo-red rounded-full"></div>
+                <span>No setup fees</span>
+              </div>
+              <div className="w-px h-4 bg-gray-300"></div>
+              <div className="flex items-center space-x-2">
+                <div className="w-1.5 h-1.5 bg-logo-red rounded-full"></div>
+                <span>Cancel anytime</span>
+              </div>
+              <div className="w-px h-4 bg-gray-300"></div>
+              <div className="flex items-center space-x-2">
+                <div className="w-1.5 h-1.5 bg-logo-red rounded-full"></div>
+                <span>Start earning immediately</span>
+              </div>
+            </div>
+            
+            {/* Mobile Layout */}
+            <div className="md:hidden space-y-3">
+              <div className="flex items-center justify-center space-x-2">
+                <div className="w-1.5 h-1.5 bg-logo-red rounded-full"></div>
+                <span className="text-sm text-gray-500">No setup fees</span>
+              </div>
+              <div className="flex items-center justify-center space-x-2">
+                <div className="w-1.5 h-1.5 bg-logo-red rounded-full"></div>
+                <span className="text-sm text-gray-500">Cancel anytime</span>
+              </div>
+              <div className="flex items-center justify-center space-x-2">
+                <div className="w-1.5 h-1.5 bg-logo-red rounded-full"></div>
+                <span className="text-sm text-gray-500">Start earning immediately</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </motion.section>
 
       {/* Verification Process Section */}
       <section className="py-16 sm:py-20 lg:py-24 bg-gray-50">
@@ -598,7 +904,7 @@ export default function InstructorGuide() {
               const targetWidth = isActive ? IMAGE_W + PANEL_W + INNER_GAP : IMAGE_W;
 
               return (
-                <motion.div
+                <div
                   key={t.id}
                   onMouseOver={() => setHoveredIndex(idx)}
                   onClick={() => setHoveredIndex(idx)}
@@ -642,7 +948,7 @@ export default function InstructorGuide() {
                       </div>
                     </div>
                   </div>
-                </motion.div>
+                </div>
               );
             })}
           </div>
