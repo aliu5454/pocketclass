@@ -40,7 +40,7 @@
     "dayjs": "^1.11.13",
     "firebase": "^9.10.0",
     "formik": "^2.4.6",
-    "framer-motion": "^12.23.12",
+    "framer-motion": "^9.1.7",
     "fuse.js": "^7.1.0",
     "geolib": "^3.3.3",
     "googleapis": "^144.0.0",
