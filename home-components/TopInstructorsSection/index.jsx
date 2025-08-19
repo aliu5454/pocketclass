@@ -253,19 +253,19 @@ function TopClassesSection({
             ? Array(4)
                 .fill(null)
                 .map((_, index) => (
-                  <Reveal key={index}>
+                  <Reveal key={index} delay={index * 120}>
                     <InstructorSection loading={true} />
-                  </Reveal>
+                  </Reveal> 
                 ))
             : displayedClasses.map((classItem, i) => (
-                <Reveal key={classItem.id} delay={100 + i * 90}>
+                // <Reveal key={classItem.id} delay={100 + i * 90}>
                   <InstructorSection
                     classId={classItem.id}
                     instructor={classItem}
                     reviews={reviews}
                     loading={false}
                   />
-                </Reveal>
+                // </Reveal>
               ))}
         </div>
       </div>
