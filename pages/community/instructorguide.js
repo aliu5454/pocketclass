@@ -445,7 +445,7 @@ export default function InstructorGuide() {
           </motion.div>
 
           {/* Pricing Cards */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 max-w-4xl mx-auto">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 max-w-4xl mx-auto items-stretch">
             {/* Free Plan */}
             <motion.div 
               initial={{ opacity: 0, y: 30 }}
@@ -455,8 +455,8 @@ export default function InstructorGuide() {
               className="group relative"
             >
               <div className="absolute inset-0 bg-gradient-to-r from-gray-100 to-gray-200 rounded-3xl blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-              <div className="relative bg-white rounded-3xl p-8 border border-gray-200/60 shadow-sm hover:shadow-xl hover:shadow-gray-200/50 transition-all duration-500 hover:-translate-y-1">
-                <div className="text-center mb-8">
+              <div className="relative bg-white rounded-3xl p-8 border border-gray-200/60 shadow-sm hover:shadow-xl hover:shadow-gray-200/50 transition-all duration-500 hover:-translate-y-1 h-full flex flex-col">
+                <div className="text-center mb-8 flex-shrink-0">
                   <div className="w-16 h-16 bg-gradient-to-br from-gray-100 to-gray-200 rounded-2xl flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform duration-300">
                     <svg className="w-8 h-8 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
@@ -469,8 +469,7 @@ export default function InstructorGuide() {
                     <span className="text-gray-500 text-lg">/month</span>
                   </div>
                 </div>
-
-                <div className="space-y-3 mb-6">
+                <div className="space-y-3 mb-6 flex-grow">
                   <div className="flex items-center space-x-3">
                     <svg className="w-4 h-4 text-green-500 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                       <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
@@ -521,24 +520,25 @@ export default function InstructorGuide() {
                   </div>
                 </div>
 
-                <div className="mb-6 p-4 bg-gray-50 rounded-xl">
+                <div className="mb-6 p-4 bg-gray-50 rounded-xl flex-shrink-0">
                   <p className="text-sm text-gray-600">
                     <span className="font-medium text-gray-700">👉 Best for:</span> New instructors who want to test the waters, save time on admin, and start booking students right away.
                   </p>
                 </div>
-
-                <Link href="/instructor-onboarding">
-                  <button className="w-full bg-gray-900 text-white py-3 px-6 rounded-2xl font-semibold hover:bg-gray-800 transition-all duration-300 hover:scale-[1.02] active:scale-[0.98] shadow-lg hover:shadow-xl">
-                    Start Free Today
-                  </button>
-                </Link>
+                <div className="mt-auto">
+                  <Link href="/instructor-onboarding">
+                    <button className="w-full bg-gray-900 text-white py-3 px-6 rounded-2xl font-semibold hover:bg-gray-800 transition-all duration-300 hover:scale-[1.02] active:scale-[0.98] shadow-lg hover:shadow-xl">
+                      Start Free Today
+                    </button>
+                  </Link>
+                </div>
               </div>
             </motion.div>
 
             {/* Pro Plan */}
             <div className="group relative">
               <div className="absolute inset-0 bg-gradient-to-r from-red-100 to-orange-200 rounded-3xl blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-              <div className="relative bg-gradient-to-br from-white to-red-50/30 rounded-3xl p-8 border-2 border-red-200/60 shadow-lg hover:shadow-2xl hover:shadow-red-200/30 transition-all duration-500 hover:-translate-y-1">
+              <div className="relative bg-gradient-to-br from-white to-red-50/30 rounded-3xl p-8 border-2 border-red-200/60 shadow-lg hover:shadow-2xl hover:shadow-red-200/30 transition-all duration-500 hover:-translate-y-1 h-full flex flex-col">
                 {/* Popular Badge */}
                 <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
                   <div className="bg-gradient-to-r from-logo-red to-red-600 text-white px-4 py-1.5 rounded-full text-sm font-semibold shadow-lg">
@@ -546,7 +546,7 @@ export default function InstructorGuide() {
                   </div>
                 </div>
                 
-                <div className="text-center mb-8">
+                <div className="text-center mb-8 flex-shrink-0">
                   <div className="w-16 h-16 bg-gradient-to-br from-logo-red to-red-600 rounded-2xl flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform duration-300">
                     <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
@@ -559,8 +559,7 @@ export default function InstructorGuide() {
                     <span className="text-gray-500 text-lg">/month</span>
                   </div>
                 </div>
-
-                <div className="space-y-3 mb-6">
+                <div className="space-y-3 mb-6 flex-grow">
                   <div className="flex items-center space-x-3">
                     <svg className="w-4 h-4 text-logo-red flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                       <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
@@ -605,17 +604,18 @@ export default function InstructorGuide() {
                   </div>
                 </div>
 
-                <div className="mb-6 p-4 bg-gray-50 rounded-xl">
+                <div className="mb-6 p-4 bg-gray-50 rounded-xl flex-shrink-0">
                   <p className="text-sm text-gray-600">
                     <span className="font-medium text-gray-700">👉 Best for:</span> Instructors ready to scale their business, fill more spots, and turn one-time students into loyal clients.
                   </p>
                 </div>
-
-                <Link href="/instructor-onboarding">
-                  <button className="w-full bg-gradient-to-r from-logo-red to-red-600 text-white py-3 px-6 rounded-2xl font-semibold hover:from-red-600 hover:to-red-700 transition-all duration-300 hover:scale-[1.02] active:scale-[0.98] shadow-lg hover:shadow-xl shadow-red-500/25">
-                      Try Premium Free for 30 Days
-                  </button>
-                </Link>
+                <div className="mt-auto">
+                  <Link href="/instructor-onboarding">
+                    <button className="w-full bg-gradient-to-r from-logo-red to-red-600 text-white py-3 px-6 rounded-2xl font-semibold hover:from-red-600 hover:to-red-700 transition-all duration-300 hover:scale-[1.02] active:scale-[0.98] shadow-lg hover:shadow-xl shadow-red-500/25">
+                        Try Premium Free for 30 Days
+                    </button>
+                  </Link>
+                </div>
               </div>
             </div>
           </div>
