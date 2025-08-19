@@ -2,6 +2,7 @@
 
 import dynamic from "next/dynamic";
 import React, { useState, useEffect, useMemo, memo } from "react";
+import { Reveal, RevealGroup } from "../Reveal";
 
 const Marquee = dynamic(() => import("react-fast-marquee"), { ssr: false });
 
@@ -327,12 +328,14 @@ export default function InstructorFinderView() {
       </div>
 
       <div className="text-center max-w-2xl mx-auto mb-12 px-4 md:px-0 relative z-10">
-        <h2 className="text-2xl md:text-4xl font-extrabold tracking-tight text-[#261f22] drop-shadow-sm">
-          Find the right instructor for you
-        </h2>
-        <p className="mt-4 text-base md:text-lg font-medium text-slate-700">
-          With over 30 instructors and 100+ learners
-        </p>
+        <RevealGroup interval={140}>
+          <h2 className="text-2xl md:text-4xl font-extrabold tracking-tight text-[#261f22] drop-shadow-sm">
+            Find the right instructor for you
+          </h2>
+          <p className="mt-4 text-base md:text-lg font-medium text-slate-700">
+            With over 30 instructors and 100+ learners
+          </p>
+        </RevealGroup>
       </div>
 
       <div className="w-full flex flex-col relative z-10" role="list" aria-label="Testimonials list">
@@ -340,17 +343,21 @@ export default function InstructorFinderView() {
           <div className="text-center text-xs tracking-wide text-gray-600 py-8">Loading testimonials...</div>
         ) : (
           <>
-            <Marquee speed={marqueeSpeed} gradient={false} className="mb-10" pauseOnHover={false}>
-              {topRow.map((item, i) => (
-                <Card key={`${(item.name || "anon").replace(/\s+/g, "_")}-${i}`} item={item} />
-              ))}
-            </Marquee>
+            <Reveal delay={100}>
+              <Marquee speed={marqueeSpeed} gradient={false} className="mb-10" pauseOnHover={false}>
+                {topRow.map((item, i) => (
+                  <Card key={`${(item.name || "anon").replace(/\s+/g, "_")}-${i}`} item={item} />
+                ))}
+              </Marquee>
+            </Reveal>
 
-            <Marquee speed={marqueeSpeed} direction="right" gradient={false} pauseOnHover={false}>
-              {bottomRow.map((item, i) => (
-                <Card key={`${(item.name || "anon").replace(/\s+/g, "_")}-bot-${i}`} item={item} />
-              ))}
-            </Marquee>
+            <Reveal delay={200}>
+              <Marquee speed={marqueeSpeed} direction="right" gradient={false} pauseOnHover={false}>
+                {bottomRow.map((item, i) => (
+                  <Card key={`${(item.name || "anon").replace(/\s+/g, "_")}-bot-${i}`} item={item} />
+                ))}
+              </Marquee>
+            </Reveal>
           </>
         )}
       </div>

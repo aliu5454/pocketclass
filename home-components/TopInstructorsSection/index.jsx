@@ -12,6 +12,7 @@ import {
 import { useEffect, useState, useMemo, useCallback } from "react";
 import InstructorSection from "../InstructorSection/index";
 import { db } from "../../firebaseConfig";
+import { Reveal, RevealGroup } from "../Reveal";
 
 // 🌎 Moved outside component to prevent recreation
 const getDistance = (lat1, lon1, lat2, lon2) => {
@@ -234,32 +235,37 @@ function TopClassesSection({
 
   return (
     <div className="grow-0 shrink-0">
-      <div>
+      <RevealGroup interval={120} className="space-y-0">
         {!activeFilter && (
-          <p className="section-heading !text-left">
-            Top Rated Classes Near You
-          </p>
+          <Reveal>
+            <p className="section-heading !text-left">Top Rated Classes Near You</p>
+          </Reveal>
         )}
-        <p className="text-lg font-bold text-[#261f22] mt-4">
-          Discover amazing learning experiences near you
-        </p>
-      </div>
+        <Reveal delay={100}>
+          <p className="text-lg font-bold text-[#261f22] mt-4">
+            Discover amazing learning experiences near you
+          </p>
+        </Reveal>
+      </RevealGroup>
       <div>
         <div id="classes-grid" className="gap-8 min-h-[250px] max-w-[100%] box-border mt-8">
           {loading
             ? Array(4)
                 .fill(null)
                 .map((_, index) => (
-                  <InstructorSection key={index} loading={true} />
+                  <Reveal key={index} delay={index * 120}>
+                    <InstructorSection loading={true} />
+                  </Reveal> 
                 ))
-            : displayedClasses.map((classItem) => (
-                <InstructorSection
-                  key={classItem.id}
-                  classId={classItem.id}
-                  instructor={classItem}
-                  reviews={reviews}
-                  loading={false}
-                />
+            : displayedClasses.map((classItem, i) => (
+                // <Reveal key={classItem.id} delay={100 + i * 90}>
+                  <InstructorSection
+                    classId={classItem.id}
+                    instructor={classItem}
+                    reviews={reviews}
+                    loading={false}
+                  />
+                // </Reveal>
               ))}
         </div>
       </div>

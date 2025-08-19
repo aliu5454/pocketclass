@@ -13,6 +13,7 @@ import { useEffect, useState, useRef, useMemo, useCallback } from "react";
 import InstructorSection from "../InstructorSection";
 import { db, auth } from "../../firebaseConfig";
 import { useAuthState } from "react-firebase-hooks/auth";
+import { Reveal } from "../Reveal";
 
 function RecommendedClassesSection({
   activeFilter = null,
@@ -25,7 +26,8 @@ function RecommendedClassesSection({
   const [loading, setLoading] = useState(true);
   const [user] = useAuthState(auth);
   const scrollRef = useRef(null);
-  const [displayRec, setDisplayRec] = useState(true);
+  // Track whether user has any history (viewed or booked) to decide label & scoring
+  const [hadHistory, setHadHistory] = useState(false);
 
   useEffect(() => {
     const unsubscribe = onSnapshot(collection(db, "Reviews"), (snapshot) => {
@@ -55,9 +57,8 @@ function RecommendedClassesSection({
         }
 
         const allViewed = [...localViewed, ...firestoreViewed];
-        if (!allViewed.length && !booked.length) {
-          setDisplayRec(false);
-          return;
+        if (allViewed.length || booked.length) {
+          setHadHistory(true);
         }
 
         const viewedIds = new Set(allViewed.map((v) => typeof v === "string" ? v : v.id));
@@ -101,10 +102,11 @@ function RecommendedClassesSection({
 
         const allBookings = allBookingsSnap.docs.map((doc) => doc.data());
 
-        const recommendations = await Promise.all(
+    const recommendations = await Promise.all(
           allClassSnap.docs.map(async (doc) => {
             const data = { id: doc.id, ...doc.data() };
-            if (viewedIds.has(data.id) || bookedIds.has(data.id)) return null;
+      // If we have history, avoid already viewed/booked; else include all for popular list
+      if (hadHistory && (viewedIds.has(data.id) || bookedIds.has(data.id))) return null;
 
             const instructorDoc = await getDoc(firestoreDoc(db, "Users", data.classCreator));
             const instructor = instructorDoc.exists() ? instructorDoc.data() : {};
@@ -195,13 +197,19 @@ function RecommendedClassesSection({
               else locationScore = 2;
             }
 
-            data.recommendationScore = (
-              0.3 * bookingSimilarity +
-              0.2 * viewingBehavior +
-              0.2 * contentMatch +
-              0.15 * quality +
-              0.15 * locationScore
-            );
+            if (hadHistory) {
+              data.recommendationScore = (
+                0.3 * bookingSimilarity +
+                0.2 * viewingBehavior +
+                0.2 * contentMatch +
+                0.15 * quality +
+                0.15 * locationScore
+              );
+            } else {
+              // Popular score when no history: emphasize quality, rating, engagement
+              const engagement = Math.min(data.reviewCount * 0.5, 10);
+              data.recommendationScore = quality * 0.5 + data.averageRating * 0.4 + engagement * 0.1;
+            }
 
             return data;
           })
@@ -243,14 +251,16 @@ function RecommendedClassesSection({
     scrollRef.current?.scrollBy({ left: 300, behavior: "smooth" });
   }, []);
 
-  if (!displayRec) return null;
+  // Always show section; header adapts based on hadHistory
 
   return (
     <div className={`flex flex-col w-full py-8 ${currentClassData ? "px-0" : "section-spacing"}`}>
       {!activeFilter && (
-        <p className="section-heading !text-left">
-          {currentClassData ? "Similar Classes" : "Recommended"}
-        </p>
+        <Reveal>
+          <p className="section-heading !text-left">
+            {currentClassData ? "Similar Classes" : "Recommended"}
+          </p>
+        </Reveal>
       )}
       <div className="relative">
         <button
@@ -270,20 +280,23 @@ function RecommendedClassesSection({
           </svg>
         </button>
 
-        <div
-          ref={scrollRef}
-          className="gap-8 max-w-full mt-8 overflow-x-auto flex px-12"
-        >
+        <div ref={scrollRef} className="gap-8 max-w-full mt-8 overflow-x-auto overflow-y-hidden flex px-12">
           {loading
-            ? Array(4).fill(0).map((_, i) => (
-                <div key={i} className="dm1:w-[300px] w-[250px] shrink-0 border border-gray-200 rounded-2xl">
-                  <InstructorSection loading />
-                </div>
-              ))
-            : displayedClasses.map((item) => (
-                <div key={item.id} className="dm1:w-[300px] w-[250px] shrink-0 border border-gray-200 rounded-2xl">
-                  <InstructorSection instructor={item} classId={item.id} />
-                </div>
+            ? Array(4)
+                .fill(0)
+                .map((_, i) => (
+                  <Reveal key={i} delay={i * 120}>
+                    <div className="dm1:w-[300px] w-[250px] h-[430px] shrink-0 border border-gray-200 rounded-2xl flex">
+                      <InstructorSection loading />
+                    </div>
+                  </Reveal>
+                ))
+            : displayedClasses.map((item, i) => (
+                <Reveal key={item.id} delay={i * 120}>
+                  <div className="dm1:w-[300px] w-[250px] h-[430px] shrink-0 border border-gray-200 rounded-2xl flex">
+                    <InstructorSection instructor={item} classId={item.id} />
+                  </div>
+                </Reveal>
               ))}
         </div>
       </div>

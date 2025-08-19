@@ -10,6 +10,7 @@ import { useEffect, useState, useRef, useMemo, useCallback } from "react";
 import InstructorSection from "../InstructorSection";
 import { db, auth } from "../../firebaseConfig";
 import { useAuthState } from "react-firebase-hooks/auth";
+import { Reveal } from "../Reveal";
 
 function RecentlyViewedSection({ activeFilter = null, onClassesLoad }) {
   const [classes, setClasses] = useState([]);
@@ -135,7 +136,9 @@ function RecentlyViewedSection({ activeFilter = null, onClassesLoad }) {
   return (
     <div className="mt-6 flex flex-col w-full section-spacing py-8">
       {!activeFilter && (
-        <p className="section-heading !text-left">Recently Viewed</p>
+        <Reveal>
+          <p className="section-heading !text-left">Recently Viewed</p>
+        </Reveal>
       )}
       <div className="relative">
         {/* Left Scroll */}
@@ -159,20 +162,23 @@ function RecentlyViewedSection({ activeFilter = null, onClassesLoad }) {
         </button>
 
         {/* Class Cards */}
-        <div
-          ref={scrollRef}
-          className="gap-8 max-w-full mt-8 overflow-x-auto flex px-12"
-        >
+        <div ref={scrollRef} className="gap-8 max-w-full mt-8 overflow-x-auto overflow-y-hidden flex px-12">
           {loading
-            ? Array(4).fill(null).map((_, idx) => (
-                <div key={idx} className="dm1:w-[300px] w-[250px] shrink-0 border border-gray-200 rounded-2xl">
-                  <InstructorSection loading />
-                </div>
-              ))
-            : displayedClasses.map((cls) => (
-                <div key={cls.id} className="dm1:w-[300px] w-[250px] shrink-0 border border-gray-200 rounded-2xl">
-                  <InstructorSection instructor={cls} classId={cls.id} />
-                </div>
+            ? Array(4)
+                .fill(null)
+                .map((_, idx) => (
+                  <Reveal key={idx} delay={idx * 120}>
+                    <div className="dm1:w-[300px] w-[250px] h-[430px] shrink-0 border border-gray-200 rounded-2xl flex">
+                      <InstructorSection loading />
+                    </div>
+                  </Reveal>
+                ))
+            : displayedClasses.map((cls, i) => (
+                <Reveal key={cls.id} delay={i * 120}>
+                  <div className="dm1:w-[300px] w-[250px] h-[430px] shrink-0 border border-gray-200 rounded-2xl flex">
+                    <InstructorSection instructor={cls} classId={cls.id} />
+                  </div>
+                </Reveal>
               ))}
         </div>
       </div>
