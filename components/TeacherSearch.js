@@ -175,6 +175,7 @@ const TeacherSearch = ({ expandMenu, user, setScroll }) => {
           id: doc.id,
           ...doc.data(),
         }));
+        console.log(classesData);
         setClasses(classesData);
         setFilteredClasses(classesData);
       } catch (error) {
