@@ -11,9 +11,11 @@ import { AiOutlineMan } from "react-icons/ai";
 
 function InstructorSection({ classId, instructor, loading, reviews }) {
   const router = useRouter();
-  const rating = instructor?.averageRating;
-  const classReviews = reviews?.filter((r) => r.classID === classId) || [];
-  const reviewCount = classReviews.length;
+  
+  // Use pre-calculated values from instructor if available, otherwise calculate from reviews
+  const classReviews = (reviews || []).filter((r) => r.classID === classId);
+  const rating = instructor?.averageRating || 0;
+  const reviewCount = instructor?.reviewCount !== undefined ? instructor.reviewCount : classReviews.length;
   const [classData, setClassData] = useState(null);
   useEffect(() => {
     const getClassData = async () => {
@@ -88,7 +90,7 @@ function InstructorSection({ classId, instructor, loading, reviews }) {
           <div className="flex items-center gap-1 flex-shrink-0">
             <SvgIcon2 className="w-5 h-5 text-[#261f22]" />
             <p className="text-base font-bold text-[#261f22]">
-              {rating?.toFixed(1)}
+              {rating > 0 ? rating.toFixed(1) : "No rating"}
               <span className="text-sm ml-1 text-[#7d797a] font-normal">
                 ({reviewCount})
               </span>

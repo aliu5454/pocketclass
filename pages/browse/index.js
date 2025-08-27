@@ -18,7 +18,10 @@ import { db } from "../../firebaseConfig";
 import Select from "react-select";
 import InstructorSection from "../../home-components/InstructorSection";
 
-mapboxgl.accessToken = process.env.mapbox_key;
+// Only set access token if it exists to prevent MapBox errors
+if (process.env.mapbox_key) {
+  mapboxgl.accessToken = process.env.mapbox_key;
+}
 
 export default function Results() {
   const router = useRouter();
@@ -56,24 +59,28 @@ export default function Results() {
 
   // MapBox Initialization
   useEffect(() => {
-    if (map.current) return;
+    if (map.current || !process.env.mapbox_key) return;
 
-    map.current = new mapboxgl.Map({
-      container: mapContainer.current,
-      style: "mapbox://styles/mapbox/streets-v12",
-      center: [location?.longitude || -79.347015, location?.latitude || 43.65107],
-      zoom: 9,
-    });
-    const geocoder = new MapboxGeocoder({
-      accessToken: mapboxgl.accessToken,
-      mapboxgl: mapboxgl,
-    });
+    try {
+      map.current = new mapboxgl.Map({
+        container: mapContainer.current,
+        style: "mapbox://styles/mapbox/streets-v12",
+        center: [location?.longitude || -79.347015, location?.latitude || 43.65107],
+        zoom: 9,
+      });
+      const geocoder = new MapboxGeocoder({
+        accessToken: mapboxgl.accessToken,
+        mapboxgl: mapboxgl,
+      });
 
-    setTimeout(() => {
-      map.current.resize();
-    }, 4000);
+      setTimeout(() => {
+        map.current?.resize();
+      }, 4000);
 
-    map.current.addControl(geocoder);
+      map.current.addControl(geocoder);
+    } catch (error) {
+      console.error("MapBox initialization failed:", error);
+    }
   }, []);
 
   // Add Markers for Classes
@@ -318,6 +325,7 @@ export default function Results() {
             const classReviews = reviews.filter(
               (rev) => rev.classID === classData.id
             );
+            console.log(`Class ${classData.Name}: ${classReviews.length} reviews`);
             const avgRating =
               classReviews.length > 0
                 ? classReviews.reduce(
@@ -343,10 +351,12 @@ export default function Results() {
       }
     };
 
+    // Only fetch classes after reviews are loaded
     fetchClassesAndInstructors();
   }, [reviews]);
 
   useEffect(() => {
+    // Use the correct collection name consistent across the app
     const unsubscribe = onSnapshot(collection(db, "Reviews"), (snapshot) => {
       setReviews(snapshot.docs.map((doc) => ({ ...doc.data(), id: doc.id })));
     });
@@ -661,6 +671,7 @@ export default function Results() {
                       key={classItem.id}
                       classId={classItem.id}
                       instructor={classItem}
+                      reviews={reviews}
                       loading={false}
                     />
                   </div>
