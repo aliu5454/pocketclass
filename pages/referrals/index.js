@@ -1,0 +1,802 @@
+import React, { useState, useEffect } from "react";
+import { useAuthState } from "react-firebase-hooks/auth";
+import { auth, db } from "../../firebaseConfig";
+import {
+  doc,
+  getDoc,
+  collection,
+  query,
+  where,
+  getDocs,
+  updateDoc,
+  addDoc,
+  orderBy,
+  limit,
+  setDoc,
+} from "firebase/firestore";
+import Head from "next/head";
+import NewHeader from "../../components/NewHeader";
+import Dashboard from "../../components/referrals/Dashboard";
+import Settings from "../../components/referrals/Settings";
+import Analytics from "../../components/referrals/Analytics";
+import {
+  GiftIcon,
+  LinkIcon,
+  ClipboardCopyIcon,
+  UsersIcon,
+  TrendingUpIcon,
+  StarIcon,
+  CashIcon,
+  TicketIcon,
+  CheckCircleIcon,
+  EyeIcon,
+  ShareIcon,
+  ChartBarIcon,
+  CogIcon,
+  InformationCircleIcon,
+  SaveIcon,
+} from "@heroicons/react/outline";
+import { CheckIcon } from "@heroicons/react/solid";
+import { toast } from "react-toastify";
+import { Tabs } from "antd";
+import Link from "next/link";
+
+const { TabPane } = Tabs;
+
+export default function ReferralsPage() {
+  const [user, loading] = useAuthState(auth);
+  const [userData, setUserData] = useState(null);
+  const [currentView, setCurrentView] = useState("student");
+  const [activeTab, setActiveTab] = useState("dashboard");
+  const [referralData, setReferralData] = useState(null);
+  const [myReferrals, setMyReferrals] = useState([]);
+  const [referralSettings, setReferralSettings] = useState({});
+  const [bookedClasses, setBookedClasses] = useState([]);
+  const [instructorClasses, setInstructorClasses] = useState([]);
+  const [instructorStats, setInstructorStats] = useState({
+    totalRedemptions: 0,
+    totalReferralRevenue: 0,
+    topPromoters: [],
+    activeReferrers: 0,
+  });
+  const [savingSettings, setSavingSettings] = useState(false);
+  const [copiedLinks, setCopiedLinks] = useState({});
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const savedView = localStorage.getItem("userView");
+      if (savedView && user) {
+        setCurrentView(savedView);
+      }
+    }
+  }, [user]);
+
+  // Listen for localStorage changes to update currentView automatically
+  useEffect(() => {
+    const handleStorageChange = () => {
+      if (typeof window !== "undefined") {
+        const savedView = localStorage.getItem("userView");
+        if (savedView) {
+          setCurrentView(savedView);
+        }
+      }
+    };
+
+    window.addEventListener("storage", handleStorageChange);
+    window.addEventListener("localStorageChange", handleStorageChange);
+
+    return () => {
+      window.removeEventListener("storage", handleStorageChange);
+      window.removeEventListener("localStorageChange", handleStorageChange);
+    };
+  }, []);
+
+  useEffect(() => {
+    const getUserData = async () => {
+      if (user?.uid) {
+        try {
+          const docRef = doc(db, "Users", user.uid);
+          const docSnap = await getDoc(docRef);
+          if (docSnap.exists()) {
+            setUserData(docSnap.data());
+          }
+        } catch (error) {
+          console.error("Error fetching user data:", error);
+        }
+      }
+    };
+
+    if (user) {
+      getUserData();
+    }
+  }, [user]);
+
+  // Check if user has premium access
+  const isPremiumInstructor = () => {
+    if (!userData) return false;
+    const premiumExpire = userData.premiumExpire;
+    return premiumExpire && new Date(premiumExpire.seconds * 1000) >= new Date();
+  };
+
+
+const fetchBookedClasses = async () => {
+  if (!user?.uid) return;
+
+  try {
+    const bookingsRef = collection(db, "Bookings");
+    // Fetch confirmed and completed bookings (including both cases)
+    const q = query(
+      bookingsRef,
+      where("student_id", "==", user.uid),
+      where("status", "in", ["Confirmed", "Completed", "confirmed", "completed"])
+    );
+    const querySnapshot = await getDocs(q);
+
+    console.log("Found bookings:", querySnapshot.size);
+
+    const classesWithDetails = await Promise.all(
+      querySnapshot.docs.map(async (bookingDoc) => {
+        const booking = bookingDoc.data();
+        console.log("Processing booking:", { id: bookingDoc.id, ...booking });
+
+        // Get class details using correct field name
+        const classDoc = await getDoc(doc(db, "classes", booking.class_id));
+        const classData = classDoc.exists() ? classDoc.data() : null;
+
+        // Get instructor details using correct field name
+        const instructorDoc = await getDoc(doc(db, "Users", booking.instructor_id));
+        const instructorData = instructorDoc.exists() ? instructorDoc.data() : null;
+
+        // Check if referral is active for this class
+        const referralSettingsDoc = await getDoc(doc(db, "ReferralSettings", booking.instructor_id));
+        let isReferralActive = false;
+        
+        if (referralSettingsDoc.exists()) {
+          const settings = referralSettingsDoc.data();
+          const classSettings = settings.classes?.[booking.class_id];
+          isReferralActive = classSettings?.enabled === true;
+        }
+
+        return {
+          id: bookingDoc.id,
+          ...booking,
+          className: classData?.Name || "Unknown Class",
+          instructorName: instructorData
+            ? `${instructorData.firstName} ${instructorData.lastName}`
+            : "Unknown Instructor",
+          instructorImage: instructorData?.profileImage || null,
+          instructorId: booking.instructor_id, // Use correct field name
+          classId: booking.class_id, // Use correct field name
+          isReferralActive, // Add this flag
+        };
+      })
+    );
+
+    // Filter to only show classes with active referrals
+    const classesWithActiveReferrals = classesWithDetails.filter(classData => classData.isReferralActive);
+
+    // Remove duplicates - keep only unique class-instructor combinations
+    const uniqueClasses = classesWithActiveReferrals.reduce((acc, current) => {
+      const key = `${current.classId}-${current.instructorId}`;
+      
+      // If we haven't seen this class-instructor combination before, add it
+      if (!acc.some(item => `${item.classId}-${item.instructorId}` === key)) {
+        acc.push(current);
+      }
+      
+      return acc;
+    }, []);
+
+    console.log("Classes with active referrals (before dedup):", classesWithActiveReferrals.length);
+    console.log("Unique classes with active referrals:", uniqueClasses.length);
+    setBookedClasses(uniqueClasses);
+  } catch (error) {
+    console.error("Error fetching booked classes:", error);
+  }
+};
+
+  // Fetch referral data for students
+  const fetchStudentReferralData = async () => {
+    if (!user?.uid) return;
+
+    try {
+      console.log("=== DEBUG: Fetching student referral data ===");
+      console.log("User ID:", user.uid);
+      
+      const response = await fetch(`/api/referrals/stats?userId=${user.uid}&type=student`);
+      console.log("API Response Status:", response.status);
+      
+      const result = await response.json();
+      console.log("Complete API Response:", result);
+      
+      if (response.ok && result.success) {
+        console.log("Setting myReferrals to:", result.stats.referralDetails || []);
+        console.log("Total redemptions (friends referred):", result.stats.totalRedemptions);
+        console.log("Total earnings:", result.stats.totalEarnings);
+        
+        setMyReferrals(result.stats.referralDetails || []);
+        
+        // Log individual referral details for debugging
+        result.stats.referralDetails?.forEach((referral, index) => {
+          console.log(`Referral ${index + 1}:`, {
+            code: referral.referralCode,
+            redemptions: referral.redemptions,
+            earnings: referral.totalEarnings,
+            className: referral.className
+          });
+        });
+      } else {
+        console.error("API Error Response:", result);
+        toast.error(result.error || "Failed to fetch referral data");
+      }
+    } catch (error) {
+      console.error("Network Error while fetching student referral data:", error);
+      toast.error("Network error while fetching referral data");
+    }
+  };
+
+  // Fetch instructor referral settings and stats
+  const fetchInstructorReferralData = async () => {
+    if (!user?.uid) return;
+
+    try {
+      // Get instructor's referral settings
+      const settingsDoc = await getDoc(doc(db, "ReferralSettings", user.uid));
+      if (settingsDoc.exists()) {
+        setReferralSettings(settingsDoc.data());
+      }
+
+      // Get referral statistics using the API
+      const response = await fetch(`/api/referrals/stats?userId=${user.uid}&type=instructor`);
+      const result = await response.json();
+      
+      if (response.ok && result.success) {
+        setInstructorStats(result.stats);
+      }
+    } catch (error) {
+      console.error("Error fetching instructor referral data:", error);
+    }
+  };
+
+  // Fetch instructor's classes for settings
+  const fetchInstructorClasses = async () => {
+    if (!user?.uid) return;
+
+    try {
+      console.log("Fetching classes for instructor:", user.uid);
+      
+      const classesRef = collection(db, "classes");
+      const q = query(classesRef, where("classCreator", "==", user.uid));
+      const querySnapshot = await getDocs(q);
+      
+      console.log("Found classes:", querySnapshot.size);
+      
+      const classes = querySnapshot.docs.map(doc => {
+        const data = doc.data();
+        console.log("Class data:", { id: doc.id, ...data });
+        return {
+          id: doc.id,
+          ...data,
+        };
+      });
+      
+      setInstructorClasses(classes);
+    } catch (error) {
+      console.error("Error fetching instructor classes:", error);
+      toast.error("Failed to fetch your classes");
+    }
+  };
+
+  useEffect(() => {
+    if (user && userData) {
+      if (userData.isInstructor && currentView === "instructor") {
+        fetchInstructorReferralData();
+        fetchInstructorClasses();
+      } else {
+        fetchBookedClasses();
+        fetchStudentReferralData();
+      }
+    }
+  }, [user, userData, currentView]);
+
+  // Copy referral link to clipboard
+  const copyReferralLink = async (instructorId, classId, className, instructorName) => {
+    try {
+      const response = await fetch('/api/referrals/create', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          referrerId: user.uid,
+          instructorId,
+          classId,
+        }),
+      });
+
+      const result = await response.json();
+      
+      if (response.ok && result.success) {
+        // Generate the referral link from the referral code
+        const referralLink = result.referralLink || 
+          `${window.location.origin}/classes/${classId}?ref=${result.referral.referralCode}`;
+        
+        await navigator.clipboard.writeText(referralLink);
+        
+        // Set copied state for this specific class
+        const linkKey = `${classId}-${instructorId}`;
+        setCopiedLinks(prev => ({ ...prev, [linkKey]: true }));
+        
+        // Clear the copied state after 2 seconds
+        setTimeout(() => {
+          setCopiedLinks(prev => ({ ...prev, [linkKey]: false }));
+        }, 2000);
+        
+        toast.success(`Referral link copied for ${className} with ${instructorName}!`);
+        
+        // Refresh referral data
+        fetchStudentReferralData();
+      } else {
+        toast.error(result.error || 'Failed to generate referral link');
+      }
+    } catch (error) {
+      console.error('Error generating referral link:', error);
+      toast.error('Failed to generate referral link');
+    }
+  };
+
+  // Update referral settings for instructors
+  const updateReferralSettings = async (classId, settings) => {
+    if (!user?.uid) return;
+
+    setSavingSettings(true);
+    try {
+      const settingsRef = doc(db, "ReferralSettings", user.uid);
+      const currentSettings = referralSettings || {};
+      
+      // If this is the first time setting up referrals, create the document
+      if (!currentSettings.classes) {
+        await setDoc(settingsRef, {
+          instructorId: user.uid,
+          classes: {
+            [classId]: settings,
+          },
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        });
+      } else {
+        await updateDoc(settingsRef, {
+          [`classes.${classId}`]: settings,
+          updatedAt: new Date(),
+        });
+      }
+      
+      setReferralSettings({
+        ...currentSettings,
+        classes: {
+          ...currentSettings.classes,
+          [classId]: settings,
+        },
+      });
+      
+      toast.success("Referral settings updated successfully!");
+    } catch (error) {
+      console.error("Error updating referral settings:", error);
+      toast.error("Failed to update referral settings");
+    } finally {
+      setSavingSettings(false);
+    }
+  };
+
+  // Toggle referral for a specific class
+  const toggleReferralForClass = async (classId, enabled) => {
+    const currentClassSettings = referralSettings?.classes?.[classId] || {};
+    
+    const newSettings = {
+      ...currentClassSettings,
+      enabled,
+      referralType: currentClassSettings.referralType || "percentage",
+      studentDiscountType: currentClassSettings.studentDiscountType || "percentage",
+      studentDiscountValue: currentClassSettings.studentDiscountValue || 10,
+      referrerRewardType: currentClassSettings.referrerRewardType || "percentage",
+      referrerRewardValue: currentClassSettings.referrerRewardValue || 15,
+      maxRedemptions: currentClassSettings.maxRedemptions || 100,
+      expiryDays: currentClassSettings.expiryDays || 30,
+    };
+    
+    await updateReferralSettings(classId, newSettings);
+  };
+
+  // Update specific setting for a class
+  const updateClassSetting = async (classId, settingKey, value) => {
+    const currentClassSettings = referralSettings?.classes?.[classId] || {};
+    
+    const newSettings = {
+      ...currentClassSettings,
+      [settingKey]: value,
+    };
+    
+    await updateReferralSettings(classId, newSettings);
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-logo-red"></div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold text-gray-900 mb-4">Please log in</h1>
+          <p className="text-gray-600 mb-6">You need to be logged in to access the referral program.</p>
+          <Link href="/Login">
+            <a className="bg-logo-red text-white px-6 py-3 rounded-lg hover:bg-logo-red/90 transition-colors">
+              Login
+            </a>
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  // Check if instructor has premium access for referral feature
+  if (userData?.isInstructor && currentView === "instructor" && !isPremiumInstructor()) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <NewHeader />
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="bg-white rounded-2xl p-8 shadow-sm border border-gray-100 text-center">
+            <div className="w-16 h-16 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <StarIcon className="w-8 h-8 text-yellow-600" />
+            </div>
+            <h1 className="text-2xl font-bold text-gray-900 mb-4">Premium Feature</h1>
+            <p className="text-gray-600 mb-6">
+              The referral program is available exclusively for premium instructors. 
+              Upgrade your account to start earning more through referrals!
+            </p>
+            <Link href="/premium">
+              <a className="bg-logo-red text-white px-6 py-3 rounded-lg hover:bg-logo-red/90 transition-colors">
+                Upgrade to Premium
+              </a>
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-gray-50">
+      <Head>
+        <title>
+          {userData?.isInstructor && currentView === "instructor" 
+            ? "Referral Program - Instructor Dashboard" 
+            : "Refer & Earn - Student Dashboard"
+          }
+        </title>
+        <meta name="description" content="Refer friends and earn rewards on PocketClass" />
+        <link rel="icon" href="/pc_favicon.ico" />
+      </Head>
+      
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Header Section */}
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">
+            {userData?.isInstructor && currentView === "instructor" 
+              ? "Referral Program" 
+              : "Refer & Earn"
+            }
+          </h1>
+          <p className="text-gray-600">
+            {userData?.isInstructor && currentView === "instructor"
+              ? "Track your student promoters and referral performance"
+              : "Share your favorite classes with friends and earn rewards"
+            }
+          </p>
+        </div>
+
+        {/* Instructor View */}
+        {userData?.isInstructor && currentView === "instructor" && (
+          <Tabs 
+            activeKey={activeTab} 
+            onChange={setActiveTab}
+            className="bg-white rounded-xl shadow-sm border border-gray-100"
+            size="large"
+          >
+            <TabPane 
+              tab={
+                <span className="flex items-center space-x-2">
+                  <ChartBarIcon className="w-4 h-4" />
+                  <span>Dashboard</span>
+                </span>
+              } 
+              key="dashboard"
+            >
+              <Dashboard instructorStats={instructorStats} />
+            </TabPane>
+
+            <TabPane 
+              tab={
+                <span className="flex items-center space-x-2">
+                  <CogIcon className="w-4 h-4" />
+                  <span>Settings</span>
+                </span>
+              } 
+              key="settings"
+            >
+              <Settings 
+                instructorClasses={instructorClasses}
+                referralSettings={referralSettings}
+                savingSettings={savingSettings}
+                toggleReferralForClass={toggleReferralForClass}
+                updateClassSetting={updateClassSetting}
+              />
+            </TabPane>
+
+            <TabPane 
+              tab={
+                <span className="flex items-center space-x-2">
+                  <TrendingUpIcon className="w-4 h-4" />
+                  <span>Analytics</span>
+                </span>
+              } 
+              key="analytics"
+            >
+              <Analytics 
+                instructorStats={instructorStats}
+                userId={user?.uid}
+              />
+            </TabPane>
+          </Tabs>
+        )}
+
+        {/* Student View */}
+        {(!userData?.isInstructor || currentView === "student") && (
+          <div className="space-y-8">
+            {/* How it works */}
+            <div className="bg-gradient-to-r from-logo-red to-red-600 rounded-xl p-8 text-white">
+              <h2 className="text-2xl font-bold mb-4">How Refer & Earn Works</h2>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="text-center">
+                  <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-3">
+                    <ShareIcon className="w-6 h-6" />
+                  </div>
+                  <h3 className="font-semibold mb-2">1. Share Your Link</h3>
+                  <p className="text-sm opacity-90">Generate a unique referral link for classes you've attended</p>
+                </div>
+                <div className="text-center">
+                  <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-3">
+                    <UsersIcon className="w-6 h-6" />
+                  </div>
+                  <h3 className="font-semibold mb-2">2. Friend Books Class</h3>
+                  <p className="text-sm opacity-90">Your friend gets a discount on their first class</p>
+                </div>
+                <div className="text-center">
+                  <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-3">
+                    <GiftIcon className="w-6 h-6" />
+                  </div>
+                  <h3 className="font-semibold mb-2">3. You Both Earn</h3>
+                  <p className="text-sm opacity-90">You get rewards and your friend gets a great discount</p>
+                </div>
+              </div>
+            </div>
+
+            {/* My Referrals Stats */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-gray-600">Total Bookings</p>
+                    <p className="text-2xl font-bold text-gray-900">
+                      {myReferrals.reduce((sum, ref) => sum + (ref.redemptions || 0), 0)}
+                    </p>
+                    <p className="text-xs text-gray-500 mt-1">
+                      Classes booked using your referral links
+                    </p>
+                  </div>
+                  <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
+                    <TicketIcon className="w-6 h-6 text-blue-600" />
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-gray-600">Friends Referred</p>
+                    <p className="text-2xl font-bold text-gray-900">
+                      {myReferrals.reduce((sum, ref) => sum + (ref.uniqueUsers || 0), 0)}
+                    </p>
+                    <p className="text-xs text-gray-500 mt-1">
+                      Unique people who used your links
+                    </p>
+                  </div>
+                  <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
+                    <UsersIcon className="w-6 h-6 text-green-600" />
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-gray-600">Total Earnings</p>
+                    <p className="text-2xl font-bold text-gray-900">
+                      ${myReferrals.reduce((sum, ref) => sum + (ref.totalEarnings || 0), 0).toFixed(2)}
+                    </p>
+                    <p className="text-xs text-gray-500 mt-1">
+                      Rewards from successful referrals
+                    </p>
+                  </div>
+                  <div className="w-12 h-12 bg-yellow-100 rounded-lg flex items-center justify-center">
+                    <CashIcon className="w-6 h-6 text-yellow-600" />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Debug Section - Remove after testing */}
+            {/* <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <h3 className="text-sm font-medium text-blue-900">Debug: Refresh Analytics</h3>
+                  <p className="text-xs text-blue-700">Click to manually refresh your referral data</p>
+                </div>
+                <button
+                  onClick={fetchStudentReferralData}
+                  className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors text-sm"
+                >
+                  Refresh Data
+                </button>
+              </div>
+              <div className="text-xs text-blue-800 space-y-1">
+                <div>User ID: {user?.uid}</div>
+                <div>Total Referral Links Created: {myReferrals.length}</div>
+                <div>
+                  Total People Who Booked: {myReferrals.reduce((sum, ref) => sum + (ref.redemptions || 0), 0)}
+                </div>
+                <div>
+                  Total Earnings: ${myReferrals.reduce((sum, ref) => sum + (ref.totalEarnings || 0), 0).toFixed(2)}
+                </div>
+                <details className="mt-2">
+                  <summary className="cursor-pointer font-medium">View Raw Data</summary>
+                  <pre className="mt-2 text-xs bg-blue-100 p-2 rounded overflow-auto max-h-40">
+                    {JSON.stringify(myReferrals, null, 2)}
+                  </pre>
+                </details>
+              </div>
+            </div> */}
+
+            {/* Classes You Can Refer */}
+            <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">Classes You Can Refer</h3>
+              {bookedClasses.length > 0 ? (
+                <div className="space-y-4">
+                  {bookedClasses.map((classData) => {
+                    const linkKey = `${classData.classId}-${classData.instructorId}`;
+                    const isCopied = copiedLinks[linkKey];
+                    
+                    return (
+                      <div key={classData.id} className="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+                        <div className="flex items-center space-x-4 flex-1">
+                          <div className="flex-shrink-0">
+                            {classData.instructorImage ? (
+                              <img
+                                src={classData.instructorImage}
+                                alt={classData.instructorName}
+                                className="w-12 h-12 rounded-full object-cover border-2 border-gray-200"
+                              />
+                            ) : (
+                              <div className="w-12 h-12 bg-gray-300 rounded-full flex items-center justify-center border-2 border-gray-200">
+                                <span className="text-gray-600 font-medium text-sm">
+                                  {classData.instructorName.charAt(0)}
+                                </span>
+                              </div>
+                            )}
+                          </div>
+                          <div className="flex-1">
+                            <h4 className="font-medium text-gray-900">{classData.className}</h4>
+                            <p className="text-sm text-gray-600">{classData.instructorName}</p>
+                            <p className="text-xs text-gray-500">
+                              Booked on {new Date(classData.createdAt?.seconds * 1000 || classData.createdAt).toLocaleDateString()}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex flex-col items-end">
+                          {isCopied && (
+                            <div className="mb-1 text-xs text-green-600 font-medium">
+                              Copied!
+                            </div>
+                          )}
+                          <button
+                            onClick={() => copyReferralLink(
+                              classData.instructorId,
+                              classData.classId,
+                              classData.className,
+                              classData.instructorName
+                            )}
+                            className={`flex items-center space-x-2 px-4 py-2 rounded-lg transition-colors ${
+                              isCopied 
+                                ? 'bg-green-600 text-white' 
+                                : 'bg-logo-red text-white hover:bg-logo-red/90'
+                            }`}
+                          >
+                            {isCopied ? (
+                              <>
+                                <CheckIcon className="w-4 h-4" />
+                                <span>Copied</span>
+                              </>
+                            ) : (
+                              <>
+                                <ClipboardCopyIcon className="w-4 h-4" />
+                                <span>Get Referral Link</span>
+                              </>
+                            )}
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="text-center py-8">
+                  <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <TicketIcon className="w-8 h-8 text-gray-400" />
+                  </div>
+                  <h4 className="text-lg font-medium text-gray-900 mb-2">No Referral-Enabled Classes</h4>
+                  <p className="text-gray-600 mb-4">
+                    You can only refer classes where the instructor has enabled the referral program. 
+                    Book more classes or check back later as instructors enable referrals!
+                  </p>
+                  <Link href="/">
+                    <a className="bg-logo-red text-white px-6 py-3 rounded-lg hover:bg-logo-red/90 transition-colors">
+                      Browse Classes
+                    </a>
+                  </Link>
+                </div>
+              )}
+            </div>
+
+            {/* My Active Referrals */}
+            {myReferrals.length > 0 && (
+              <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">My Active Referrals</h3>
+                <div className="space-y-4">
+                  {myReferrals.map((referral) => (
+                    <div key={referral.id} className="flex items-center justify-between p-4 border border-gray-200 rounded-lg">
+                      <div className="flex-1">
+                        <h4 className="font-medium text-gray-900">Referral Code: {referral.referralCode}</h4>
+                        <p className="text-sm text-gray-600">
+                          Created: {new Date(referral.createdAt?.seconds * 1000 || referral.createdAt).toLocaleDateString()}
+                        </p>
+                        <div className="flex items-center space-x-4 mt-2">
+                          <span className="text-sm text-gray-500">
+                            {referral.redemptions || 0} redemptions
+                          </span>
+                          <span className="text-sm text-green-600">
+                            ${(referral.totalEarnings || 0).toFixed(2)} earned
+                          </span>
+                        </div>
+                      </div>
+                      <div className={`px-3 py-1 rounded-full text-xs font-medium ${
+                        referral.status === "active" 
+                          ? "bg-green-100 text-green-800"
+                          : "bg-gray-100 text-gray-800"
+                      }`}>
+                        {referral.status}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}

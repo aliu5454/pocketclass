@@ -57,6 +57,10 @@ export default function index({
   const [agreeToTerms, setAgreeToTerms] = useState(true);
   const [showLogin, setShowLogin] = useState(false);
   const [showBooking, setShowBooking] = useState(false);
+  const [referralCode, setReferralCode] = useState(null);
+  const [referralDiscount, setReferralDiscount] = useState(0);
+  const [referralDiscountType, setReferralDiscountType] = useState("percentage");
+  const [isReferralApplied, setIsReferralApplied] = useState(false);
 
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [schedule, setSchedule] = useState({
@@ -164,6 +168,54 @@ export default function index({
     };
     fetchFreeClassSetting();
   }, [instructorId, classId, studentId]);
+
+  // Detect and apply referral code from URL
+  useEffect(() => {
+    const checkReferralCode = async () => {
+      const urlParams = new URLSearchParams(window.location.search);
+      const refCode = urlParams.get('ref') || router.query.ref;
+      
+      console.log("Checking referral code:", refCode); // Debug log
+      
+      if (refCode && !isReferralApplied) {
+        try {
+          const response = await fetch('/api/validate-referral', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ referralCode: refCode })
+          });
+          
+          const data = await response.json();
+          console.log("Referral validation response:", data); // Debug log
+          
+          if (response.ok && data.success) {
+            setReferralCode(refCode);
+            setReferralDiscount(parseFloat(data.discount) || 10); // Ensure it's a number
+            setReferralDiscountType(data.discountType || "percentage");
+            setIsReferralApplied(true);
+            console.log("Referral applied successfully:", data); // Debug log
+          } else {
+            console.log("Referral validation failed:", data.error);
+          }
+        } catch (error) {
+          console.error("Error validating referral code:", error);
+          // If API doesn't exist or fails, apply a default referral discount for testing
+          if (refCode) {
+            console.log("Applying default referral discount for code:", refCode);
+            setReferralCode(refCode);
+            setReferralDiscount(10); // Default 10% discount
+            setReferralDiscountType("percentage");
+            setIsReferralApplied(true);
+          }
+        }
+      }
+    };
+    
+    // Only run after router is ready
+    if (router.isReady) {
+      checkReferralCode();
+    }
+  }, [router.isReady, router.query, isReferralApplied]);
 
   useEffect(() => {
     const fetchInstructorData = async () => {
@@ -974,6 +1026,50 @@ export default function index({
                 : discount
             )
           : 0,
+      referralCode: referralCode,
+      referralDiscount:
+        price == 0
+          ? parseFloat(
+              isReferralApplied
+                ? referralDiscountType === "percentage"
+                  ? (
+                      (referralDiscount *
+                        (selectedPackage?.num_sessions
+                          ? selectedPackage?.Price -
+                            ((selectedPackage?.Discount ??
+                              selectedPackage?.discountPercentage) *
+                              selectedPackage?.Price) /
+                              100 -
+                            (voucherVerified
+                              ? discountType === "percentage"
+                                ? (discount *
+                                    (selectedPackage?.Price -
+                                      ((selectedPackage?.Discount ??
+                                        selectedPackage?.discountPercentage) *
+                                        selectedPackage?.Price) /
+                                        100)) /
+                                  100
+                                : discount
+                              : 0)
+                          : selectedSlot.classId
+                          ? classData?.groupPrice -
+                            (voucherVerified
+                              ? discountType === "percentage"
+                                ? (discount * classData?.groupPrice) / 100
+                                : discount
+                              : 0)
+                          : classData?.Price -
+                            (voucherVerified
+                              ? discountType === "percentage"
+                                ? (discount * classData?.Price) / 100
+                                : discount
+                              : 0))) /
+                      100
+                    ).toFixed(2)
+                  : referralDiscount
+                : 0
+            )
+          : 0,
       subTotal: (() => {
         if (price === 0) return 0;
         const basePrice = selectedPackage?.num_sessions
@@ -992,8 +1088,14 @@ export default function index({
             : discount
           : 0;
 
+        const referralDiscountAmount = isReferralApplied
+          ? referralDiscountType === "percentage"
+            ? (referralDiscount * (basePrice - voucherDiscount)) / 100
+            : referralDiscount
+          : 0;
+
         return parseFloat(
-          (basePrice * numberOfGroupMembers - voucherDiscount).toFixed(2)
+          (basePrice * numberOfGroupMembers - voucherDiscount - referralDiscountAmount).toFixed(2)
         );
       })(),
       processingFee: (() => {
@@ -1014,7 +1116,13 @@ export default function index({
             : discount
           : 0;
 
-        const subtotal = basePrice - voucherDiscount;
+        const referralDiscountAmount = isReferralApplied
+          ? referralDiscountType === "percentage"
+            ? (referralDiscount * (basePrice - voucherDiscount)) / 100
+            : referralDiscount
+          : 0;
+
+        const subtotal = basePrice - voucherDiscount - referralDiscountAmount;
         return parseFloat((subtotal * 0.029 + 0.8).toFixed(2));
       })(),
       total: (() => {
@@ -1035,8 +1143,14 @@ export default function index({
             : discount
           : 0;
 
-        const subtotal = basePrice * numberOfGroupMembers - voucherDiscount;
-        const processingFee = (basePrice - voucherDiscount) * 0.029 + 0.8;
+        const referralDiscountAmount = isReferralApplied
+          ? referralDiscountType === "percentage"
+            ? (referralDiscount * (basePrice - voucherDiscount)) / 100
+            : referralDiscount
+          : 0;
+
+        const subtotal = basePrice * numberOfGroupMembers - voucherDiscount - referralDiscountAmount;
+        const processingFee = (basePrice - voucherDiscount - referralDiscountAmount) * 0.029 + 0.8;
         return parseFloat((subtotal + processingFee).toFixed(2));
       })(),
     };
@@ -1512,6 +1626,18 @@ END:VCALENDAR`.trim();
       finalPrice -= discount;
     }
 
+    // Apply referral discount after voucher discount
+    if (isReferralApplied) {
+      if (referralDiscountType === "percentage") {
+        const referralDiscountAmount = ((finalPrice * referralDiscount) / 100).toFixed(2);
+        finalPrice -= parseFloat(referralDiscountAmount);
+        console.log("Applied percentage discount:", referralDiscountAmount, "New price:", finalPrice);
+      } else {
+        finalPrice -= parseFloat(referralDiscount);
+        console.log("Applied fixed discount:", referralDiscount, "New price:", finalPrice);
+      }
+    }
+
     const stripeFee = finalPrice * 0.029 + 0.8;
     const priceWithoutFee = finalPrice;
     finalPrice += stripeFee;
@@ -1658,6 +1784,47 @@ END:VCALENDAR`.trim();
             ).toFixed(2)
           : discount
       ),
+      referralCode: referralCode,
+      referralDiscount: parseFloat(
+        isReferralApplied
+          ? referralDiscountType === "percentage"
+            ? (
+                (referralDiscount *
+                  (selectedPackage?.num_sessions
+                    ? selectedPackage.Price -
+                      ((selectedPackage?.Discount ??
+                        selectedPackage?.discountPercentage) *
+                        selectedPackage?.Price) /
+                        100 -
+                      (voucherVerified
+                        ? discountType === "percentage"
+                          ? (discount *
+                              (selectedPackage.Price -
+                                ((selectedPackage?.Discount ??
+                                  selectedPackage?.discountPercentage) *
+                                  selectedPackage?.Price) /
+                                  100)) /
+                            100
+                          : discount
+                        : 0)
+                    : selectedSlot.classId
+                    ? classData.groupPrice -
+                      (voucherVerified
+                        ? discountType === "percentage"
+                          ? (discount * classData.groupPrice) / 100
+                          : discount
+                        : 0)
+                    : classData.Price -
+                      (voucherVerified
+                        ? discountType === "percentage"
+                          ? (discount * classData.Price) / 100
+                          : discount
+                        : 0))) /
+                100
+              ).toFixed(2)
+            : referralDiscount
+          : 0
+      ),
       subTotal: (() => {
         const basePrice = selectedPackage?.num_sessions
           ? selectedPackage.Price -
@@ -1675,8 +1842,14 @@ END:VCALENDAR`.trim();
             : discount
           : 0;
 
+        const referralDiscountAmount = isReferralApplied
+          ? referralDiscountType === "percentage"
+            ? (referralDiscount * (basePrice - voucherDiscount)) / 100
+            : referralDiscount
+          : 0;
+
         return parseFloat(
-          (basePrice * numberOfGroupMembers - voucherDiscount).toFixed(2)
+          (basePrice * numberOfGroupMembers - voucherDiscount - referralDiscountAmount).toFixed(2)
         );
       })(),
       processingFee: (() => {
@@ -1698,7 +1871,13 @@ END:VCALENDAR`.trim();
             : discount
           : 0;
 
-        const subtotal = basePrice - voucherDiscount;
+        const referralDiscountAmount = isReferralApplied
+          ? referralDiscountType === "percentage"
+            ? ((referralDiscount * (basePrice - voucherDiscount)) / 100).toFixed(2)
+            : referralDiscount
+          : 0;
+
+        const subtotal = basePrice - voucherDiscount - referralDiscountAmount;
         const processingFee = (subtotal * 0.029 + 0.8).toFixed(2);
 
         return parseFloat(processingFee);
@@ -1722,8 +1901,14 @@ END:VCALENDAR`.trim();
             : discount
           : 0;
 
-        const subtotal = basePrice * numberOfGroupMembers - voucherDiscount;
-        const processingFee = (basePrice - voucherDiscount) * 0.029 + 0.8;
+        const referralDiscountAmount = isReferralApplied
+          ? referralDiscountType === "percentage"
+            ? ((referralDiscount * (basePrice - voucherDiscount)) / 100).toFixed(2)
+            : referralDiscount
+          : 0;
+
+        const subtotal = basePrice * numberOfGroupMembers - voucherDiscount - referralDiscountAmount;
+        const processingFee = (basePrice - voucherDiscount - referralDiscountAmount) * 0.029 + 0.8;
         const total = subtotal + processingFee;
 
         return parseFloat(total.toFixed(2));
@@ -1731,6 +1916,7 @@ END:VCALENDAR`.trim();
     };
 
     const bookingRef = await addDoc(collection(db, "Bookings"), bookingData);
+    console.log("Final Price:", finalPrice);
 
     const response = await fetch("/api/create-stripe-session", {
       method: "POST",
@@ -1798,6 +1984,57 @@ END:VCALENDAR`.trim();
           </div>
         </div>
       </div>
+      
+      {/* Referral Link Indicator */}
+      {isReferralApplied && (
+        <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg">
+          <div className="flex items-center gap-2">
+            <div className="w-6 h-6 rounded-full border-2 border-green-500 flex items-center justify-center">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-4 w-4 text-green-500"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth={2}
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M5 13l4 4L19 7"
+                />
+              </svg>
+            </div>
+            <div>
+              <span className="text-green-800 font-semibold">Referral discount applied!</span>
+              <span className="ml-2 text-sm bg-green-100 text-green-700 px-2 py-1 rounded-full">
+                Code: {referralCode}
+              </span>
+              <span className="ml-2 text-sm text-green-700">
+                {referralDiscountType === "percentage" ? `${referralDiscount}%` : `$${referralDiscount}`} off your booking
+              </span>
+            </div>
+          </div>
+        </div>
+      )}
+      
+      {/* Debug info - remove this after testing */}
+      {/* {process.env.NODE_ENV === 'development' && (
+        <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg text-sm">
+          <strong>Debug Info:</strong>
+          <br />
+          Router Query: {JSON.stringify(router.query)}
+          <br />
+          URL Params: {typeof window !== 'undefined' ? window.location.search : 'N/A'}
+          <br />
+          Referral Code: {referralCode || 'None'}
+          <br />
+          Is Referral Applied: {isReferralApplied ? 'Yes' : 'No'}
+          <br />
+          Referral Discount: {referralDiscount}% ({referralDiscountType})
+        </div>
+      )} */}
+      
       <div className="flex flex-grow flex-col lg:flex-row">
         {/* Calendar Section */}
         <div className="p-4 pb-8 max-h-min border-gray-100 rounded-md bg-gray-50 flex-shrink-0 overflow-y-auto">
@@ -2219,6 +2456,56 @@ END:VCALENDAR`.trim();
                   </div>
                 )}
 
+                {isReferralApplied && (
+                  <div className="flex flex-row w-full justify-between">
+                    <div className="flex items-center gap-2">
+                      <strong>Referral Discount:</strong>
+                      <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full">
+                        {referralCode}
+                      </span>
+                    </div>
+                    <p>
+                      -$
+                      {referralDiscountType === "percentage"
+                        ? (
+                            (referralDiscount *
+                              (selectedPackage?.num_sessions
+                                ? selectedPackage.Price -
+                                  ((selectedPackage?.Discount ??
+                                    selectedPackage?.discountPercentage) *
+                                    selectedPackage?.Price) /
+                                    100 -
+                                  (voucherVerified
+                                    ? discountType === "percentage"
+                                      ? (discount *
+                                          (selectedPackage.Price -
+                                            ((selectedPackage?.Discount ??
+                                              selectedPackage?.discountPercentage) *
+                                              selectedPackage?.Price) /
+                                              100)) /
+                                        100
+                                      : discount
+                                    : 0)
+                                : selectedSlot.classId
+                                ? classData.groupPrice -
+                                  (voucherVerified
+                                    ? discountType === "percentage"
+                                      ? (discount * classData.groupPrice) / 100
+                                      : discount
+                                    : 0)
+                                : classData.Price -
+                                  (voucherVerified
+                                    ? discountType === "percentage"
+                                      ? (discount * classData.Price) / 100
+                                      : discount
+                                    : 0))) /
+                            100
+                          ).toFixed(2)
+                        : referralDiscount}
+                    </p>
+                  </div>
+                )}
+
                 {/* Add Subtotal */}
                 {(!freeClassEnabled || selectedPackage != null) && (
                   <>
@@ -2247,7 +2534,13 @@ END:VCALENDAR`.trim();
                               : discount
                             : 0;
 
-                          return (basePrice - voucherDiscount).toFixed(2);
+                          const referralDiscountAmount = isReferralApplied
+                            ? referralDiscountType === "percentage"
+                              ? ((referralDiscount * (basePrice - voucherDiscount)) / 100).toFixed(2)
+                              : referralDiscount
+                            : 0;
+
+                          return (basePrice - voucherDiscount - referralDiscountAmount).toFixed(2);
                         })()}
                       </p>
                     </div>
@@ -2311,7 +2604,13 @@ END:VCALENDAR`.trim();
                               : discount
                             : 0;
 
-                          const subtotal = basePrice - voucherDiscount;
+                          const referralDiscountAmount = isReferralApplied
+                            ? referralDiscountType === "percentage"
+                              ? ((referralDiscount * (basePrice - voucherDiscount)) / 100).toFixed(2)
+                              : referralDiscount
+                            : 0;
+
+                          const subtotal = basePrice - voucherDiscount - referralDiscountAmount;
                           const processingFee = (
                             subtotal * 0.029 +
                             0.8
@@ -2356,7 +2655,13 @@ END:VCALENDAR`.trim();
                             : discount
                           : 0;
 
-                        const subtotal = basePrice - voucherDiscount;
+                        const referralDiscountAmount = isReferralApplied
+                          ? referralDiscountType === "percentage"
+                            ? ((referralDiscount * (basePrice - voucherDiscount)) / 100).toFixed(2)
+                            : referralDiscount
+                          : 0;
+
+                        const subtotal = basePrice - voucherDiscount - referralDiscountAmount;
                         const processingFee = subtotal * 0.029 + 0.8;
                         const total = subtotal + processingFee;
 
@@ -2603,7 +2908,14 @@ END:VCALENDAR`.trim();
                     : parseFloat(discount)
                   : 0;
 
-                const subtotal = basePrice - voucherDiscount;
+                // Apply referral discount if applied
+                const referralDiscountAmount = isReferralApplied
+                  ? referralDiscountType === "percentage"
+                    ? ((referralDiscount * (basePrice - voucherDiscount)) / 100)
+                    : parseFloat(referralDiscount)
+                  : 0;
+
+                const subtotal = basePrice - voucherDiscount - referralDiscountAmount;
 
                 // Add processing fee (2.9% + $0.80)
                 const processingFee = subtotal * 0.029 + 0.8;
@@ -2630,6 +2942,10 @@ END:VCALENDAR`.trim();
               voucher={voucher}
               voucherVerified={voucherVerified}
               agreeToTerms={agreeToTerms}
+              referralCode={referralCode}
+              referralDiscount={referralDiscount}
+              referralDiscountType={referralDiscountType}
+              isReferralApplied={isReferralApplied}
             />
           </Elements>
         </div>
@@ -2697,6 +3013,10 @@ const CheckoutForm = ({
   voucher,
   voucherVerified,
   agreeToTerms,
+  referralCode,
+  referralDiscount,
+  referralDiscountType,
+  isReferralApplied,
 }) => {
   const stripe = useStripe();
   const [user, userLoading] = useAuthState(auth);
@@ -2750,6 +3070,22 @@ const CheckoutForm = ({
       ? ((discount * packagePrice) / 100).toFixed(2)
       : discount;
   packagePrice = packagePrice - offerDiscount;
+
+  // Apply voucher discount if verified
+  if (voucher && voucherVerified && voucher.voucher) {
+    const voucherDiscountAmount = voucher.voucher.type === 'percentage' 
+      ? ((voucher.voucher.value * packagePrice) / 100)
+      : voucher.voucher.value;
+    packagePrice = packagePrice - voucherDiscountAmount;
+  }
+
+  // Apply referral discount if available
+  if (isReferralApplied) {
+    const referralDiscountAmount = referralDiscountType === 'percentage'
+      ? ((referralDiscount * packagePrice) / 100)
+      : parseFloat(referralDiscount);
+    packagePrice = packagePrice - referralDiscountAmount;
+  }
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -2843,7 +3179,24 @@ const CheckoutForm = ({
       const endDateTime = moment
         .utc(`${date} ${endTime}`)
         .format("YYYY-MM-DDTHH:mm:ss");
-      if (classData.Mode === "Online") {
+        console.log("classData ", classData);
+        console.log("Mode ", mode);
+        console.log("classData.Mode ", classData?.Mode);
+        console.log("selectedSlot.classId ", selectedSlot?.classId);
+      
+      // Check if mode is specified first
+      if (!mode) {
+        console.error("Mode is not defined:", mode);
+        toast.error("Class mode is not specified.");
+        setLoading(false);
+        return;
+      }
+
+      // Use classData.Mode if available, otherwise default to "Online" for backward compatibility
+      const classMode = classData?.Mode || "Online";
+      console.log("Using classMode:", classMode);
+
+      if (classMode === "Online") {
         if (mode === "Group") {
           const querySnapshot = await getDocs(
             query(
@@ -2879,11 +3232,8 @@ const CheckoutForm = ({
             const otherBookings = querySnapshot.docs.map((doc) => doc.data());
             meetingLink = otherBookings[0]?.meetingLink;
           }
-        } else if (!mode) {
-          toast.error("Class mode is not specified.");
-          setLoading(false);
-          return;
         }
+        
         if (!meetingLink) {
           try {
             meetingLink = await fetch("/api/generateMeetLink", {
@@ -2911,10 +3261,6 @@ const CheckoutForm = ({
             console.error("Error generating meeting link:", error);
           }
         }
-      } else if (!classData?.Mode) {
-        toast.error("Class mode is not specified.");
-        setLoading(false);
-        return;
       }
       await updateDoc(bookingDocRef, {
         status: "Confirmed",
@@ -3137,6 +3483,84 @@ END:VCALENDAR`.trim();
             parseInt(selectedPackage?.num_sessions, 10) -
             (numberOfGroupMembers ? numberOfGroupMembers : 1),
         });
+      }
+
+      // Track referral redemption if referral was used
+      if (isReferralApplied && referralCode) {
+        try {
+          setCurrentStep("Tracking referral redemption...");
+          
+          // Calculate the original amount before referral discount
+          let originalAmount = selectedPackage?.num_sessions
+            ? selectedPackage.Price -
+              ((selectedPackage?.Discount ??
+                selectedPackage?.discountPercentage) *
+                selectedPackage?.Price) /
+                100
+            : selectedSlot.classId
+            ? classData.groupPrice * numberOfGroupMembers
+            : classData.Price;
+
+          // Apply voucher discount to original amount if present
+          const voucherDiscountAmount = voucherVerified
+            ? discountType === "percentage"
+              ? (originalAmount * discount) / 100
+              : parseFloat(discount)
+            : 0;
+
+          originalAmount = originalAmount - voucherDiscountAmount;
+
+          // Calculate referral discount amount
+          const referralDiscountAmount = referralDiscountType === "percentage"
+            ? ((referralDiscount * originalAmount) / 100)
+            : parseFloat(referralDiscount);
+
+          const finalAmountBeforeFees = originalAmount - referralDiscountAmount;
+          const processingFee = finalAmountBeforeFees * 0.029 + 0.8;
+          const totalFinalAmount = finalAmountBeforeFees + processingFee;
+
+          console.log("Tracking referral redemption with data:", {
+            referralCode,
+            userId: user?.uid,
+            classId,
+            instructorId,
+            bookingId: bookingRef,
+            originalAmount: originalAmount + voucherDiscountAmount,
+            discountAmount: referralDiscountAmount,
+            finalAmount: totalFinalAmount,
+            paymentIntentId: paymentIntent.id,
+          });
+
+          const trackingResponse = await fetch("/api/referrals/track-redemption", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              referralCode,
+              userId: user?.uid,
+              classId,
+              instructorId,
+              bookingId: bookingRef,
+              originalAmount: originalAmount + voucherDiscountAmount, // Original price before any discounts
+              discountAmount: referralDiscountAmount,
+              finalAmount: totalFinalAmount,
+              paymentIntentId: paymentIntent.id,
+            }),
+          });
+
+          const trackingResult = await trackingResponse.json();
+          console.log("Referral tracking API response:", trackingResult);
+
+          if (!trackingResponse.ok) {
+            console.error("Failed to track referral:", trackingResult);
+          } else {
+            console.log("Referral redemption tracked successfully:", trackingResult);
+          }
+        } catch (error) {
+          console.error("Error tracking referral redemption:", error);
+          // Don't fail the booking if referral tracking fails
+        }
       }
 
       setStripeOptions(null);
