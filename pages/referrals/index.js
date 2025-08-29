@@ -150,11 +150,13 @@ const fetchBookedClasses = async () => {
         // Check if referral is active for this class
         const referralSettingsDoc = await getDoc(doc(db, "ReferralSettings", booking.instructor_id));
         let isReferralActive = false;
+        let referralSettings = null;
         
         if (referralSettingsDoc.exists()) {
           const settings = referralSettingsDoc.data();
           const classSettings = settings.classes?.[booking.class_id];
           isReferralActive = classSettings?.enabled === true;
+          referralSettings = classSettings;
         }
 
         return {
@@ -168,6 +170,7 @@ const fetchBookedClasses = async () => {
           instructorId: booking.instructor_id, // Use correct field name
           classId: booking.class_id, // Use correct field name
           isReferralActive, // Add this flag
+          referralSettings, // Add referral settings for this class
         };
       })
     );
@@ -181,7 +184,10 @@ const fetchBookedClasses = async () => {
       
       // If we haven't seen this class-instructor combination before, add it
       if (!acc.some(item => `${item.classId}-${item.instructorId}` === key)) {
-        acc.push(current);
+        acc.push({
+          ...current,
+          currentProgress: 0, // Initialize with 0, will be updated later
+        });
       }
       
       return acc;
@@ -293,11 +299,39 @@ const fetchBookedClasses = async () => {
         fetchInstructorReferralData();
         fetchInstructorClasses();
       } else {
-        fetchBookedClasses();
-        fetchStudentReferralData();
+        const fetchStudentData = async () => {
+          await fetchBookedClasses();
+          await fetchStudentReferralData();
+          // After both are fetched, update progress
+          updateClassProgress();
+        };
+        fetchStudentData();
       }
     }
   }, [user, userData, currentView]);
+
+  // Function to update class progress after referral data is fetched
+  const updateClassProgress = () => {
+    setBookedClasses(prevClasses => 
+      prevClasses.map(classData => {
+        const classReferral = myReferrals.find(
+          ref => ref.classId === classData.classId && ref.instructorId === classData.instructorId
+        );
+        
+        return {
+          ...classData,
+          currentProgress: classReferral ? classReferral.redemptions || 0 : 0,
+        };
+      })
+    );
+  };
+
+  // Update progress whenever referral data changes
+  useEffect(() => {
+    if (myReferrals.length > 0) {
+      updateClassProgress();
+    }
+  }, [myReferrals]);
 
   // Copy referral link to clipboard
   const copyReferralLink = async (instructorId, classId, className, instructorName) => {
@@ -401,7 +435,7 @@ const fetchBookedClasses = async () => {
       referrerRewardType: currentClassSettings.referrerRewardType || "percentage",
       referrerRewardValue: currentClassSettings.referrerRewardValue || 15,
       maxRedemptions: currentClassSettings.maxRedemptions || 100,
-      expiryDays: currentClassSettings.expiryDays || 30,
+      powerPromotersThreshold: currentClassSettings.powerPromotersThreshold || 5,
     };
     
     await updateReferralSettings(classId, newSettings);
@@ -679,64 +713,153 @@ const fetchBookedClasses = async () => {
                   {bookedClasses.map((classData) => {
                     const linkKey = `${classData.classId}-${classData.instructorId}`;
                     const isCopied = copiedLinks[linkKey];
+                    const settings = classData.referralSettings || {};
+                    const currentProgress = classData.currentProgress || 0;
+                    const powerPromotersThreshold = settings.powerPromotersThreshold || 5;
+                    const progressPercentage = Math.min((currentProgress / powerPromotersThreshold) * 100, 100);
                     
                     return (
-                      <div key={classData.id} className="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
-                        <div className="flex items-center space-x-4 flex-1">
-                          <div className="flex-shrink-0">
-                            {classData.instructorImage ? (
-                              <img
-                                src={classData.instructorImage}
-                                alt={classData.instructorName}
-                                className="w-12 h-12 rounded-full object-cover border-2 border-gray-200"
-                              />
-                            ) : (
-                              <div className="w-12 h-12 bg-gray-300 rounded-full flex items-center justify-center border-2 border-gray-200">
-                                <span className="text-gray-600 font-medium text-sm">
-                                  {classData.instructorName.charAt(0)}
-                                </span>
+                      <div key={classData.id} className="border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+                        <div className="flex items-center justify-between p-4">
+                          <div className="flex items-center space-x-4 flex-1">
+                            <div className="flex-shrink-0">
+                              {classData.instructorImage ? (
+                                <img
+                                  src={classData.instructorImage}
+                                  alt={classData.instructorName}
+                                  className="w-12 h-12 rounded-full object-cover border-2 border-gray-200"
+                                />
+                              ) : (
+                                <div className="w-12 h-12 bg-gray-300 rounded-full flex items-center justify-center border-2 border-gray-200">
+                                  <span className="text-gray-600 font-medium text-sm">
+                                    {classData.instructorName.charAt(0)}
+                                  </span>
+                                </div>
+                              )}
+                            </div>
+                            <div className="flex-1">
+                              <h4 className="font-medium text-gray-900">{classData.className}</h4>
+                              <p className="text-sm text-gray-600">{classData.instructorName}</p>
+                              <p className="text-xs text-gray-500">
+                                Booked on {new Date(classData.createdAt?.seconds * 1000 || classData.createdAt).toLocaleDateString()}
+                              </p>
+                            </div>
+                          </div>
+                          <div className="flex flex-col items-end">
+                            {isCopied && (
+                              <div className="mb-1 text-xs text-green-600 font-medium">
+                                Copied!
                               </div>
                             )}
-                          </div>
-                          <div className="flex-1">
-                            <h4 className="font-medium text-gray-900">{classData.className}</h4>
-                            <p className="text-sm text-gray-600">{classData.instructorName}</p>
-                            <p className="text-xs text-gray-500">
-                              Booked on {new Date(classData.createdAt?.seconds * 1000 || classData.createdAt).toLocaleDateString()}
-                            </p>
+                            <button
+                              onClick={() => copyReferralLink(
+                                classData.instructorId,
+                                classData.classId,
+                                classData.className,
+                                classData.instructorName
+                              )}
+                              className={`flex items-center space-x-2 px-4 py-2 rounded-lg transition-colors ${
+                                isCopied 
+                                  ? 'bg-green-600 text-white' 
+                                  : 'bg-logo-red text-white hover:bg-logo-red/90'
+                              }`}
+                            >
+                              {isCopied ? (
+                                <>
+                                  <CheckIcon className="w-4 h-4" />
+                                  <span>Copied</span>
+                                </>
+                              ) : (
+                                <>
+                                  <ClipboardCopyIcon className="w-4 h-4" />
+                                  <span>Get Referral Link</span>
+                                </>
+                              )}
+                            </button>
                           </div>
                         </div>
-                        <div className="flex flex-col items-end">
-                          {isCopied && (
-                            <div className="mb-1 text-xs text-green-600 font-medium">
-                              Copied!
+                        
+                        {/* Benefits Section */}
+                        <div className="px-4 pb-4 border-t border-gray-100">
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-3">
+                            {/* What your friend gets */}
+                            <div className="bg-blue-50 rounded-lg p-3">
+                              <div className="flex items-center space-x-2 mb-2">
+                                <GiftIcon className="w-4 h-4 text-blue-600" />
+                                <span className="text-sm font-medium text-blue-900">Your Friend Gets</span>
+                              </div>
+                              <p className="text-sm text-blue-800">
+                                {settings.studentDiscountValue || 10}
+                                {settings.studentDiscountType === "percentage" ? "%" : "$"} off their first booking
+                              </p>
                             </div>
-                          )}
-                          <button
-                            onClick={() => copyReferralLink(
-                              classData.instructorId,
-                              classData.classId,
-                              classData.className,
-                              classData.instructorName
-                            )}
-                            className={`flex items-center space-x-2 px-4 py-2 rounded-lg transition-colors ${
-                              isCopied 
-                                ? 'bg-green-600 text-white' 
-                                : 'bg-logo-red text-white hover:bg-logo-red/90'
-                            }`}
-                          >
-                            {isCopied ? (
-                              <>
-                                <CheckIcon className="w-4 h-4" />
-                                <span>Copied</span>
-                              </>
-                            ) : (
-                              <>
-                                <ClipboardCopyIcon className="w-4 h-4" />
-                                <span>Get Referral Link</span>
-                              </>
-                            )}
-                          </button>
+                            
+                            {/* What you get */}
+                            <div className="bg-green-50 rounded-lg p-3">
+                              <div className="flex items-center space-x-2 mb-2">
+                                <CashIcon className="w-4 h-4 text-green-600" />
+                                <span className="text-sm font-medium text-green-900">You Get</span>
+                              </div>
+                              <p className="text-sm text-green-800">
+                                {settings.referrerRewardValue || 15}
+                                {settings.referrerRewardType === "percentage" ? "%" : "$"} reward per referral
+                              </p>
+                            </div>
+                          </div>
+                          
+                          {/* Power Promoters Progress */}
+                          <div className="mt-4">
+                            <div className="flex items-center justify-between mb-2">
+                              <span className="text-sm font-medium text-gray-700">
+                                Power Promoter Progress
+                              </span>
+                              <span className="text-sm text-gray-600">
+                                {currentProgress}/{powerPromotersThreshold}
+                              </span>
+                            </div>
+                            <div className="w-full bg-gray-200 rounded-full h-2">
+                              <div 
+                                className="bg-gradient-to-r from-yellow-400 to-yellow-600 h-2 rounded-full transition-all duration-300"
+                                style={{ width: `${progressPercentage}%` }}
+                              ></div>
+                            </div>
+                            <p className="text-xs text-gray-500 mt-1">
+                              {currentProgress >= powerPromotersThreshold 
+                                ? "🎉 Congratulations! You've earned a free class credit!" 
+                                : `${powerPromotersThreshold - currentProgress} more referrals to earn a free class credit`
+                              }
+                            </p>
+                              {/* {currentProgress >= powerPromotersThreshold && (
+                                <button
+                                  className="mt-3 px-4 py-2 bg-green-600 text-white rounded font-semibold hover:bg-green-700 transition-colors"
+                                  onClick={async () => {
+                                    try {
+                                      // Verify eligibility from backend
+                                      const res = await fetch('/api/referrals/verify-power-promoter', {
+                                        method: 'POST',
+                                        headers: { 'Content-Type': 'application/json' },
+                                        body: JSON.stringify({
+                                          userId: user.uid,
+                                          classId: classData.classId,
+                                          instructorId: classData.instructorId,
+                                        }),
+                                      });
+                                      const result = await res.json();
+                                      if (res.ok && result.eligible) {
+                                        // Redirect to booking page for free class
+                                        window.location.href = `/classes/${classData.classId}?freeClass=1`;
+                                      } else {
+                                        toast.error(result.error || 'Not eligible for free class.');
+                                      }
+                                    } catch (err) {
+                                      toast.error('Error verifying free class eligibility.');
+                                    }
+                                  }}
+                                >
+                                  Book Free Class
+                                </button>
+                              )} */}
+                          </div>
                         </div>
                       </div>
                     );

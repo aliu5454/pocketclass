@@ -119,18 +119,22 @@ const Settings = ({
                           />
                         </div>
 
-                        {/* Expiry Days */}
+                        {/* Power Promoters */}
                         <div className="space-y-2">
                           <label className="block text-sm font-medium text-gray-700">
-                            Expiry (Days)
+                            Power Promoters Threshold
                           </label>
                           <InputNumber
-                            value={classSettings.expiryDays || 30}
-                            onChange={(value) => updateClassSetting(classData.id, "expiryDays", value)}
+                            value={classSettings.powerPromotersThreshold || 5}
+                            onChange={(value) => updateClassSetting(classData.id, "powerPromotersThreshold", value)}
                             min={1}
-                            max={365}
+                            max={50}
                             style={{ width: "100%" }}
+                            placeholder="Referrals needed for bonus"
                           />
+                          <Text className="text-xs text-gray-500">
+                            Students get a free class credit after this many successful referrals
+                          </Text>
                         </div>
                       </div>
 
@@ -143,7 +147,7 @@ const Settings = ({
                             <ul className="space-y-1 text-xs">
                               <li>• Students get {classSettings.studentDiscountValue || 10}{classSettings.studentDiscountType === "percentage" ? "%" : "$"} off their first booking</li>
                               <li>• Referrers earn {classSettings.referrerRewardValue || 15}{classSettings.referrerRewardType === "percentage" ? "%" : "$"} for each successful referral</li>
-                              <li>• Referral links expire after {classSettings.expiryDays || 30} days</li>
+                              <li>• After {classSettings.powerPromotersThreshold || 5} successful referrals, students get a free class credit</li>
                               <li>• Maximum {classSettings.maxRedemptions || 100} redemptions allowed</li>
                             </ul>
                           </div>
