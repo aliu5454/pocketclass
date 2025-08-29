@@ -16,7 +16,8 @@ import {
   ChartBarIcon,
   UsersIcon,
   UserCircleIcon,
-  ChatIcon
+  ChatIcon,
+  GiftIcon
 } from '@heroicons/react/outline';
 import { SupportIcon, UserIcon } from '@heroicons/react/solid';
 import { icon } from '@fortawesome/fontawesome-svg-core';
@@ -138,6 +139,13 @@ const InstructorSideBar = () => {
       href: '/withdraw',
       icon: CreditCardIcon,
       active: router.pathname === '/withdraw'
+    },
+    {
+      name: 'Referral Program',
+      href: '/referrals',
+      icon: GiftIcon,
+      active: router.pathname === '/referrals',
+      premium: true // Mark as premium feature
     }
   ];
 
@@ -150,6 +158,13 @@ const InstructorSideBar = () => {
       active: router.pathname === '/analytics'
     });
   }
+
+  // Helper function to check if user has premium access
+  const isPremiumInstructor = () => {
+    if (!userData) return false;
+    const premiumExpire = userData.premiumExpire;
+    return premiumExpire && new Date(premiumExpire.seconds * 1000) >= new Date();
+  };
 
   return (
     <>
@@ -173,11 +188,17 @@ const InstructorSideBar = () => {
           <ul className="space-y-2">
             {menuItems.map((item, index) => {
               const Icon = item.icon;
+              
+              // Skip premium features if user doesn't have premium access
+              if (item.premium && !isPremiumInstructor()) {
+                return null;
+              }
+              
               return (
                 <li key={index}>
                   <Link href={item.href}>
                     <a
-                      className={`flex items-center space-x-3 px-4 py-3 rounded-lg transition-all duration-200 group ${
+                      className={`flex items-center space-x-3 px-4 py-3 rounded-lg transition-all duration-200 group relative ${
                         item.active
                           ? 'bg-[#E63F2B]/10 text-[#E63F2B] border-l-4 border-[#E63F2B]'
                           : 'text-gray-700 hover:bg-gray-50 hover:text-[#E63F2B]'
@@ -193,7 +214,7 @@ const InstructorSideBar = () => {
                   </Link>
                 </li>
               );
-            })}
+            }).filter(Boolean)}
           </ul>
         </nav>
 
