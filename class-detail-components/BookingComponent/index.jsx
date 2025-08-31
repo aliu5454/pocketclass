@@ -106,6 +106,9 @@ export default function index({
   const [freeClassEnabled, setFreeClassEnabled] = useState(false);
   const [powerPromoterFreeClass, setPowerPromoterFreeClass] = useState(false);
   const [powerPromoterUserId, setPowerPromoterUserId] = useState(null);
+  const [creditsToUse, setCreditsToUse] = useState(0);
+  const [userCredits, setUserCredits] = useState(0);
+  const [usingCredits, setUsingCredits] = useState(false);
 
   const hasCalendarConflict = (slotStart, slotEnd) => {
     const start = moment(slotStart, "YYYY-MM-DD HH:mm");
@@ -178,12 +181,42 @@ export default function index({
       const refCode = urlParams.get('ref') || router.query.ref;
       const freeClassParam = urlParams.get('freeClass') || router.query.freeClass;
       const powerPromoterParam = urlParams.get('powerPromoter') || router.query.powerPromoter;
+      const useCreditsParam = urlParams.get('useCredits') || router.query.useCredits;
+      const creditAmountParam = urlParams.get('creditAmount') || router.query.creditAmount;
       
       console.log("Checking referral code:", refCode); // Debug log
       console.log("Checking free class param:", freeClassParam); // Debug log
       console.log("Checking power promoter param:", powerPromoterParam); // Debug log
+      console.log("Checking use credits param:", useCreditsParam); // Debug log
+      console.log("Checking credit amount param:", creditAmountParam); // Debug log
       console.log("Current instructorId:", instructorId); // Debug log
       console.log("Current classId:", classId); // Debug log
+      
+      // Check for credit usage
+      if (useCreditsParam === '1' && creditAmountParam && user?.uid && classId && instructorId) {
+        console.log("Credit usage detected");
+        const creditAmount = parseFloat(creditAmountParam);
+        
+        if (!isNaN(creditAmount) && creditAmount > 0) {
+          setUsingCredits(true);
+          setUserCredits(creditAmount);
+          
+          // Calculate credits to use based on class price
+          const classPrice = selectedPackage?.Price ?? classData?.Price ?? 0;
+          const creditsToApply = Math.min(creditAmount, classPrice);
+          setCreditsToUse(creditsToApply);
+          
+          console.log(`Setting up credit usage: $${creditsToApply} out of $${creditAmount} available for class price $${classPrice}`);
+        }
+      }
+      
+      // Re-calculate credits to use when package or class changes
+      if (usingCredits && userCredits > 0) {
+        const currentPrice = selectedPackage?.Price ?? classData?.Price ?? 0;
+        const creditsToApply = Math.min(userCredits, currentPrice);
+        setCreditsToUse(creditsToApply);
+        console.log(`Updated credit usage: $${creditsToApply} for new price $${currentPrice}`);
+      }
       
       // Check for Power Promoter free class - wait for instructorId to be available
       if (freeClassParam === '1' && powerPromoterParam && user?.uid === powerPromoterParam) {
@@ -296,7 +329,7 @@ export default function index({
     if (router.isReady) {
       checkReferralCode();
     }
-  }, [router.isReady, router.query, isReferralApplied, instructorId]); // Added instructorId as dependency
+  }, [router.isReady, router.query, isReferralApplied, instructorId, selectedPackage, classData]); // Added selectedPackage and classData for credit recalculation
 
   useEffect(() => {
     const fetchInstructorData = async () => {
@@ -1234,6 +1267,10 @@ export default function index({
         const processingFee = (basePrice - voucherDiscount - referralDiscountAmount) * 0.029 + 0.8;
         return parseFloat((subtotal + processingFee).toFixed(2));
       })(),
+      // Credit information
+      creditsUsed: usingCredits ? creditsToUse : 0,
+      creditsApplied: usingCredits && creditsToUse > 0,
+      originalPriceBeforeCredits: usingCredits ? price + creditsToUse : price,
     };
 
     const bookingsRef = collection(db, "Bookings");
@@ -1297,6 +1334,41 @@ export default function index({
     }
 
     const bookingRef = await addDoc(collection(db, "Bookings"), bookingData);
+    
+    // Handle credit usage if applicable
+    if (usingCredits && creditsToUse > 0) {
+      try {
+        console.log(`Using $${creditsToUse} credits for booking ${bookingRef.id}`);
+        
+        const creditResponse = await fetch('/api/referrals/use-credits', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'useCredits',
+            userId: studentId,
+            classId: classId,
+            instructorId: instructorId,
+            bookingId: bookingRef.id,
+            amountUsed: creditsToUse,
+            totalClassPrice: selectedPackage?.Price ?? classData?.Price ?? 0,
+          }),
+        });
+        
+        const creditResult = await creditResponse.json();
+        
+        if (creditResponse.ok && creditResult.success) {
+          console.log('Credits successfully applied:', creditResult);
+          toast.success(`Applied $${creditResult.amountUsed.toFixed(2)} in credits to your booking!`);
+        } else {
+          console.error('Error applying credits:', creditResult.error);
+          toast.warn(`Booking successful, but failed to apply credits: ${creditResult.error}`);
+        }
+      } catch (error) {
+        console.error('Error processing credits:', error);
+        toast.warn('Booking successful, but failed to process credits.');
+      }
+    }
+    
     const classRef = doc(db, "classes", bookingData.class_id);
     const classSnapshot = await getDoc(classRef);
     const classData = classSnapshot.data();
@@ -1758,6 +1830,14 @@ END:VCALENDAR`.trim();
       }
     }
 
+    // Apply credits if using credits
+    let creditsApplied = 0;
+    if (usingCredits && creditsToUse > 0) {
+      creditsApplied = Math.min(creditsToUse, finalPrice);
+      finalPrice -= creditsApplied;
+      console.log("Applied credits:", creditsApplied, "New price:", finalPrice);
+    }
+
     const stripeFee = finalPrice * 0.029 + 0.8;
     const priceWithoutFee = finalPrice;
     finalPrice += stripeFee;
@@ -2033,9 +2113,48 @@ END:VCALENDAR`.trim();
 
         return parseFloat(total.toFixed(2));
       })(),
+      // Credit information
+      creditsUsed: usingCredits ? creditsToUse : 0,
+      creditsApplied: usingCredits && creditsToUse > 0,
+      originalPriceBeforeCredits: usingCredits ? finalPrice + creditsToUse : finalPrice,
     };
 
     const bookingRef = await addDoc(collection(db, "Bookings"), bookingData);
+    
+    // Handle credit usage if applicable
+    if (usingCredits && creditsToUse > 0) {
+      try {
+        console.log(`Using $${creditsToUse} credits for booking ${bookingRef.id}`);
+        
+        const creditResponse = await fetch('/api/referrals/use-credits', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'useCredits',
+            userId: studentId,
+            classId: classId,
+            instructorId: instructorId,
+            bookingId: bookingRef.id,
+            amountUsed: creditsToUse,
+            totalClassPrice: selectedPackage?.Price ?? classData?.Price ?? 0,
+          }),
+        });
+        
+        const creditResult = await creditResponse.json();
+        
+        if (creditResponse.ok && creditResult.success) {
+          console.log('Credits successfully applied:', creditResult);
+          toast.success(`Applied $${creditResult.amountUsed.toFixed(2)} in credits to your booking!`);
+        } else {
+          console.error('Error applying credits:', creditResult.error);
+          toast.warn(`Booking successful, but failed to apply credits: ${creditResult.error}`);
+        }
+      } catch (error) {
+        console.error('Error processing credits:', error);
+        toast.warn('Booking successful, but failed to process credits.');
+      }
+    }
+    
     console.log("Final Price:", finalPrice);
 
     const response = await fetch("/api/create-stripe-session", {
@@ -2747,6 +2866,18 @@ END:VCALENDAR`.trim();
                   </>
                 )}
 
+                {/* Show credits applied if using credits */}
+                {usingCredits && creditsToUse > 0 && (
+                  <div className="flex flex-row w-full justify-between">
+                    <p>
+                      <strong>Credits Applied:</strong>
+                    </p>
+                    <p style={{ color: "#16a34a" }}>
+                      -${creditsToUse.toFixed(2)}
+                    </p>
+                  </div>
+                )}
+
                 {/* Update Total to include processing fee */}
                 <div className="flex flex-row w-full justify-between border-t pt-2 mt-2 font-bold text-lg">
                   <p>
@@ -2787,7 +2918,12 @@ END:VCALENDAR`.trim();
 
                         const subtotal = basePrice - voucherDiscount - referralDiscountAmount;
                         const processingFee = subtotal * 0.029 + 0.8;
-                        const total = subtotal + processingFee;
+                        let total = subtotal + processingFee;
+                        
+                        // Apply credits if using credits
+                        if (usingCredits && creditsToUse > 0) {
+                          total = Math.max(0, total - creditsToUse);
+                        }
 
                         return total.toFixed(2);
                       })()}

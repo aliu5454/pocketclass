@@ -61,6 +61,7 @@ export default function ReferralsPage() {
   });
   const [savingSettings, setSavingSettings] = useState(false);
   const [copiedLinks, setCopiedLinks] = useState({});
+  const [userCredits, setUserCredits] = useState({}); // Store credits from Firestore
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -174,6 +175,7 @@ const fetchBookedClasses = async () => {
           id: bookingDoc.id,
           ...booking,
           className: classData?.Name || "Unknown Class",
+          classPrice: classData?.Price || 0, // Add class price for credits calculation
           instructorName: instructorData
             ? `${instructorData.firstName} ${instructorData.lastName}`
             : "Unknown Instructor",
@@ -331,6 +333,66 @@ const fetchBookedClasses = async () => {
     }
   };
 
+  // Fetch user credits from Firestore
+  const fetchUserCredits = async (currentReferrals = null) => {
+    if (!user?.uid) return;
+
+    try {
+      console.log("Fetching user credits from Firestore...");
+      
+      const response = await fetch(`/api/referrals/get-credits?userId=${user.uid}`);
+      const result = await response.json();
+      
+      if (response.ok && result.success) {
+        console.log("User credits fetched:", result.allCredits);
+        setUserCredits(result.allCredits);
+        
+        // Use passed referrals or current state, and only migrate if we have referrals
+        const referralsToCheck = currentReferrals !== null ? currentReferrals : myReferrals;
+        if (Object.keys(result.allCredits).length === 0 && referralsToCheck.length > 0) {
+          console.log("No credits found, attempting migration...");
+          await migrateExistingCredits();
+        }
+      } else {
+        console.error("Error fetching credits:", result.error);
+      }
+    } catch (error) {
+      console.error("Error fetching user credits:", error);
+    }
+  };
+
+  // Migrate existing referral data to credits system
+  const migrateExistingCredits = async () => {
+    if (!user?.uid) return;
+
+    try {
+      console.log("Migrating existing credits for user:", user.uid);
+      
+      const response = await fetch('/api/referrals/update-credits', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'migrateExistingCredits',
+          referrerId: user.uid,
+        }),
+      });
+      
+      const result = await response.json();
+      
+      if (response.ok && result.success) {
+        console.log("Credits migrated successfully:", result);
+        toast.success(`Migrated $${result.migratedCredits.toFixed(2)} in credits from your existing referrals!`);
+        
+        // Refresh credits after migration
+        await fetchUserCredits();
+      } else {
+        console.error("Error migrating credits:", result.error);
+      }
+    } catch (error) {
+      console.error("Error migrating credits:", error);
+    }
+  };
+
   useEffect(() => {
     if (user && userData) {
       if (userData.isInstructor && currentView === "instructor") {
@@ -340,8 +402,8 @@ const fetchBookedClasses = async () => {
         const fetchStudentData = async () => {
           await fetchBookedClasses();
           await fetchStudentReferralData();
-          // After both are fetched, update progress
-          updateClassProgress();
+          await fetchUserCredits(); // Fetch credits from Firestore
+          // Progress will be updated by useEffect when myReferrals changes
         };
         fetchStudentData();
       }
@@ -349,9 +411,9 @@ const fetchBookedClasses = async () => {
   }, [user, userData, currentView]);
 
   // Function to update class progress after referral data is fetched
-  const updateClassProgress = () => {
+  const updateClassProgress = (referralsData = myReferrals) => {
     console.log('Updating class progress for bookedClasses:', bookedClasses);
-    console.log('Using myReferrals:', myReferrals);
+    console.log('Using referralsData:', referralsData);
     
     setBookedClasses(prevClasses => 
       prevClasses.map(classData => {
@@ -361,7 +423,7 @@ const fetchBookedClasses = async () => {
           className: classData.className
         });
         
-        const classReferral = myReferrals.find(
+        const classReferral = referralsData.find(
           ref => ref.classId === classData.classId && ref.instructorId === classData.instructorId
         );
         
@@ -388,12 +450,27 @@ const fetchBookedClasses = async () => {
     );
   };
 
-  // Update progress whenever referral data changes
+  // Combined effect to handle progress updates and credit fetching
   useEffect(() => {
-    if (myReferrals.length > 0) {
-      updateClassProgress();
+    console.log('=== Combined Effect Triggered ===');
+    console.log('myReferrals length:', myReferrals.length);
+    console.log('bookedClasses length:', bookedClasses.length);
+    console.log('First few referrals:', myReferrals.slice(0, 2));
+    
+    // Only update if we have booked classes
+    if (bookedClasses.length > 0) {
+      console.log('Has booked classes, updating progress...');
+      updateClassProgress(myReferrals);
     }
-  }, [myReferrals]);
+  }, [myReferrals, bookedClasses]);
+
+  // Separate effect for credits to avoid infinite loops
+  useEffect(() => {
+    if (myReferrals.length > 0 && user?.uid) {
+      console.log('Fetching credits separately...');
+      fetchUserCredits(myReferrals);
+    }
+  }, [myReferrals.length]); // Only depend on length to avoid re-fetching on every referral update
 
   // Copy referral link to clipboard
   const copyReferralLink = async (instructorId, classId, className, instructorName) => {
@@ -430,8 +507,9 @@ const fetchBookedClasses = async () => {
         
         toast.success(`Referral link copied for ${className} with ${instructorName}!`);
         
-        // Refresh referral data
+        // Refresh referral data and credits
         fetchStudentReferralData();
+        fetchUserCredits();
       } else {
         toast.error(result.error || 'Failed to generate referral link');
       }
@@ -855,7 +933,7 @@ const fetchBookedClasses = async () => {
                         
                         {/* Benefits Section */}
                         <div className="px-4 pb-4 border-t border-gray-100">
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-3">
+                          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-3">
                             {/* What your friend gets */}
                             <div className="bg-blue-50 rounded-lg p-3">
                               <div className="flex items-center space-x-2 mb-2">
@@ -878,6 +956,47 @@ const fetchBookedClasses = async () => {
                                 {settings.referrerRewardValue || 15}
                                 {settings.referrerRewardType === "percentage" ? "%" : "$"} reward per referral
                               </p>
+                            </div>
+
+                            {/* Your Credits */}
+                            <div className="bg-purple-50 rounded-lg p-3">
+                              <div className="flex items-center space-x-2 mb-2">
+                                <TicketIcon className="w-4 h-4 text-purple-600" />
+                                <span className="text-sm font-medium text-purple-900">Your Credits</span>
+                              </div>
+                              <p className="text-sm text-purple-800 mb-2">
+                                {(() => {
+                                  // Get credits from Firestore for this specific class
+                                  const creditKey = `${classData.classId}_${classData.instructorId}`;
+                                  const classCredits = userCredits[creditKey];
+                                  
+                                  if (classCredits && classCredits.availableCredits > 0) {
+                                    return `$${classCredits.availableCredits.toFixed(2)} available for this class`;
+                                  } else {
+                                    return "No credits yet - refer friends to earn!";
+                                  }
+                                })()}
+                              </p>
+                              {(() => {
+                                // Show Use Credits button if user has credits > 0
+                                const creditKey = `${classData.classId}_${classData.instructorId}`;
+                                const classCredits = userCredits[creditKey];
+                                
+                                if (classCredits && classCredits.availableCredits > 0) {
+                                  return (
+                                    <button
+                                      onClick={() => {
+                                        // Redirect to class booking page with credits flag
+                                        window.location.href = `/classes/${classData.classId}?useCredits=1&creditAmount=${classCredits.availableCredits}`;
+                                      }}
+                                      className="w-full bg-purple-600 text-white text-xs font-medium py-2 px-3 rounded-lg hover:bg-purple-700 transition-colors"
+                                    >
+                                      Use Credits
+                                    </button>
+                                  );
+                                }
+                                return null;
+                              })()}
                             </div>
                           </div>
                           
@@ -941,7 +1060,7 @@ const fetchBookedClasses = async () => {
                                       toast.error('Error verifying free class eligibility.');
                                     }
                                   }}
-                                  className="w-full bg-gradient-to-r from-yellow-400 to-yellow-600 text-white font-semibold py-2 px-4 rounded-lg hover:from-yellow-500 hover:to-yellow-700 transition-all duration-200 transform hover:scale-105"
+                                  className="w-full bg-gradient-to-r from-green-400 to-green-600 text-white font-semibold py-2 px-4 rounded-lg hover:from-yellow-500 hover:to-yellow-700 transition-all duration-200 transform hover:scale-105"
                                 >
                                   🎁 Book Your Free Class
                                 </button>

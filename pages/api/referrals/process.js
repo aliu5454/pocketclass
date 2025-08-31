@@ -9,6 +9,7 @@ import {
   query,
   where,
   increment,
+  writeBatch,
 } from "firebase/firestore";
 
 export default async function handler(req, res) {
@@ -245,7 +246,22 @@ async function processRedemption(req, res, { couponCode, bookingId, paymentAmoun
         redeemedAt: new Date(),
       });
 
-      // Add reward to referrer's credits
+      // Add class-specific credits for the referrer
+      try {
+        await addClassSpecificCredits({
+          referrerId: couponData.referrerId,
+          classId: couponData.classId,
+          instructorId: couponData.instructorId,
+          bookingId: bookingId,
+          creditAmount: referrerReward,
+        });
+        console.log("Successfully added class-specific credits:", referrerReward);
+      } catch (creditError) {
+        console.error("Error adding class-specific credits:", creditError);
+        // Don't fail the main process if credits update fails
+      }
+
+      // Add reward to referrer's credits (global credits - keeping for backward compatibility)
       const userRef = doc(db, "Users", couponData.referrerId);
       const userDoc = await getDoc(userRef);
 
@@ -399,5 +415,62 @@ async function claimFreeClass(req, res, { userId, classId, instructorId, booking
   } catch (error) {
     console.error("Error claiming free class:", error);
     return res.status(500).json({ error: "Error claiming free class" });
+  }
+}
+
+// Helper function to add class-specific credits
+async function addClassSpecificCredits({ referrerId, classId, instructorId, bookingId, creditAmount }) {
+  try {
+    const batch = writeBatch(db);
+
+    // Create unique credit document ID
+    const creditId = `${referrerId}_${classId}_${instructorId}`;
+    const creditsRef = doc(db, "UserCredits", creditId);
+
+    // Check if credits document exists
+    const creditsDoc = await getDoc(creditsRef);
+    
+    if (creditsDoc.exists()) {
+      // Update existing credits
+      batch.update(creditsRef, {
+        totalCredits: increment(creditAmount),
+        availableCredits: increment(creditAmount),
+        lastUpdated: new Date(),
+        lastBookingId: bookingId,
+      });
+    } else {
+      // Create new credits document
+      batch.set(creditsRef, {
+        userId: referrerId,
+        classId: classId,
+        instructorId: instructorId,
+        totalCredits: creditAmount,
+        availableCredits: creditAmount,
+        usedCredits: 0,
+        createdAt: new Date(),
+        lastUpdated: new Date(),
+        lastBookingId: bookingId,
+      });
+    }
+
+    // Also create a credit transaction record
+    const transactionRef = doc(collection(db, "CreditTransactions"));
+    batch.set(transactionRef, {
+      userId: referrerId,
+      classId: classId,
+      instructorId: instructorId,
+      bookingId: bookingId,
+      type: "earned", // earned, used, expired
+      amount: creditAmount,
+      createdAt: new Date(),
+      description: `Credits earned from referral booking`,
+    });
+
+    await batch.commit();
+    console.log("Class-specific credits added successfully");
+
+  } catch (error) {
+    console.error("Error adding class-specific credits:", error);
+    throw error;
   }
 }
