@@ -95,6 +95,20 @@ const ClassDetails = ({ classData }) => {
           classId: classId,
         }));
       } else {
+        // Check if we should redirect (own referral code case)
+        if (result.shouldRedirect && result.redirectUrl) {
+          console.log('Redirecting due to own referral code');
+          toast.info("You cannot use your own referral code. Redirecting...", {
+            position: "top-center",
+            autoClose: 2000,
+          });
+          // Use router.replace to avoid adding to browser history
+          setTimeout(() => {
+            router.replace(result.redirectUrl);
+          }, 1000);
+          return;
+        }
+        
         console.warn('Invalid referral code:', result.error);
         toast.warn(`Referral code issue: ${result.error}`, {
           position: "top-center",

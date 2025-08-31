@@ -139,6 +139,17 @@ const fetchBookedClasses = async () => {
         const booking = bookingDoc.data();
         console.log("Processing booking:", { id: bookingDoc.id, ...booking });
 
+        // Validate required fields
+        if (!booking.class_id) {
+          console.warn("Booking missing class_id:", bookingDoc.id);
+          return null;
+        }
+        
+        if (!booking.instructor_id) {
+          console.warn("Booking missing instructor_id:", bookingDoc.id);
+          return null;
+        }
+
         // Get class details using correct field name
         const classDoc = await getDoc(doc(db, "classes", booking.class_id));
         const classData = classDoc.exists() ? classDoc.data() : null;
@@ -173,7 +184,15 @@ const fetchBookedClasses = async () => {
           referralSettings, // Add referral settings for this class
         };
       })
-    );
+    ).then(results => results.filter(result => result !== null)); // Filter out null values
+
+    console.log("Classes with details (before filtering):", classesWithDetails.map(c => ({
+      id: c.id,
+      classId: c.classId,
+      instructorId: c.instructorId,
+      className: c.className,
+      instructorName: c.instructorName
+    })));
 
     // Filter to only show classes with active referrals
     const classesWithActiveReferrals = classesWithDetails.filter(classData => classData.isReferralActive);
@@ -182,16 +201,35 @@ const fetchBookedClasses = async () => {
     const uniqueClasses = classesWithActiveReferrals.reduce((acc, current) => {
       const key = `${current.classId}-${current.instructorId}`;
       
+      console.log("Processing deduplication for:", {
+        key,
+        classId: current.classId,
+        instructorId: current.instructorId,
+        className: current.className
+      });
+      
       // If we haven't seen this class-instructor combination before, add it
       if (!acc.some(item => `${item.classId}-${item.instructorId}` === key)) {
-        acc.push({
+        const processedClass = {
           ...current,
           currentProgress: 0, // Initialize with 0, will be updated later
-        });
+        };
+        
+        console.log("Adding to unique classes:", processedClass);
+        acc.push(processedClass);
+      } else {
+        console.log("Skipping duplicate class-instructor combination:", key);
       }
       
       return acc;
     }, []);
+
+    console.log("Final unique classes:", uniqueClasses.map(c => ({
+      id: c.id,
+      classId: c.classId,
+      instructorId: c.instructorId,
+      className: c.className
+    })));
 
     console.log("Classes with active referrals (before dedup):", classesWithActiveReferrals.length);
     console.log("Unique classes with active referrals:", uniqueClasses.length);
@@ -312,16 +350,40 @@ const fetchBookedClasses = async () => {
 
   // Function to update class progress after referral data is fetched
   const updateClassProgress = () => {
+    console.log('Updating class progress for bookedClasses:', bookedClasses);
+    console.log('Using myReferrals:', myReferrals);
+    
     setBookedClasses(prevClasses => 
       prevClasses.map(classData => {
+        console.log('Processing class data:', {
+          classId: classData.classId,
+          instructorId: classData.instructorId,
+          className: classData.className
+        });
+        
         const classReferral = myReferrals.find(
           ref => ref.classId === classData.classId && ref.instructorId === classData.instructorId
         );
         
-        return {
+        console.log('Found matching referral:', classReferral);
+        
+        const currentProgress = classReferral ? classReferral.redemptions || 0 : 0;
+        const freeClassesClaimed = classReferral ? classReferral.freeClassesClaimed || 0 : 0;
+        const powerPromotersThreshold = classData.referralSettings?.powerPromotersThreshold || 5;
+        
+        // Calculate the effective threshold based on free classes claimed
+        const effectiveThreshold = powerPromotersThreshold * (freeClassesClaimed + 1);
+        
+        const result = {
           ...classData,
-          currentProgress: classReferral ? classReferral.redemptions || 0 : 0,
+          currentProgress,
+          freeClassesClaimed,
+          effectiveThreshold,
+          isEligibleForFreeClass: currentProgress >= effectiveThreshold && freeClassesClaimed < Math.floor(currentProgress / powerPromotersThreshold),
         };
+        
+        console.log('Updated class data:', result);
+        return result;
       })
     );
   };
@@ -711,12 +773,24 @@ const fetchBookedClasses = async () => {
               {bookedClasses.length > 0 ? (
                 <div className="space-y-4">
                   {bookedClasses.map((classData) => {
+                    console.log('Rendering class data:', classData);
+                    
                     const linkKey = `${classData.classId}-${classData.instructorId}`;
                     const isCopied = copiedLinks[linkKey];
                     const settings = classData.referralSettings || {};
                     const currentProgress = classData.currentProgress || 0;
+                    const freeClassesClaimed = classData.freeClassesClaimed || 0;
                     const powerPromotersThreshold = settings.powerPromotersThreshold || 5;
-                    const progressPercentage = Math.min((currentProgress / powerPromotersThreshold) * 100, 100);
+                    const effectiveThreshold = classData.effectiveThreshold || powerPromotersThreshold;
+                    const isEligibleForFreeClass = classData.isEligibleForFreeClass || false;
+                    const progressPercentage = Math.min((currentProgress / effectiveThreshold) * 100, 100);
+                    
+                    console.log('Button visibility conditions:', {
+                      isEligibleForFreeClass,
+                      classId: classData.classId,
+                      instructorId: classData.instructorId,
+                      userId: user?.uid
+                    });
                     
                     return (
                       <div key={classData.id} className="border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
@@ -814,7 +888,7 @@ const fetchBookedClasses = async () => {
                                 Power Promoter Progress
                               </span>
                               <span className="text-sm text-gray-600">
-                                {currentProgress}/{powerPromotersThreshold}
+                                {currentProgress}/{effectiveThreshold}
                               </span>
                             </div>
                             <div className="w-full bg-gray-200 rounded-full h-2">
@@ -824,18 +898,26 @@ const fetchBookedClasses = async () => {
                               ></div>
                             </div>
                             <p className="text-xs text-gray-500 mt-1">
-                              {currentProgress >= powerPromotersThreshold 
+                              {isEligibleForFreeClass
                                 ? "🎉 Congratulations! You've earned a free class credit!" 
-                                : `${powerPromotersThreshold - currentProgress} more referrals to earn a free class credit`
+                                : `${effectiveThreshold - currentProgress} more referrals to earn a free class credit`
                               }
+                              {freeClassesClaimed > 0 && (
+                                <span className="block mt-1 text-yellow-600 font-medium">
+                                  🏆 Free classes claimed: {freeClassesClaimed}
+                                </span>
+                              )}
                             </p>
-                              {/* {currentProgress >= powerPromotersThreshold && (
+                            
+                            {/* Free Class Button */}
+                            {isEligibleForFreeClass && (
+                              <div className="mt-3">
                                 <button
-                                  className="mt-3 px-4 py-2 bg-green-600 text-white rounded font-semibold hover:bg-green-700 transition-colors"
                                   onClick={async () => {
                                     try {
+                                      
                                       // Verify eligibility from backend
-                                      const res = await fetch('/api/referrals/verify-power-promoter', {
+                                      const res = await fetch('/api/referrals/verify-free-class', {
                                         method: 'POST',
                                         headers: { 'Content-Type': 'application/json' },
                                         body: JSON.stringify({
@@ -844,21 +926,27 @@ const fetchBookedClasses = async () => {
                                           instructorId: classData.instructorId,
                                         }),
                                       });
+                                      
                                       const result = await res.json();
+                                      console.log('Free class verification result:', result);
+                                      
                                       if (res.ok && result.eligible) {
-                                        // Redirect to booking page for free class
-                                        window.location.href = `/classes/${classData.classId}?freeClass=1`;
+                                        // Redirect to booking page with free class flag
+                                        window.location.href = `/classes/${classData.classId}?freeClass=1&powerPromoter=${user.uid}`;
                                       } else {
                                         toast.error(result.error || 'Not eligible for free class.');
                                       }
                                     } catch (err) {
+                                      console.error('Error verifying free class eligibility:', err);
                                       toast.error('Error verifying free class eligibility.');
                                     }
                                   }}
+                                  className="w-full bg-gradient-to-r from-yellow-400 to-yellow-600 text-white font-semibold py-2 px-4 rounded-lg hover:from-yellow-500 hover:to-yellow-700 transition-all duration-200 transform hover:scale-105"
                                 >
-                                  Book Free Class
+                                  🎁 Book Your Free Class
                                 </button>
-                              )} */}
+                              </div>
+                            )}
                           </div>
                         </div>
                       </div>

@@ -184,6 +184,12 @@ export const useReferral = (classId) => {
         setReferralData(result.referralData);
         return true;
       } else {
+        // Check if we should redirect (own referral code case)
+        if (result.shouldRedirect && result.redirectUrl) {
+          // Return a special object to indicate redirect needed
+          return { shouldRedirect: true, redirectUrl: result.redirectUrl, error: result.error };
+        }
+        
         console.warn('Invalid referral code:', result.error);
         return false;
       }

@@ -104,6 +104,8 @@ export default function index({
   const [grouped, setGrouped] = useState(false);
   const [giftCardValue, setGiftcardValue] = useState(0);
   const [freeClassEnabled, setFreeClassEnabled] = useState(false);
+  const [powerPromoterFreeClass, setPowerPromoterFreeClass] = useState(false);
+  const [powerPromoterUserId, setPowerPromoterUserId] = useState(null);
 
   const hasCalendarConflict = (slotStart, slotEnd) => {
     const start = moment(slotStart, "YYYY-MM-DD HH:mm");
@@ -174,27 +176,106 @@ export default function index({
     const checkReferralCode = async () => {
       const urlParams = new URLSearchParams(window.location.search);
       const refCode = urlParams.get('ref') || router.query.ref;
+      const freeClassParam = urlParams.get('freeClass') || router.query.freeClass;
+      const powerPromoterParam = urlParams.get('powerPromoter') || router.query.powerPromoter;
       
       console.log("Checking referral code:", refCode); // Debug log
+      console.log("Checking free class param:", freeClassParam); // Debug log
+      console.log("Checking power promoter param:", powerPromoterParam); // Debug log
+      console.log("Current instructorId:", instructorId); // Debug log
+      console.log("Current classId:", classId); // Debug log
+      
+      // Check for Power Promoter free class - wait for instructorId to be available
+      if (freeClassParam === '1' && powerPromoterParam && user?.uid === powerPromoterParam) {
+        console.log("Power Promoter free class detected");
+        
+        // Wait for instructorId to be available before proceeding
+        if (!instructorId) {
+          console.log("InstructorId not available yet, waiting...");
+          return; // Exit early, will retry when instructorId becomes available
+        }
+        
+        setPowerPromoterFreeClass(true);
+        setPowerPromoterUserId(powerPromoterParam);
+        
+        // Verify eligibility
+        try {
+          console.log("Sending verification request with:", {
+            userId: powerPromoterParam,
+            classId: classId,
+            instructorId: instructorId
+          });
+          
+          const response = await fetch('/api/referrals/verify-free-class', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              userId: powerPromoterParam,
+              classId: classId,
+              instructorId: instructorId
+            })
+          });
+          
+          const data = await response.json();
+          
+          if (!response.ok || !data.eligible) {
+            console.log("Power Promoter not eligible:", data.error);
+            setPowerPromoterFreeClass(false);
+            setPowerPromoterUserId(null);
+            toast.error(data.error || "Not eligible for free class");
+            // Remove parameters from URL
+            window.history.replaceState({}, '', window.location.pathname);
+            return;
+          }
+          
+          console.log("Power Promoter eligibility verified:", data);
+          toast.success("🎉 Your free class has been activated!");
+          
+        } catch (error) {
+          console.error("Error verifying Power Promoter eligibility:", error);
+          setPowerPromoterFreeClass(false);
+          setPowerPromoterUserId(null);
+          toast.error("Error verifying free class eligibility");
+        }
+      }
       
       if (refCode && !isReferralApplied) {
         try {
-          const response = await fetch('/api/validate-referral', {
+          const response = await fetch('/api/referrals/process', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ referralCode: refCode })
+            body: JSON.stringify({ 
+              action: 'validateReferral',
+              referralCode: refCode,
+              userId: user?.uid,
+              classId: classId
+            })
           });
           
           const data = await response.json();
           console.log("Referral validation response:", data); // Debug log
           
-          if (response.ok && data.success) {
+          if (response.ok && data.valid) {
             setReferralCode(refCode);
-            setReferralDiscount(parseFloat(data.discount) || 10); // Ensure it's a number
+            setReferralDiscount(parseFloat(data.discountValue) || 10); // Ensure it's a number
             setReferralDiscountType(data.discountType || "percentage");
             setIsReferralApplied(true);
             console.log("Referral applied successfully:", data); // Debug log
           } else {
+            // Check if we should redirect (own referral code case)
+            if (data.shouldRedirect && data.redirectUrl) {
+              console.log('Redirecting due to own referral code');
+              toast.info("You cannot use your own referral code. Redirecting...", {
+                position: "top-center",
+                autoClose: 2000,
+              });
+              // Use window.location.replace to avoid adding to browser history
+              setTimeout(() => {
+                window.location.replace(data.redirectUrl);
+              }, 1000);
+              return;
+            }
+            
             console.log("Referral validation failed:", data.error);
           }
         } catch (error) {
@@ -215,7 +296,7 @@ export default function index({
     if (router.isReady) {
       checkReferralCode();
     }
-  }, [router.isReady, router.query, isReferralApplied]);
+  }, [router.isReady, router.query, isReferralApplied, instructorId]); // Added instructorId as dependency
 
   useEffect(() => {
     const fetchInstructorData = async () => {
@@ -1445,6 +1526,45 @@ END:VCALENDAR`.trim();
     setStripeOptions(null);
     toast.success("Booking confirmed!");
     setDisplayConfirmation(false);
+    
+    // Handle Power Promoter free class claim
+    if (powerPromoterFreeClass && powerPromoterUserId) {
+      try {
+        console.log("Claiming Power Promoter free class for booking:", bookingRef.id);
+        
+        const claimResponse = await fetch('/api/referrals/process', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'claimFreeClass',
+            userId: powerPromoterUserId,
+            classId: classId,
+            instructorId: instructorId,
+            bookingId: bookingRef.id,
+          }),
+        });
+        
+        const claimResult = await claimResponse.json();
+        
+        if (claimResponse.ok && claimResult.success) {
+          console.log("Power Promoter free class claimed successfully:", claimResult);
+          toast.success("🎉 Free class claimed! Your next threshold is " + claimResult.nextThreshold + " referrals.", {
+            position: "top-center",
+            autoClose: 5000,
+          });
+          
+          // Clear URL parameters
+          window.history.replaceState({}, '', window.location.pathname);
+        } else {
+          console.error("Failed to claim Power Promoter free class:", claimResult.error);
+          toast.warn("Booking confirmed but failed to process free class claim: " + claimResult.error);
+        }
+      } catch (error) {
+        console.error("Error claiming Power Promoter free class:", error);
+        toast.warn("Booking confirmed but failed to process free class claim.");
+      }
+    }
+    
     router.push(`/confirmBooking/${bookingRef.id}`);
     setStripeLoading(false);
     setBookLoading(false);
@@ -1705,9 +1825,9 @@ END:VCALENDAR`.trim();
       return;
     }
 
-    if (freeClassEnabled && selectedPackage === null) {
+    if ((freeClassEnabled || powerPromoterFreeClass) && selectedPackage === null) {
       setBookLoading(true);
-      handleSubmit(0, "FreeClass-NoIntent");
+      handleSubmit(0, powerPromoterFreeClass ? "PowerPromoter-NoIntent" : "FreeClass-NoIntent");
       setStripeLoading(false);
       return;
     }
@@ -2397,9 +2517,13 @@ END:VCALENDAR`.trim();
                     </strong>
                   </p>
                   <div className="flex items-center">
-                    {freeClassEnabled && selectedPackage == null ? (
-                      <span className="ml-2 px-2 py-1 bg-green-100 text-green-800 text-xs font-medium rounded-full">
-                        First Class Free!
+                    {(freeClassEnabled || powerPromoterFreeClass) && selectedPackage == null ? (
+                      <span className={`ml-2 px-2 py-1 text-xs font-medium rounded-full ${
+                        powerPromoterFreeClass 
+                          ? 'bg-gradient-to-r from-yellow-100 to-yellow-200 text-yellow-800' 
+                          : 'bg-green-100 text-green-800'
+                      }`}>
+                        {powerPromoterFreeClass ? '🎁 Power Promoter Free Class!' : 'First Class Free!'}
                       </span>
                     ) : (
                       <p>
@@ -2507,7 +2631,7 @@ END:VCALENDAR`.trim();
                 )}
 
                 {/* Add Subtotal */}
-                {(!freeClassEnabled || selectedPackage != null) && (
+                {(!(freeClassEnabled || powerPromoterFreeClass) || selectedPackage != null) && (
                   <>
                     <div className="flex flex-row w-full justify-between border-t pt-2 mt-2">
                       <p>
@@ -2629,7 +2753,7 @@ END:VCALENDAR`.trim();
                     <strong>Total:</strong>
                   </p>
 
-                  {freeClassEnabled && selectedPackage == null ? (
+                  {(freeClassEnabled || powerPromoterFreeClass) && selectedPackage == null ? (
                     <span className="ml-2 px-2 py-1 bg-green-100 text-green-800 text-xs font-medium rounded-full">
                       First Class Free!
                     </span>

@@ -28,6 +28,8 @@ export default async function handler(req, res) {
         return await processRedemption(req, res, data);
       case "trackClick":
         return await trackClick(req, res, data);
+      case "claimFreeClass":
+        return await claimFreeClass(req, res, data);
       default:
         return res.status(400).json({ message: "Invalid action" });
     }
@@ -66,25 +68,30 @@ async function validateReferral(req, res, { referralCode, userId, classId }) {
     }
 
     if (referralData.referrerId === userId) {
-      return res.status(400).json({ valid: false, error: "You cannot use your own referral code" });
+      return res.status(200).json({ 
+        valid: false, 
+        error: "You cannot use your own referral code",
+        shouldRedirect: true,
+        redirectUrl: `/classes/${classId}`
+      });
     }
 
     if (referralData.redemptions >= referralData.maxRedemptions) {
       return res.status(400).json({ valid: false, error: "This referral code has reached its usage limit" });
     }
 
-    // Check if user has already used a referral for this instructor
-    const redemptionsRef = collection(db, "ReferralRedemptions");
-    const existingQuery = query(
-      redemptionsRef,
-      where("userId", "==", userId),
-      where("instructorId", "==", referralData.instructorId)
-    );
+    // Check if user has already used a referral for this class
+    // const redemptionsRef = collection(db, "ReferralRedemptions");
+    // const existingQuery = query(
+    //   redemptionsRef,
+    //   where("userId", "==", userId),
+    //   where("classId", "==", referralData.classId)
+    // );
 
-    const existingRedemptions = await getDocs(existingQuery);
-    if (!existingRedemptions.empty) {
-      return res.status(400).json({ valid: false, error: "You have already used a referral for this instructor" });
-    }
+    // const existingRedemptions = await getDocs(existingQuery);
+    // if (!existingRedemptions.empty) {
+    //   return res.status(400).json({ valid: false, error: "You have already used a referral for this class" });
+    // }
 
     // Track the click
     await updateDoc(referralDoc.ref, {
@@ -297,5 +304,100 @@ async function trackClick(req, res, { referralCode }) {
   } catch (error) {
     console.error("Error tracking referral click:", error);
     return res.status(500).json({ error: "Error tracking click" });
+  }
+}
+
+// Claim free class and update threshold
+async function claimFreeClass(req, res, { userId, classId, instructorId, bookingId }) {
+  try {
+    if (!userId || !classId || !instructorId || !bookingId) {
+      return res.status(400).json({ 
+        error: "Missing required fields: userId, classId, instructorId, bookingId" 
+      });
+    }
+
+    // Get the user's referral data for this class
+    const referralsRef = collection(db, "Referrals");
+    const userReferralQuery = query(
+      referralsRef,
+      where("referrerId", "==", userId),
+      where("classId", "==", classId),
+      where("instructorId", "==", instructorId)
+    );
+
+    const userReferralSnapshot = await getDocs(userReferralQuery);
+    
+    if (userReferralSnapshot.empty) {
+      return res.status(404).json({ error: "No referral data found for this class" });
+    }
+
+    const referralDoc = userReferralSnapshot.docs[0];
+    const referralData = referralDoc.data();
+
+    // Get referral settings to check threshold
+    const settingsDoc = await getDoc(doc(db, "ReferralSettings", instructorId));
+    if (!settingsDoc.exists()) {
+      return res.status(404).json({ error: "Referral settings not found" });
+    }
+
+    const settings = settingsDoc.data();
+    const classSettings = settings.classes?.[classId];
+    const powerPromotersThreshold = classSettings?.powerPromotersThreshold || 5;
+
+    const currentProgress = referralData.redemptions || 0;
+    const currentFreeClassesClaimed = referralData.freeClassesClaimed || 0;
+
+    // Verify eligibility
+    const currentThresholdLevel = Math.floor(currentProgress / powerPromotersThreshold);
+    
+    if (currentProgress < powerPromotersThreshold) {
+      return res.status(400).json({ 
+        error: "Not enough referrals to claim free class" 
+      });
+    }
+
+    if (currentFreeClassesClaimed >= currentThresholdLevel) {
+      return res.status(400).json({ 
+        error: "Free class already claimed for current threshold level" 
+      });
+    }
+
+    // Update referral data to record the free class claim
+    await updateDoc(referralDoc.ref, {
+      freeClassesClaimed: increment(1),
+      lastFreeClassClaimedAt: new Date(),
+      freeClassBookings: referralData.freeClassBookings 
+        ? [...referralData.freeClassBookings, bookingId]
+        : [bookingId]
+    });
+
+    // Create a record of the free class transaction
+    await addDoc(collection(db, "ReferralTransactions"), {
+      userId,
+      instructorId,
+      classId,
+      bookingId,
+      type: "free_class_claim",
+      amount: 0,
+      description: `Free class claimed via power promoter program`,
+      metadata: {
+        type: "power_promoter_reward",
+        thresholdReached: currentProgress,
+        requiredThreshold: powerPromotersThreshold,
+        freeClassesClaimed: currentFreeClassesClaimed + 1,
+      },
+      createdAt: new Date(),
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: "Free class claimed successfully",
+      newFreeClassesClaimed: currentFreeClassesClaimed + 1,
+      nextThreshold: (currentThresholdLevel + 1) * powerPromotersThreshold,
+    });
+
+  } catch (error) {
+    console.error("Error claiming free class:", error);
+    return res.status(500).json({ error: "Error claiming free class" });
   }
 }
