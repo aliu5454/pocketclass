@@ -60,9 +60,9 @@ async function getClassCredits(req, res, { userId, classId, instructorId }) {
     return res.status(200).json({
       success: true,
       credits: {
-        totalCredits: creditsData.totalCredits || 0,
-        availableCredits: creditsData.availableCredits || 0,
-        usedCredits: creditsData.usedCredits || 0,
+        totalCredits: parseFloat((creditsData.totalCredits || 0).toFixed(2)),
+        availableCredits: parseFloat((creditsData.availableCredits || 0).toFixed(2)),
+        usedCredits: parseFloat((creditsData.usedCredits || 0).toFixed(2)),
         lastUpdated: creditsData.lastUpdated,
       },
     });
@@ -91,9 +91,9 @@ async function getAllUserCredits(req, res, { userId }) {
       allCredits[key] = {
         classId: creditsData.classId,
         instructorId: creditsData.instructorId,
-        totalCredits: creditsData.totalCredits || 0,
-        availableCredits: creditsData.availableCredits || 0,
-        usedCredits: creditsData.usedCredits || 0,
+        totalCredits: parseFloat((creditsData.totalCredits || 0).toFixed(2)),
+        availableCredits: parseFloat((creditsData.availableCredits || 0).toFixed(2)),
+        usedCredits: parseFloat((creditsData.usedCredits || 0).toFixed(2)),
         lastUpdated: creditsData.lastUpdated,
       };
 
@@ -105,9 +105,9 @@ async function getAllUserCredits(req, res, { userId }) {
       success: true,
       allCredits,
       summary: {
-        totalAvailableCredits,
-        totalEarnedCredits,
-        totalUsedCredits: totalEarnedCredits - totalAvailableCredits,
+        totalAvailableCredits: parseFloat(totalAvailableCredits.toFixed(2)),
+        totalEarnedCredits: parseFloat(totalEarnedCredits.toFixed(2)),
+        totalUsedCredits: parseFloat((totalEarnedCredits - totalAvailableCredits).toFixed(2)),
         classCount: Object.keys(allCredits).length,
       },
     });

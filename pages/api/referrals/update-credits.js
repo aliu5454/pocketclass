@@ -47,6 +47,9 @@ async function addCreditsForBooking(req, res, { referrerId, classId, instructorI
   try {
     const batch = writeBatch(db);
 
+    // Round credit amount to 2 decimal places
+    const roundedCreditAmount = parseFloat(creditAmount.toFixed(2));
+
     // Create unique credit document ID
     const creditId = `${referrerId}_${classId}_${instructorId}`;
     const creditsRef = doc(db, "UserCredits", creditId);
@@ -57,8 +60,8 @@ async function addCreditsForBooking(req, res, { referrerId, classId, instructorI
     if (creditsDoc.exists()) {
       // Update existing credits
       batch.update(creditsRef, {
-        totalCredits: increment(creditAmount),
-        availableCredits: increment(creditAmount),
+        totalCredits: increment(roundedCreditAmount),
+        availableCredits: increment(roundedCreditAmount),
         lastUpdated: new Date(),
         lastBookingId: bookingId,
       });
@@ -68,8 +71,8 @@ async function addCreditsForBooking(req, res, { referrerId, classId, instructorI
         userId: referrerId,
         classId: classId,
         instructorId: instructorId,
-        totalCredits: creditAmount,
-        availableCredits: creditAmount,
+        totalCredits: roundedCreditAmount,
+        availableCredits: roundedCreditAmount,
         usedCredits: 0,
         createdAt: new Date(),
         lastUpdated: new Date(),
@@ -85,7 +88,7 @@ async function addCreditsForBooking(req, res, { referrerId, classId, instructorI
       instructorId: instructorId,
       bookingId: bookingId,
       type: "earned", // earned, used, expired
-      amount: creditAmount,
+      amount: roundedCreditAmount,
       createdAt: new Date(),
       description: `Credits earned from referral booking`,
     });
@@ -95,10 +98,10 @@ async function addCreditsForBooking(req, res, { referrerId, classId, instructorI
     return res.status(200).json({
       success: true,
       message: "Credits added successfully",
-      creditAmount,
-      totalCredits: creditsDoc.exists() 
-        ? creditsDoc.data().totalCredits + creditAmount 
-        : creditAmount,
+      creditAmount: roundedCreditAmount,
+      totalCredits: parseFloat((creditsDoc.exists() 
+        ? creditsDoc.data().totalCredits + roundedCreditAmount 
+        : roundedCreditAmount).toFixed(2)),
     });
 
   } catch (error) {
@@ -136,7 +139,7 @@ async function migrateExistingCredits(req, res, { referrerId }) {
       if (creditAmount > 0) {
         const key = `${redemption.classId}_${redemption.instructorId}`;
         const currentCredits = creditsSummary.get(key) || 0;
-        creditsSummary.set(key, currentCredits + creditAmount);
+        creditsSummary.set(key, parseFloat((currentCredits + creditAmount).toFixed(2)));
       }
     }
 
@@ -154,8 +157,8 @@ async function migrateExistingCredits(req, res, { referrerId }) {
           userId: referrerId,
           classId: classId,
           instructorId: instructorId,
-          totalCredits: totalCredits,
-          availableCredits: totalCredits,
+          totalCredits: parseFloat(totalCredits.toFixed(2)),
+          availableCredits: parseFloat(totalCredits.toFixed(2)),
           usedCredits: 0,
           createdAt: new Date(),
           lastUpdated: new Date(),
@@ -169,7 +172,7 @@ async function migrateExistingCredits(req, res, { referrerId }) {
           classId: classId,
           instructorId: instructorId,
           type: "migrated",
-          amount: totalCredits,
+          amount: parseFloat(totalCredits.toFixed(2)),
           createdAt: new Date(),
           description: `Credits migrated from existing referral redemptions`,
         });
@@ -181,7 +184,7 @@ async function migrateExistingCredits(req, res, { referrerId }) {
     return res.status(200).json({
       success: true,
       message: "Credits migrated successfully",
-      migratedCredits: Array.from(creditsSummary.values()).reduce((sum, credits) => sum + credits, 0),
+      migratedCredits: parseFloat(Array.from(creditsSummary.values()).reduce((sum, credits) => sum + credits, 0).toFixed(2)),
       classesUpdated: creditsSummary.size,
     });
 

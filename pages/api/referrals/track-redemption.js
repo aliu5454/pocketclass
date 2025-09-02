@@ -61,6 +61,18 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: "Referral settings not found for this class" });
     }
 
+    // Check if max redemptions is enabled and if limit has been reached
+    if (classSettings.maxRedemptionsEnabled !== false) {
+      const maxRedemptions = classSettings.maxRedemptions || 100;
+      const currentRedemptions = referralData.redemptions || 0;
+      
+      if (currentRedemptions >= maxRedemptions) {
+        return res.status(400).json({ 
+          error: `Maximum redemptions (${maxRedemptions}) reached for this referral code` 
+        });
+      }
+    }
+
     // Calculate referrer reward
     let referrerReward = 0;
     const referrerRewardType = classSettings.referrerRewardType || "percentage";

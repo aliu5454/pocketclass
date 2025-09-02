@@ -41,7 +41,7 @@ const Settings = ({
                     <div className="flex-1">
                       <h4 className="font-semibold text-gray-900">{classData.Name}</h4>
                       <p className="text-sm text-gray-600">{classData.Description}</p>
-                      <p className="text-sm text-gray-500">${classData.Price} per session</p>
+                      <p className="text-sm text-gray-500">${Number(classData.Price || 0).toFixed(2)} per session</p>
                     </div>
                     <div className="flex items-center space-x-2">
                       <Text className="text-sm">Enable Referrals</Text>
@@ -107,23 +107,43 @@ const Settings = ({
 
                         {/* Max Redemptions */}
                         <div className="space-y-2">
-                          <label className="block text-sm font-medium text-gray-700">
-                            Max Redemptions
-                          </label>
+                          <div className="flex items-center justify-between">
+                            <label className="block text-sm font-medium text-gray-700">
+                              Max Redemptions
+                            </label>
+                            <Switch
+                              checked={classSettings.maxRedemptionsEnabled !== false}
+                              onChange={(checked) => updateClassSetting(classData.id, "maxRedemptionsEnabled", checked)}
+                              size="small"
+                            />
+                          </div>
                           <InputNumber
                             value={classSettings.maxRedemptions || 100}
                             onChange={(value) => updateClassSetting(classData.id, "maxRedemptions", value)}
                             min={1}
                             max={1000}
                             style={{ width: "100%" }}
+                            disabled={classSettings.maxRedemptionsEnabled === false}
                           />
+                          {classSettings.maxRedemptionsEnabled === false && (
+                            <Text className="text-xs text-gray-400">
+                              Unlimited redemptions allowed when disabled
+                            </Text>
+                          )}
                         </div>
 
                         {/* Power Promoters */}
                         <div className="space-y-2">
-                          <label className="block text-sm font-medium text-gray-700">
-                            Power Promoters Threshold
-                          </label>
+                          <div className="flex items-center justify-between">
+                            <label className="block text-sm font-medium text-gray-700">
+                              Power Promoters Threshold
+                            </label>
+                            <Switch
+                              checked={classSettings.powerPromotersEnabled !== false}
+                              onChange={(checked) => updateClassSetting(classData.id, "powerPromotersEnabled", checked)}
+                              size="small"
+                            />
+                          </div>
                           <InputNumber
                             value={classSettings.powerPromotersThreshold || 5}
                             onChange={(value) => updateClassSetting(classData.id, "powerPromotersThreshold", value)}
@@ -131,9 +151,13 @@ const Settings = ({
                             max={50}
                             style={{ width: "100%" }}
                             placeholder="Referrals needed for bonus"
+                            disabled={classSettings.powerPromotersEnabled === false}
                           />
-                          <Text className="text-xs text-gray-500">
-                            Students get a free class credit after this many successful referrals
+                          <Text className={`text-xs ${classSettings.powerPromotersEnabled === false ? 'text-gray-400' : 'text-gray-500'}`}>
+                            {classSettings.powerPromotersEnabled === false 
+                              ? "Power Promoters feature is disabled - no free class credits will be awarded"
+                              : "Students get a free class credit after this many successful referrals"
+                            }
                           </Text>
                         </div>
                       </div>
@@ -147,8 +171,18 @@ const Settings = ({
                             <ul className="space-y-1 text-xs">
                               <li>• Students get {classSettings.studentDiscountValue || 10}{classSettings.studentDiscountType === "percentage" ? "%" : "$"} off their first booking</li>
                               <li>• Referrers earn {classSettings.referrerRewardValue || 15}{classSettings.referrerRewardType === "percentage" ? "%" : "$"} for each successful referral</li>
-                              <li>• After {classSettings.powerPromotersThreshold || 5} successful referrals, students get a free class credit</li>
-                              <li>• Maximum {classSettings.maxRedemptions || 100} redemptions allowed</li>
+                              {classSettings.powerPromotersEnabled !== false && (
+                                <li>• After {classSettings.powerPromotersThreshold || 5} successful referrals, students get a free class credit</li>
+                              )}
+                              {classSettings.maxRedemptionsEnabled !== false && (
+                                <li>• Maximum {classSettings.maxRedemptions || 100} redemptions allowed</li>
+                              )}
+                              {classSettings.powerPromotersEnabled === false && (
+                                <li className="text-gray-400">• Power Promoters feature is disabled</li>
+                              )}
+                              {classSettings.maxRedemptionsEnabled === false && (
+                                <li className="text-gray-400">• No limit on redemptions (unlimited)</li>
+                              )}
                             </ul>
                           </div>
                         </div>

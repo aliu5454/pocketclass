@@ -115,19 +115,20 @@ async function calculateAnalytics(referrals, instructorId, startDate) {
   const totalRedemptions = redemptions.length;
   analytics.totalRedemptions = totalRedemptions;
 
-  analytics.conversionRate = totalReferrals > 0 ? ((totalRedemptions / totalReferrals) * 100).toFixed(1) : 0;
+  analytics.conversionRate = totalReferrals > 0 ? 
+    parseFloat(((totalRedemptions / totalReferrals) * 100).toFixed(2)) : 0;
 
   // Calculate revenue metrics from actual redemptions
-  analytics.directEarnings = redemptions.reduce((sum, redemption) => {
+  analytics.directEarnings = parseFloat(redemptions.reduce((sum, redemption) => {
     return sum + (redemption.referrerReward || 0);
-  }, 0);
+  }, 0).toFixed(2));
 
-  analytics.totalDiscountsGiven = redemptions.reduce((sum, redemption) => {
+  analytics.totalDiscountsGiven = parseFloat(redemptions.reduce((sum, redemption) => {
     return sum + (redemption.discountAmount || 0);
-  }, 0);
+  }, 0).toFixed(2));
 
   analytics.avgRevenuePerReferral = totalRedemptions > 0 ? 
-    (analytics.directEarnings / totalRedemptions).toFixed(2) : 0;
+    parseFloat((analytics.directEarnings / totalRedemptions).toFixed(2)) : 0;
 
   // Calculate clicks and views from referrals
   analytics.totalClicks = referrals.reduce((sum, referral) => {
@@ -190,8 +191,8 @@ async function calculateAnalytics(referrals, instructorId, startDate) {
     }
     
     classPerformance[classId].referralCount += 1;
-    classPerformance[classId].revenue += redemption.referrerReward || 0;
-    classPerformance[classId].totalDiscounts += redemption.discountAmount || 0;
+    classPerformance[classId].revenue = parseFloat((classPerformance[classId].revenue + (redemption.referrerReward || 0)).toFixed(2));
+    classPerformance[classId].totalDiscounts = parseFloat((classPerformance[classId].totalDiscounts + (redemption.discountAmount || 0)).toFixed(2));
   }
 
   analytics.topPerformingClasses = Object.values(classPerformance)

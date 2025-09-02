@@ -82,13 +82,13 @@ async function getInstructorStats(req, res, instructorId) {
         classStats.set(classId, {
           redemptions: existing.redemptions + (data.redemptions || 0),
           clicks: existing.clicks + (data.clicks || 0),
-          earnings: existing.earnings + (data.totalEarnings || 0),
+          earnings: parseFloat((existing.earnings + (data.totalEarnings || 0)).toFixed(2)),
         });
       } else {
         classStats.set(classId, {
           redemptions: data.redemptions || 0,
           clicks: data.clicks || 0,
-          earnings: data.totalEarnings || 0,
+          earnings: parseFloat((data.totalEarnings || 0).toFixed(2)),
         });
       }
     });
@@ -130,11 +130,11 @@ async function getInstructorStats(req, res, instructorId) {
       success: true,
       stats: {
         totalRedemptions,
-        totalReferralRevenue: totalRevenue,
+        totalReferralRevenue: parseFloat(totalRevenue.toFixed(2)),
         totalClicks,
         activeReferrals,
         totalReferrers: referrerStats.size,
-        conversionRate: totalClicks > 0 ? (totalRedemptions / totalClicks) * 100 : 0,
+        conversionRate: parseFloat((totalClicks > 0 ? (totalRedemptions / totalClicks) * 100 : 0).toFixed(2)),
         topPromoters: topReferrersData,
         topClasses: topClassesData,
       }
@@ -211,7 +211,7 @@ async function getStudentStats(req, res, studentId) {
           ...referralData,
           redemptions: redemptionCount, // Total bookings for this referral
           uniqueUsers: uniqueUsersForReferral, // Unique users for this referral
-          totalEarnings: earnings, // Actual earnings from this referral
+          totalEarnings: parseFloat(earnings.toFixed(2)), // Actual earnings from this referral
           className: classData?.Name || "Unknown Class",
           instructorName: instructorData ? `${instructorData.firstName} ${instructorData.lastName}` : "Unknown Instructor",
         };
@@ -269,9 +269,9 @@ async function getStudentStats(req, res, studentId) {
         totalReferrals,
         totalBookings, // Total number of bookings using referrals
         totalRedemptions, // Unique people who booked using referrals
-        totalEarnings,
+        totalEarnings: parseFloat(totalEarnings.toFixed(2)),
         totalClicks: 0, // Not tracking clicks for students currently
-        conversionRate: totalReferrals > 0 ? (totalRedemptions / totalReferrals) * 100 : 0,
+        conversionRate: parseFloat((totalReferrals > 0 ? (totalRedemptions / totalReferrals) * 100 : 0).toFixed(2)),
         referralDetails: referralDetails.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)),
         recentRedemptions,
       }

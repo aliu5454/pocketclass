@@ -53,6 +53,14 @@ export default async function handler(req, res) {
       });
     }
 
+    // Check if Power Promoters feature is enabled
+    if (classSettings.powerPromotersEnabled === false) {
+      return res.status(400).json({ 
+        eligible: false, 
+        error: "Power Promoters feature is not enabled for this class" 
+      });
+    }
+
     const powerPromotersThreshold = classSettings.powerPromotersThreshold || 5;
 
     // Get user's referral statistics for this specific class

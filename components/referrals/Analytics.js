@@ -6,8 +6,9 @@ import {
   EyeIcon,
   UsersIcon,
   CashIcon,
+  InformationCircleIcon,
 } from "@heroicons/react/outline";
-import { Card, Select, DatePicker, Typography } from "antd";
+import { Card, Select, DatePicker, Typography, Tooltip } from "antd";
 
 const { Title, Text } = Typography;
 const { Option } = Select;
@@ -70,7 +71,16 @@ const Analytics = ({ instructorStats, userId }) => {
           <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mx-auto mb-3">
             <EyeIcon className="w-6 h-6 text-blue-600" />
           </div>
-          <Text className="text-sm text-gray-600">Total Views</Text>
+          <div className="flex items-center justify-center space-x-1">
+            <Text className="text-sm text-gray-600">Total Views</Text>
+            <Tooltip 
+              title="Total number of times your referral links have been viewed by potential students"
+              mouseEnterDelay={0.1}
+              mouseLeaveDelay={0}
+            >
+              <InformationCircleIcon className="w-4 h-4 text-gray-400 cursor-help" />
+            </Tooltip>
+          </div>
           <Title level={3} className="!mb-0">{analyticsData.totalViews || 0}</Title>
         </Card>
 
@@ -78,24 +88,51 @@ const Analytics = ({ instructorStats, userId }) => {
           <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center mx-auto mb-3">
             <UsersIcon className="w-6 h-6 text-green-600" />
           </div>
-          <Text className="text-sm text-gray-600">Conversion Rate</Text>
-          <Title level={3} className="!mb-0">{analyticsData.conversionRate || 0}%</Title>
+          <div className="flex items-center justify-center space-x-1">
+            <Text className="text-sm text-gray-600">Conversion Rate</Text>
+            <Tooltip 
+              title="Percentage of referral link views that resulted in actual bookings. Higher rates indicate more effective referrals"
+              mouseEnterDelay={0.1}
+              mouseLeaveDelay={0}
+            >
+              <InformationCircleIcon className="w-4 h-4 text-gray-400 cursor-help" />
+            </Tooltip>
+          </div>
+          <Title level={3} className="!mb-0">{Number(analyticsData.conversionRate || 0).toFixed(2)}%</Title>
         </Card>
 
         <Card className="text-center">
           <div className="w-12 h-12 bg-yellow-100 rounded-lg flex items-center justify-center mx-auto mb-3">
             <TrendingUpIcon className="w-6 h-6 text-yellow-600" />
           </div>
-          <Text className="text-sm text-gray-600">Avg. Revenue per Referral</Text>
-          <Title level={3} className="!mb-0">${analyticsData.avgRevenuePerReferral || 0}</Title>
+          <div className="flex items-center justify-center space-x-1">
+            <Text className="text-sm text-gray-600">Avg. Revenue per Referral</Text>
+            <Tooltip 
+              title="Average amount of revenue generated from each successful referral, including both class fees and referral bonuses"
+              mouseEnterDelay={0.1}
+              mouseLeaveDelay={0}
+            >
+              <InformationCircleIcon className="w-4 h-4 text-gray-400 cursor-help" />
+            </Tooltip>
+          </div>
+          <Title level={3} className="!mb-0">${Number(analyticsData.avgRevenuePerReferral || 0).toFixed(2)}</Title>
         </Card>
 
         <Card className="text-center">
           <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center mx-auto mb-3">
             <CashIcon className="w-6 h-6 text-purple-600" />
           </div>
-          <Text className="text-sm text-gray-600">Total Referral Revenue</Text>
-          <Title level={3} className="!mb-0">${instructorStats.totalReferralRevenue || 0}</Title>
+          <div className="flex items-center justify-center space-x-1">
+            <Text className="text-sm text-gray-600">Total Referral Revenue</Text>
+            <Tooltip 
+              title="Total revenue generated from your referral program, including earnings from referral bonuses and power promoter rewards"
+              mouseEnterDelay={0.1}
+              mouseLeaveDelay={0}
+            >
+              <InformationCircleIcon className="w-4 h-4 text-gray-400 cursor-help" />
+            </Tooltip>
+          </div>
+          <Title level={3} className="!mb-0">${Number(instructorStats.totalReferralRevenue || 0).toFixed(2)}</Title>
         </Card>
       </div>
 
@@ -115,7 +152,7 @@ const Analytics = ({ instructorStats, userId }) => {
                         <div className="w-32 bg-gray-200 rounded-full h-2">
                           <div 
                             className="bg-logo-red h-2 rounded-full" 
-                            style={{ width: `${(trend.referrals / 10) * 100}%` }}
+                            style={{ width: `${Math.min(((trend.referrals / 10) * 100), 100).toFixed(1)}%` }}
                           ></div>
                         </div>
                         <span className="text-sm font-medium">{trend.referrals}</span>
@@ -152,7 +189,7 @@ const Analytics = ({ instructorStats, userId }) => {
                       </div>
                     </div>
                     <div className="text-right">
-                      <p className="font-medium text-gray-900">${classData.revenue}</p>
+                      <p className="font-medium text-gray-900">${Number(classData.revenue || 0).toFixed(2)}</p>
                       <p className="text-sm text-gray-600">revenue</p>
                     </div>
                   </div>
@@ -175,15 +212,42 @@ const Analytics = ({ instructorStats, userId }) => {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div className="text-center p-4 border-r border-gray-200">
             <Title level={4} className="!mb-1">{analyticsData.totalClicks || 0}</Title>
-            <Text className="text-gray-600">Total Link Clicks</Text>
+            <div className="flex items-center justify-center space-x-1">
+              <Text className="text-gray-600">Total Link Clicks</Text>
+              <Tooltip 
+                title="Total number of times students have clicked on your referral links"
+                mouseEnterDelay={0.1}
+                mouseLeaveDelay={0}
+              >
+                <InformationCircleIcon className="w-4 h-4 text-gray-400 cursor-help" />
+              </Tooltip>
+            </div>
           </div>
           <div className="text-center p-4 border-r border-gray-200">
             <Title level={4} className="!mb-1">{analyticsData.uniqueVisitors || 0}</Title>
-            <Text className="text-gray-600">Unique Visitors</Text>
+            <div className="flex items-center justify-center space-x-1">
+              <Text className="text-gray-600">Unique Visitors</Text>
+              <Tooltip 
+                title="Number of individual people who have visited your class pages through referral links"
+                mouseEnterDelay={0.1}
+                mouseLeaveDelay={0}
+              >
+                <InformationCircleIcon className="w-4 h-4 text-gray-400 cursor-help" />
+              </Tooltip>
+            </div>
           </div>
           <div className="text-center p-4">
             <Title level={4} className="!mb-1">{analyticsData.repeatReferrers || 0}</Title>
-            <Text className="text-gray-600">Repeat Referrers</Text>
+            <div className="flex items-center justify-center space-x-1">
+              <Text className="text-gray-600">Repeat Referrers</Text>
+              <Tooltip 
+                title="Students who have successfully referred multiple people to your classes"
+                mouseEnterDelay={0.1}
+                mouseLeaveDelay={0}
+              >
+                <InformationCircleIcon className="w-4 h-4 text-gray-400 cursor-help" />
+              </Tooltip>
+            </div>
           </div>
         </div>
       </Card>
@@ -192,16 +256,43 @@ const Analytics = ({ instructorStats, userId }) => {
       <Card title="Revenue Breakdown">
         <div className="space-y-4">
           <div className="flex justify-between items-center p-3 bg-green-50 rounded-lg">
-            <span className="font-medium text-green-800">Direct Referral Earnings</span>
-            <span className="font-bold text-green-900">${analyticsData.directEarnings || 0}</span>
+            <div className="flex items-center space-x-1">
+              <span className="font-medium text-green-800">Direct Referral Earnings</span>
+              <Tooltip 
+                title="Revenue earned directly from referral bonuses when students book your classes through referral links"
+                mouseEnterDelay={0.1}
+                mouseLeaveDelay={0}
+              >
+                <InformationCircleIcon className="w-4 h-4 text-green-600 cursor-help" />
+              </Tooltip>
+            </div>
+            <span className="font-bold text-green-900">${Number(analyticsData.directEarnings || 0).toFixed(2)}</span>
           </div>
           <div className="flex justify-between items-center p-3 bg-blue-50 rounded-lg">
-            <span className="font-medium text-blue-800">Bonus Incentives</span>
-            <span className="font-bold text-blue-900">${analyticsData.bonusEarnings || 0}</span>
+            <div className="flex items-center space-x-1">
+              <span className="font-medium text-blue-800">Bonus Incentives</span>
+              <Tooltip 
+                title="Additional earnings from power promoter bonuses and special referral incentives"
+                mouseEnterDelay={0.1}
+                mouseLeaveDelay={0}
+              >
+                <InformationCircleIcon className="w-4 h-4 text-blue-600 cursor-help" />
+              </Tooltip>
+            </div>
+            <span className="font-bold text-blue-900">${Number(analyticsData.bonusEarnings || 0).toFixed(2)}</span>
           </div>
           <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg border-t-2 border-gray-200">
-            <span className="font-semibold text-gray-800">Total Revenue</span>
-            <span className="font-bold text-gray-900 text-lg">${(analyticsData.directEarnings || 0) + (analyticsData.bonusEarnings || 0)}</span>
+            <div className="flex items-center space-x-1">
+              <span className="font-semibold text-gray-800">Total Revenue</span>
+              <Tooltip 
+                title="Combined total of all referral-related earnings from your program"
+                mouseEnterDelay={0.1}
+                mouseLeaveDelay={0}
+              >
+                <InformationCircleIcon className="w-4 h-4 text-gray-600 cursor-help" />
+              </Tooltip>
+            </div>
+            <span className="font-bold text-gray-900 text-lg">${Number((analyticsData.directEarnings || 0) + (analyticsData.bonusEarnings || 0)).toFixed(2)}</span>
           </div>
         </div>
       </Card>
