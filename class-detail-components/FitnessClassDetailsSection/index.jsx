@@ -512,7 +512,7 @@ function FitnessClassDetailsSection({
           <div ref={bookingRef}>
             <BookingComponent
               classId={classId}
-              instructorId={classCreatorData?.userUid}
+              instructorId={classData?.classCreator || classCreatorData?.userUid}
               classData={classData}
               classPackages={classData?.Packages}
             />

@@ -675,6 +675,9 @@ const NewHeader = ({ activeCategory, handleCategorySelection }) => {
                               <li className="my-2 hover:text-logo-red hover:scale-105 transition transform duration-200 ease-out active:scale-90">
                                 <Link href={`/wallet`}>Wallet</Link>
                               </li>
+                              <li className="my-2 hover:text-logo-red hover:scale-105 transition transform duration-200 ease-out active:scale-90">
+                                <Link href={`/referrals`}>Refer & Earn</Link>
+                              </li>
                             </>
                           )}
 
@@ -688,6 +691,9 @@ const NewHeader = ({ activeCategory, handleCategorySelection }) => {
                                 </li>
                                 <li className="my-2  hover:text-logo-red hover:scale-105 transition transform duration-200 ease-out active:scale-90">
                                   <Link href={`/automations`}>Automations</Link>
+                                </li>
+                                <li className="my-2  hover:text-logo-red hover:scale-105 transition transform duration-200 ease-out active:scale-90">
+                                  <Link href={`/referrals`}>Referral Program</Link>
                                 </li>
                                 <li>
                                   <p className="my-2  hover:text-logo-red hover:scale-105 transition transform duration-200 ease-out active:scale-90">
