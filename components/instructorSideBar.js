@@ -145,7 +145,7 @@ const InstructorSideBar = () => {
       href: '/referrals',
       icon: GiftIcon,
       active: router.pathname === '/referrals',
-      premium: true // Mark as premium feature
+      // premium: true // Mark as premium feature
     }
   ];
 

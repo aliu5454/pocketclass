@@ -19,6 +19,7 @@ import NewHeader from "../../components/NewHeader";
 import Dashboard from "../../components/referrals/Dashboard";
 import Settings from "../../components/referrals/Settings";
 import Analytics from "../../components/referrals/Analytics";
+import PremiumPurchaseModal from "../../components/PremiumPurchaseModal";
 import {
   GiftIcon,
   LinkIcon,
@@ -35,6 +36,7 @@ import {
   CogIcon,
   InformationCircleIcon,
   SaveIcon,
+  LockClosedIcon,
 } from "@heroicons/react/outline";
 import { CheckIcon } from "@heroicons/react/solid";
 import { toast } from "react-toastify";
@@ -42,6 +44,33 @@ import { Tabs } from "antd";
 import Link from "next/link";
 
 const { TabPane } = Tabs;
+
+// Helper function to convert Firestore Timestamp to Date
+const timestampToDate = (timestamp) => {
+  if (!timestamp) return null;
+
+  // Handle Firestore Timestamp objects
+  if (timestamp.seconds && typeof timestamp.seconds === "number") {
+    return new Date(timestamp.seconds * 1000);
+  }
+
+  // Handle Date objects
+  if (timestamp instanceof Date) {
+    return timestamp;
+  }
+
+  // Handle ISO strings
+  if (typeof timestamp === "string") {
+    return new Date(timestamp);
+  }
+
+  // Handle timestamp objects with toDate method
+  if (timestamp.toDate && typeof timestamp.toDate === "function") {
+    return timestamp.toDate();
+  }
+
+  return null;
+};
 
 export default function ReferralsPage() {
   const [user, loading] = useAuthState(auth);
@@ -62,6 +91,7 @@ export default function ReferralsPage() {
   const [savingSettings, setSavingSettings] = useState(false);
   const [copiedLinks, setCopiedLinks] = useState({});
   const [userCredits, setUserCredits] = useState({}); // Store credits from Firestore
+  const [showPremiumModal, setShowPremiumModal] = useState(false); // Premium purchase modal
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -115,8 +145,10 @@ export default function ReferralsPage() {
   // Check if user has premium access
   const isPremiumInstructor = () => {
     if (!userData) return false;
-    const premiumExpire = userData.premiumExpire;
-    return premiumExpire && new Date(premiumExpire.seconds * 1000) >= new Date();
+    const today = new Date();
+    const premiumExpire = timestampToDate(userData?.premiumExpire);
+    return premiumExpire && premiumExpire >= today;
+    // return false;
   };
 
 
@@ -599,6 +631,27 @@ const fetchBookedClasses = async () => {
     await updateReferralSettings(classId, newSettings);
   };
 
+  // Handle premium purchase success
+  const handlePremiumPurchaseSuccess = () => {
+    // Refresh user data to get updated premium status
+    const refreshUserData = async () => {
+      if (user?.uid) {
+        try {
+          const docRef = doc(db, "Users", user.uid);
+          const docSnap = await getDoc(docRef);
+          if (docSnap.exists()) {
+            setUserData(docSnap.data());
+            toast.success("Premium features are now available!");
+          }
+        } catch (error) {
+          console.error("Error refreshing user data:", error);
+        }
+      }
+    };
+    refreshUserData();
+    setShowPremiumModal(false);
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -623,28 +676,128 @@ const fetchBookedClasses = async () => {
     );
   }
 
-  // Check if instructor has premium access for referral feature
+  // Show referral dashboard for non-premium instructors (similar to automations.js)
   if (userData?.isInstructor && currentView === "instructor" && !isPremiumInstructor()) {
+    // Referral automations/features definitions (similar to automationDefinitions)
+    const referralFeatures = [
+      {
+        icon: TicketIcon,
+        title: "Referral Link Generation",
+        description: "Generate unique referral links for your classes.",
+        fullDescription: "Allow students to create and share referral links for your classes. Track who referred whom and reward both referrer and referee.",
+        benefits: [
+          "Increase class bookings",
+          "Track referral performance",
+          "Reward loyal students",
+        ],
+      },
+      {
+        icon: UsersIcon,
+        title: "Referral Rewards",
+        description: "Set up rewards for students who refer others.",
+        fullDescription: "Configure rewards such as discounts or free classes for students who successfully refer friends to your classes.",
+        benefits: [
+          "Boost student engagement",
+          "Encourage word-of-mouth marketing",
+          "Flexible reward options",
+        ],
+      },
+      {
+        icon: GiftIcon,
+        title: "Friend Discount",
+        description: "Offer discounts to new students via referrals.",
+        fullDescription: "New students booking via a referral link get a special discount on their first class, making it easier to attract new clients.",
+        benefits: [
+          "Attract new students",
+          "Easy onboarding",
+          "Increase conversion rates",
+        ],
+      },
+      {
+        icon: TrendingUpIcon,
+        title: "Referral Analytics",
+        description: "Track referral performance and top promoters.",
+        fullDescription: "View analytics on referral usage, top promoters, and overall impact on your class bookings.",
+        benefits: [
+          "Identify top promoters",
+          "Measure referral impact",
+          "Optimize your strategy",
+        ],
+      },
+    ];
+
     return (
       <div className="min-h-screen bg-gray-50">
-        <NewHeader />
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="bg-white rounded-2xl p-8 shadow-sm border border-gray-100 text-center">
-            <div className="w-16 h-16 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <StarIcon className="w-8 h-8 text-yellow-600" />
-            </div>
-            <h1 className="text-2xl font-bold text-gray-900 mb-4">Premium Feature</h1>
-            <p className="text-gray-600 mb-6">
-              The referral program is available exclusively for premium instructors. 
-              Upgrade your account to start earning more through referrals!
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="mb-8">
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">Referral Program</h1>
+            <p className="text-gray-600">
+              Unlock powerful referral features to grow your classes. Start your 30-day free trial to enable these automations and reward your students for spreading the word!
             </p>
-            <Link href="/premium">
-              <a className="bg-logo-red text-white px-6 py-3 rounded-lg hover:bg-logo-red/90 transition-colors">
-                Upgrade to Premium
-              </a>
-            </Link>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {referralFeatures.map((feature, idx) => {
+              const Icon = feature.icon;
+              return (
+                <div key={idx} className="bg-white rounded-xl p-6 shadow-sm border border-gray-100 flex flex-col">
+                  <div className="flex items-center mb-4">
+                    <div className="w-12 h-12 bg-logo-red/10 rounded-lg flex items-center justify-center mr-4">
+                      <Icon className="w-6 h-6 text-logo-red" />
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-semibold text-gray-900">{feature.title}</h3>
+                      <span className="ml-2 px-2 py-1 bg-yellow-100 text-yellow-800 rounded text-xs font-medium inline-flex items-center">
+                        <StarIcon className="w-4 h-4 mr-1" /> Premium Required
+                      </span>
+                    </div>
+                  </div>
+                  <p className="text-gray-700 mb-2">{feature.description}</p>
+                  <p className="text-sm text-gray-500 mb-4">{feature.fullDescription}</p>
+                  <ul className="list-disc pl-5 text-sm text-gray-600 mb-4">
+                    {feature.benefits.map((benefit, bidx) => (
+                      <li key={bidx}>{benefit}</li>
+                    ))}
+                  </ul>
+                  <button
+                    onClick={() => {
+                      console.log("=== Claim Free Trial Button Clicked ===");
+                      // Redirect to 30-day free trial
+                      setShowPremiumModal(true);
+                    }}
+                    className="mt-auto px-4 py-2 bg-logo-red text-white rounded-lg hover:bg-logo-red/90 transition-colors inline-flex items-center justify-center w-full"
+                  >
+                    <StarIcon className="w-4 h-4 inline-block mr-2" /> Enable Feature
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+          <div className="text-center mt-10">
+            <button
+              onClick={() => {
+                console.log("=== Claim Free Trial Button Clicked ===");
+                // Redirect to 30-day free trial
+                setShowPremiumModal(true);
+              }}
+              className="bg-logo-red text-white px-8 py-3 rounded-lg hover:bg-logo-red/90 transition-colors text-lg font-semibold inline-flex items-center"
+            >
+              <StarIcon className="w-5 h-5 mr-2" /> Claim your free trial
+            </button>
+            <p className="text-gray-500 mt-2">Get access to all referral automations and boost your class growth!</p>
           </div>
         </div>
+        
+        {/* Premium Purchase Modal for non-premium instructors */}
+        <PremiumPurchaseModal
+          isOpen={showPremiumModal}
+          onClose={() => {
+            console.log("=== Modal onClose called ===");
+            setShowPremiumModal(false);
+          }}
+          user={user}
+          userData={userData}
+          onPurchaseSuccess={handlePremiumPurchaseSuccess}
+        />
       </div>
     );
   }
@@ -1137,6 +1290,8 @@ const fetchBookedClasses = async () => {
           </div>
         )}
       </div>
+
     </div>
+      
   );
 }
