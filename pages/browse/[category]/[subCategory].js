@@ -634,7 +634,7 @@ const processClasses = async (classDocs) => {
     const instructorName = instructor
       ? `${instructor.firstName || ""} ${instructor.lastName || ""}`.trim()
       : "N/A";
-    const instructorImage = instructor.profileImage;
+    const instructorImage = instructor ? instructor.profileImage : null;
     const classReviews = reviewMap.get(classData.id) || [];
     const avgRating =
       classReviews.length > 0
@@ -818,8 +818,7 @@ const processClasses = async (classDocs) => {
     <>
       <Head>
         <title>
-          {selectedSubCategory} Classes in Toronto | Affordable Lessons for All
-          Levels
+          {selectedSubCategory} Classes in Toronto | Affordable Lessons for All Levels
         </title>
         <meta
           name="description"

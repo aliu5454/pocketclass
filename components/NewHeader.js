@@ -291,6 +291,25 @@ const NewHeader = ({ activeCategory, handleCategorySelection }) => {
     if (user?.uid) getData();
   }, [user]);
 
+  // Handle dropdown menu collapse when clicking outside
+  useEffect(() => {
+    const handleDropdownClickOutside = (event) => {
+      if (showDropDown && navbarRef.current && !navbarRef.current.contains(event.target)) {
+        setDropDown(false);
+      }
+    };
+
+    if (showDropDown) {
+      document.addEventListener("mousedown", handleDropdownClickOutside);
+      document.addEventListener("touchstart", handleDropdownClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener("mousedown", handleDropdownClickOutside);
+      document.removeEventListener("touchstart", handleDropdownClickOutside);
+    };
+  }, [showDropDown]);
+
   useEffect(() => {
     const handleClickOutside = (event) => {
       console.log("Click", navbarRef.current, event.target);
@@ -462,7 +481,7 @@ const NewHeader = ({ activeCategory, handleCategorySelection }) => {
         )}
 
       <div
-        className={`transition-all flex flex-col dm2:gap-1 bg-white pb-4 dm2:pb-[2rem] sticky top-0 w-full dm2:z-50 z-[900] transition-all duration-1000 hide-x-scrollbar ${
+        className={`flex flex-col dm2:gap-1 bg-white pb-4 dm2:pb-[2rem] sticky top-0 w-full dm2:z-50 z-[900] transition-all duration-1000 hide-x-scrollbar ${
           isMenuShrunk
             ? "h-[90px] dm2:h-[100px]"
             : `${isMenuSmall ? "h-auto dm2:h-[100px]" : "h-auto"}`
@@ -485,14 +504,15 @@ const NewHeader = ({ activeCategory, handleCategorySelection }) => {
           </div>
 
           {/* Animated Desktop Categories */}
-          <div className="hidden dm2:flex justify-center items-center absolute left-1/2 transform -translate-x-1/2">
-            <div
-              className={`transition-all duration-1000 ease-[cubic-bezier(0.34,1.56,0.64,1)] ${
-                isMenuShrunk || isMenuSmall
-                  ? "opacity-0 scale-90 translate-y-[-10px]"
-                  : "opacity-100 scale-100 translate-y-0"
-              }`}
-            >
+          {isHome && (
+            <div className="hidden dm2:flex justify-center items-center absolute left-1/2 transform -translate-x-1/2">
+              <div
+                className={`transition-all duration-1000 ease-[cubic-bezier(0.34,1.56,0.64,1)] ${
+                  isMenuShrunk || isMenuSmall
+                    ? "opacity-0 scale-90 translate-y-[-10px]"
+                    : "opacity-100 scale-100 translate-y-0"
+                }`}
+              >
               <div className="relative flex space-x-2.5 z-0 items-center">
                 {/* Animated Underline */}
                 <div
@@ -538,6 +558,7 @@ const NewHeader = ({ activeCategory, handleCategorySelection }) => {
               </div>
             </div>
           </div>
+          )}
 
           <div className="flex justify-end items-center flex-row gap-4 flex-[1]">
             {!loading ? (

@@ -59,21 +59,29 @@ function Register() {
 		e.preventDefault();
 		const email = e.target.email.value;
 		const password = e.target.password.value;
-		const firstName = e.target.firstName.value;
-		const lastName = e.target.lastName.value;
-		const gender = e.target.gender.value;
+		const confirmPassword = e.target.confirmPassword.value;
+		const fullName = e.target.fullName.value;
 		const phoneNumber = e.target.phoneNumber.value;
-		const dob = e.target.dob.value;
 		const category = "student"; // Default to student
+
+		// Check if passwords match
+		if (password !== confirmPassword) {
+			toast.error("Passwords do not match!", {
+				toastId: "error_password_mismatch",
+			});
+			return;
+		}
+
+		// Split full name into first and last name for storage
+		const nameParts = fullName.trim().split(" ");
+		const firstName = nameParts[0] || "";
+		const lastName = nameParts.slice(1).join(" ") || "";
 
 		if (
 			email != null &&
 			password !== null &&
-			firstName !== " " &&
-			lastName !== " " &&
-			gender !== " " &&
-			phoneNumber !== " " &&
-			dob !== " "
+			fullName.trim() !== "" &&
+			phoneNumber.trim() !== ""
 		) {
 			const signedUpUser = await createUserWithEmailAndPassword(
 				email,
@@ -84,9 +92,7 @@ function Register() {
 				userUid: signedUpUser?.user?.uid,
 				firstName,
 				lastName,
-				gender,
 				phoneNumber,
-				dob,
 				email,
 				category: "student", // Default to student
 				createdAt: serverTimestamp(),
@@ -133,7 +139,7 @@ function Register() {
 	}
 
 	return (
-		<div className="px-10 py-20 rounded-3xl flex flex-col justify-center items-center min-h-[100vh]">
+		<div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
 			<Head>
 				<title>pocketclass:register</title>
 				<meta
@@ -143,149 +149,119 @@ function Register() {
 				<link rel="icon" href="/pc_favicon.ico" />
 			</Head>
 
-			<div className="registrationContainer lg:w-[50%] sm:w-[100%] ">
-				<h1 className="text-5xl font-semibold">Sign Up</h1>
-				<p className="font-medium text-medium text-gray-500 mt-4">
-					Please enter your details.
+			<div className="sm:mx-auto sm:w-full sm:max-w-md">
+				<h2 className=" text-center text-3xl font-semibold text-gray-900">
+					Join Pocketclass
+				</h2>
+				<p className="mt-2 text-center text-sm text-gray-600">
+					Create your account to get started
 				</p>
+			</div>
 
-				<div className="mt-8">
-					<form onSubmit={(e) => onSignUpHandle(e)}>
-						<div className="grid lg:grid-cols-2 lg:gap-x-2 sm:grid-cols-1">
-							<div className="firstName">
-								<label className="text-medium font-medium">First Name</label>
-								<input
-									required
-									name="firstName"
-									className="w-full border-2 text-sm border-gray-100 rounded-xl p-3 mt-1 bg-transparent focus:outline-none focus:border-logo-red focus:ring-1 focus:ring-logo-red"
-									placeholder="Enter your First name"
-								/>
-							</div>
-							<div className="lastName">
-								<label className="text-medium font-medium">Last Name</label>
-								<input
-									required
-									name="lastName"
-									className="w-full border-2 text-sm border-gray-100 rounded-xl p-3 mt-1 bg-transparent focus:outline-none focus:border-logo-red focus:ring-1 focus:ring-logo-red"
-									placeholder="Enter your Last Name"
-								/>
-							</div>
-						</div>
+			<div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
+				<div className="bg-white py-8 px-6 shadow-sm rounded-lg sm:px-10 border border-gray-200">
 
-						<div className="grid lg:grid-cols-2 lg:gap-x-2 sm:grid-cols-1">
-							<div className="phoneNumber">
-								<label className="text-medium font-medium">Phone Number</label>
-								<input
-									required
-									name="phoneNumber"
-									className="w-full border-2 text-sm border-gray-100 rounded-xl p-3 mt-1 bg-transparent focus:outline-none focus:border-logo-red focus:ring-1 focus:ring-logo-red"
-									placeholder="Enter your Phone Number"
-								/>
-							</div>
-							<div className="dob">
-								<label className="text-medium font-medium">Date of Birth</label>
-								<input
-									required
-									name="dob"
-									type={"date"}
-									className="w-full border-2 text-sm border-gray-100 rounded-xl p-3 mt-1 bg-transparent focus:outline-none focus:border-logo-red focus:ring-1 focus:ring-logo-red"
-									placeholder="Enter your Date of birth"
-								/>
-							</div>
-						</div>
-
-						<div className="grid lg:grid-cols-2 lg:gap-x-2 sm:grid-cols-1">
-							<div className="gender">
-								<select
-									name="gender"
-									className="w-full border-2 text-sm border-gray-100 rounded-xl p-3 mt-7 bg-transparent focus:outline-none focus:border-logo-red focus:ring-1 focus:ring-logo-red"
-								>
-									<option value="" hidden>
-										Gender
-									</option>
-									<option value="woman">Women</option>
-									<option value="man">Men</option>
-									<option value="non-binary/genderquee">
-										Non-binary / genderqueer
-									</option>
-									<option value="i-prefer-to-self-identify">
-										I prefer to self-identify
-									</option>
-									<option value="i'd-rather-not-say">I'd rather not say</option>
-								</select>
-							</div>
-							<div className="email">
-								<label className="text-medium font-medium">Email</label>
-								<input
-									required
-									name="email"
-									className="w-full border-2 text-sm border-gray-100 rounded-xl p-3 mt-1 bg-transparent focus:outline-none focus:border-logo-red focus:ring-1 focus:ring-logo-red"
-									placeholder="Enter your email"
-									type={"email"}
-								/>
-							</div>
-						</div>
-
-						<div className="flex flex-col mt-4">
-							<label className="text-medium font-medium">Password</label>
+				<div className="space-y-6">
+					<form onSubmit={(e) => onSignUpHandle(e)} className="space-y-6">
+						<div>
+							<label className="block text-sm font-medium text-gray-700">Full Name</label>
 							<input
 								required
-								name="password"
-								className="w-full border-2 text-sm border-gray-100 rounded-xl p-3 mt-1 bg-transparent focus:outline-none focus:border-logo-red focus:ring-1 focus:ring-logo-red"
-								placeholder="Enter your password"
-								type={"password"}
+								name="fullName"
+								className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-black focus:border-black"
+								placeholder="Enter your full name"
 							/>
 						</div>
 
-						<div className="mt-8 flex flex-col gap-y-4">
+						<div>
+							<label className="block text-sm font-medium text-gray-700">Email</label>
+							<input
+								required
+								name="email"
+								type="email"
+								className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-black focus:border-black"
+								placeholder="Enter your email"
+							/>
+						</div>
+						<div>
+							<label className="block text-sm font-medium text-gray-700">Phone Number</label>
+							<input
+								required
+								name="phoneNumber"
+								className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-black focus:border-black"
+								placeholder="Enter your phone number"
+							/>
+						</div>
+
+						<div>
+							<label className="block text-sm font-medium text-gray-700">Password</label>
+							<input
+								required
+								name="password"
+								type="password"
+								className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-black focus:border-black"
+								placeholder="Create a password"
+							/>
+						</div>
+
+						<div>
+							<label className="block text-sm font-medium text-gray-700">Confirm Password</label>
+							<input
+								required
+								name="confirmPassword"
+								type="password"
+								className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-black focus:border-black"
+								placeholder="Confirm your password"
+							/>
+						</div>
+
+
+						<div>
 							{!signUpLoading && !sending ? (
 								<button
 									type="submit"
-									className="active:scale-105 active:duration-75 transition-all hover:scale-[1.01]  ease-in-out transform py-4 bg-logo-red rounded-xl text-white font-bold text-lg"
+									className="w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-logo-red hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-black transition-colors duration-200"
 								>
-									Sign up
+									Create account
 								</button>
 							) : (
-								<div class="flex items-center justify-center">
-									<button
-										type="button"
-										class="inline-flex items-center justify-center py-4 text-sm font-semibold leading-6 text-white transition duration-150 w-full ease-in-out bg-logo-red rounded-xl shadow cursor-not-allowed hover:bg-red-400"
-										disabled=""
+								<button
+									type="button"
+									className="w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-black opacity-50 cursor-not-allowed"
+									disabled
+								>
+									<svg
+										className="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
+										xmlns="http://www.w3.org/2000/svg"
+										fill="none"
+										viewBox="0 0 24 24"
 									>
-										<svg
-											class="w-5 h-5 mr-3 -ml-1 text-white animate-spin"
-											xmlns="http://www.w3.org/2000/svg"
-											fill="none"
-											viewBox="0 0 24 24"
-										>
-											<circle
-												class="opacity-25"
-												cx="12"
-												cy="12"
-												r="10"
-												stroke="currentColor"
-												stroke-width="4"
-											></circle>
-											<path
-												class="opacity-75"
-												fill="currentColor"
-												d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-											></path>
-										</svg>
-										Loading...
-									</button>
-								</div>
+										<circle
+											className="opacity-25"
+											cx="12"
+											cy="12"
+											r="10"
+											stroke="currentColor"
+											strokeWidth="4"
+										></circle>
+										<path
+											className="opacity-75"
+											fill="currentColor"
+											d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+										></path>
+									</svg>
+									Loading...
+								</button>
 							)}
 						</div>
 					</form>
 					{!googleLoading ? (
 						<button
 							onClick={() => handleGoogleSignIn()}
-							className="flex items-center justify-center gap-2 w-full mt-3 active:scale-[.98] active:duration-75 transition-all hover:scale-[1.01]  ease-in-out transform py-4  rounded-xl text-gray-700 font-semibold text-lg border-2 border-gray-100 "
+							className="w-full flex justify-center items-center py-3 px-4 border border-gray-300 rounded-md shadow-sm bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-black transition-colors duration-200"
 						>
 							<svg
-								width="24"
-								height="24"
+								className="w-5 h-5 mr-2"
 								viewBox="0 0 24 24"
 								fill="none"
 								xmlns="http://www.w3.org/2000/svg"
@@ -307,30 +283,30 @@ function Register() {
 									fill="#FBBC05"
 								/>
 							</svg>
-							Sign up with Google
+							Continue with Google
 						</button>
 					) : (
 						<button
 							type="button"
-							class="inline-flex items-center justify-center py-4 text-sm font-semibold leading-6 transition duration-150 w-full ease-in-out border-2 border-gray-100 shadow cursor-not-allowed"
-							disabled=""
+							className="w-full flex justify-center items-center py-3 px-4 border border-gray-300 rounded-md shadow-sm bg-white text-sm font-medium text-gray-500 opacity-50 cursor-not-allowed"
+							disabled
 						>
 							<svg
-								class="w-5 h-5 mr-3 -ml-1  animate-spin"
+								className="animate-spin -ml-1 mr-3 h-5 w-5 text-gray-500"
 								xmlns="http://www.w3.org/2000/svg"
 								fill="none"
 								viewBox="0 0 24 24"
 							>
 								<circle
-									class="opacity-25"
+									className="opacity-25"
 									cx="12"
 									cy="12"
 									r="10"
 									stroke="currentColor"
-									stroke-width="4"
+									strokeWidth="4"
 								></circle>
 								<path
-									class="opacity-75"
+									className="opacity-75"
 									fill="currentColor"
 									d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
 								></path>
@@ -338,15 +314,19 @@ function Register() {
 							Loading...
 						</button>
 					)}
-					<div className="mt-8 flex justify-center items-center">
-						<p className="font-medium text-base">Already have an account?</p>
-						<button
-							onClick={() => router.push("/Login")}
-							className="ml-2 font-medium text-base text-logo-red"
-						>
-							Sign In
-						</button>
+					
+					<div className="mt-6 text-center">
+						<p className="text-sm text-gray-600">
+							Already have an account?{' '}
+							<button
+								onClick={() => router.push("/Login")}
+								className="font-medium text-logo-red hover:text-gray-800 focus:outline-none focus:underline transition-colors duration-200"
+							>
+								Sign in
+							</button>
+						</p>
 					</div>
+				</div>
 				</div>
 			</div>
 			<ToastContainer
