@@ -352,12 +352,10 @@ const TeacherSearch = ({ expandMenu, user, setScroll }) => {
     <div
       className={`menu-search-bar transition-all duration-500 mx-auto max-dm2:px-3 ${
         isShrunk
-          ? "max-w-[230px] h-[50px]"
-          : `${
-              isMenuSmall
-                ? "max-w-[400px] h-[54px]"
-                : "max-dm2:h-[54px] max-w-[650px]"
-            }`
+          ? 'max-w-[230px] h-[50px]'
+          : (isMenuSmall
+              ? 'max-w-[440px] h-[54px]'
+              : 'max-dm2:h-[54px] max-w-[650px]')
       }`}
       ref={dropdownRef}
     >
@@ -410,12 +408,10 @@ const TeacherSearch = ({ expandMenu, user, setScroll }) => {
             <div
               className={`search-bar-option group z-50 ${
                 isShrunk
-                  ? "!pl-6 !pr-3 font-medium"
-                  : `${
-                      isMenuSmall
-                        ? "!pl-5 !pr-4 dm2:!pl-8"
-                        : "!pl-5 !pr-4 dm2:!pl-8"
-                    }`
+                  ? '!pl-6 !pr-3 font-medium'
+                  : (isMenuSmall
+                      ? '!pl-4 !pr-3 dm2:!pl-7'
+                      : '!pl-5 !pr-4 dm2:!pl-8')
               }`}
               onClick={() => {
                 handleOptionClick("sub", 0);
