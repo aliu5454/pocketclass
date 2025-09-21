@@ -481,17 +481,23 @@ const NewHeader = ({ activeCategory, handleCategorySelection }) => {
         )}
 
       <div
-        className={`flex flex-col dm2:gap-1 bg-white pb-4 dm2:pb-[2rem] sticky top-0 w-full dm2:z-50 z-[900] transition-all duration-1000 hide-x-scrollbar ${
-          isMenuShrunk
-            ? "h-[90px] dm2:h-[100px]"
-            : `${isMenuSmall ? "h-auto dm2:h-[100px]" : "h-auto"}`
+        className={`flex flex-col bg-white sticky top-0 w-full dm2:z-50 z-[900] transition-all duration-300 hide-x-scrollbar p-4 ${
+          isHome
+            ? (isMenuShrunk
+                ? 'dm2:gap-1 pb-4 dm2:pb-[2rem] h-[90px] dm2:h-[100px]'
+                : 'dm2:gap-1 pb-4 dm2:pb-[2rem] h-auto')
+            : 'pb-0'
         }`}
         ref={navbarRef}
       >
         <div
           className={`${
-            isHome ? "z-[9000]" : "dm2:z-50 z-[9000]"
-          } relative top-0 max-dm2:pt-4 max-dm2:pb-3 py-6 box-border flex justify-between items-center flex-row gap-2 section-spacing`}
+            isHome ? 'z-[9000]' : 'dm2:z-50 z-[9000]'
+          } relative top-0 box-border flex items-center flex-row section-spacing ${
+            isHome
+              ? 'justify-between max-dm2:pt-4 max-dm2:pb-3 py-6 gap-2'
+              : 'justify-between py-2 gap-4'
+          }`}
         >
           <div className="flex items-center justify-start flex-[1]">
             <Link className="left-section cursor-pointer" href="/">
@@ -503,7 +509,22 @@ const NewHeader = ({ activeCategory, handleCategorySelection }) => {
             </Link>
           </div>
 
-          {/* Animated Desktop Categories */}
+          {/* Inline Search Bar on non-home pages */}
+          {!isHome && (
+            <div className="flex flex-1 justify-center px-2">
+              <div className="w-full max-w-[600px] scale-[0.95] transition-transform duration-300">
+                <TeacherSearch
+                  isShrunk={false}
+                  isMenuSmall={false}
+                  setScroll={setScroll}
+                  expandMenu={() => {}}
+                  user={user}
+                />
+              </div>
+            </div>
+          )}
+
+          {/* Animated Desktop Categories - Only show on homepage */}
           {isHome && (
             <div className="hidden dm2:flex justify-center items-center absolute left-1/2 transform -translate-x-1/2">
               <div
@@ -908,7 +929,7 @@ const NewHeader = ({ activeCategory, handleCategorySelection }) => {
           </div>
         </div>
 
-        {/* Animated Mobile Categories */}
+        {/* Animated Mobile Categories - Only on homepage */}
         {isHome && (
           <div
             className={`transition-all duration-1000 ease-[cubic-bezier(0.34,1.56,0.64,1)] w-full justify-center dm2:hidden flex ${
@@ -952,40 +973,42 @@ const NewHeader = ({ activeCategory, handleCategorySelection }) => {
           </div>
         )}
 
-        {/* Animated Search Bar */}
-        <div
-          className={`max-w-[98%] transition-all duration-1000 ease-[cubic-bezier(0.34,1.56,0.64,1)] ${
-            isMenuShrunk || (isMenuSmall && screenWidth > 800)
-              ? "absolute inset-0 flex items-center justify-center"
-              : "relative"
-          }`}
-          style={{
-            transform:
+        {/* Animated Search Bar (homepage only) */}
+        {isHome && (
+          <div
+            className={`max-w-[98%] transition-all duration-1000 ease-[cubic-bezier(0.34,1.56,0.64,1)] ${
               isMenuShrunk || (isMenuSmall && screenWidth > 800)
-                ? "scale(0.85) translateY(-5px)"
-                : "scale(1) translateY(0)",
-            opacity:
-              isMenuShrunk || (isMenuSmall && screenWidth > 800) ? 0.85 : 1,
-            transition: "all 1000ms cubic-bezier(0.34, 1.56, 0.64, 1)",
-            pointerEvents:
-              isMenuShrunk || (isMenuSmall && screenWidth > 800)
-                ? "none"
-                : "auto",
-          }}
-        >
-          <TeacherSearch
-            isShrunk={isMenuShrunk}
-            isMenuSmall={isMenuSmall}
-            setScroll={setScroll}
-            expandMenu={() => {
-              setIsMenuShrunk(false);
-              playerRefs.current.forEach((player) => {
-                if (player) player.play();
-              });
+                ? 'absolute inset-0 flex items-center justify-center'
+                : 'relative'
+            }`}
+            style={{
+              transform:
+                isMenuShrunk || (isMenuSmall && screenWidth > 800)
+                  ? 'scale(0.85) translateY(-5px)'
+                  : 'scale(1) translateY(0)',
+              opacity:
+                isMenuShrunk || (isMenuSmall && screenWidth > 800) ? 0.85 : 1,
+              transition: 'all 1000ms cubic-bezier(0.34, 1.56, 0.64, 1)',
+              pointerEvents:
+                isMenuShrunk || (isMenuSmall && screenWidth > 800)
+                  ? 'none'
+                  : 'auto',
             }}
-            user={user}
-          />
-        </div>
+          >
+            <TeacherSearch
+              isShrunk={isMenuShrunk}
+              isMenuSmall={isMenuSmall}
+              setScroll={setScroll}
+              expandMenu={() => {
+                setIsMenuShrunk(false);
+                playerRefs.current.forEach((player) => {
+                  if (player) player.play();
+                });
+              }}
+              user={user}
+            />
+          </div>
+        )}
       </div>
       {isHome && <MusicSelector selectedCategory={activeKey} />}
     </>
