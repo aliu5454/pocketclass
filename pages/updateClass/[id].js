@@ -177,14 +177,22 @@ export default function UpdateClass() {
 
   useEffect(() => {
     const fetchClass = async () => {
-      if (id) {
-        const docRef = doc(db, "classes", id);
-        const docSnap = await getDoc(docRef);
+      if (id && router.isReady) {
+        try {
+          const docRef = doc(db, "classes", id);
+          const docSnap = await getDoc(docRef);
         if (docSnap.exists()) {
           const classData = docSnap.data();
           setForm({
             ...classData,
             firstFree: classData.firstFree || false,
+            // Ensure required fields have default values for Mindbody classes
+            Price: classData.Price || "",
+            Pricing: classData.Pricing || "",
+            Description: classData.Description || "",
+            Address: classData.Address || "",
+            // Keep Images as empty array - existing images go to loadedImgs, new uploads go to form.Images
+            Images: [],
           });
           if (!classData.subCategory && classData.Type) {
             setForm((prev) => ({
@@ -193,7 +201,9 @@ export default function UpdateClass() {
             }));
           }
           setPackages(classData.Packages || []);
-          const typedImages = classData.Images.map((url) => {
+          // Filter out null/undefined values from Images array (common in Mindbody imports)
+          const validImages = (classData.Images || []).filter(url => url != null && url !== "");
+          const typedImages = validImages.map((url) => {
             const isVideo = /\.(mp4|webm|ogg)$/i.test(url);
             return {
               src: url,
@@ -202,7 +212,7 @@ export default function UpdateClass() {
             };
           });
           setPreviewImages(typedImages);
-          setLoadedImgs(classData.Images);
+          setLoadedImgs(validImages);
           formik.setValues({
             class_name: classData.Name || "",
             category: classData.Category || "",
@@ -222,10 +232,15 @@ export default function UpdateClass() {
           toast.error("Class not found");
           router.push("/");
         }
+        } catch (error) {
+          console.error("Error fetching class:", error);
+          toast.error("Failed to load class data. Please try again.");
+          router.push("/");
+        }
       }
     };
     fetchClass();
-  }, [id, router]);
+  }, [id, router.isReady]);
 
   const formatDate = () => {
     const date = new Date();
@@ -259,9 +274,9 @@ export default function UpdateClass() {
       setLoading(false);
       return;
     }
-    const totalSize = form.Images.reduce((acc, file) => acc + file.size, 0);
+    const totalSize = form.Images.reduce((acc, file) => acc + (file.size || 0), 0);
     if (totalSize > 20 * 1024 * 1024) {
-      // 10MB
+      // 20MB
       setImageError(
         "Total size of all images must be less than or equal to 20MB"
       );
@@ -406,12 +421,13 @@ export default function UpdateClass() {
     setPreviewImages(
       previewImages.filter((img) => (img.name || img.src) !== identifier)
     );
-    setForm((prev) => ({
-      ...prev,
-      Images: isLoadedImage
-        ? prev.Images.filter((img) => img !== identifier)
-        : prev.Images.filter((file) => file.name !== identifier),
-    }));
+    // Only update form.Images if it's a newly uploaded file (not a loaded image)
+    if (!isLoadedImage) {
+      setForm((prev) => ({
+        ...prev,
+        Images: prev.Images.filter((file) => file.name !== identifier),
+      }));
+    }
   };
 
   const handleInputChange = (e) => {
@@ -428,19 +444,21 @@ export default function UpdateClass() {
   };
 
   useEffect(() => {
-    if (form.Images.length > 0) {
+    // Check if we have any images (either existing or newly uploaded)
+    if (form.Images.length > 0 || loadedImgs.length > 0) {
       setImageError(null); // Clear error if images are present
     }
-    const totalSize = form.Images.reduce((acc, file) => acc + file.size, 0);
+    // Calculate size only for newly uploaded File objects in form.Images
+    const totalSize = form.Images.reduce((acc, file) => acc + (file.size || 0), 0);
     if (totalSize > 20 * 1024 * 1024) {
-      // 10MB
+      // 20MB
       setImageError(
         "Total size of all images must be less than or equal to 20MB"
       );
       setLoading(false);
       return;
     }
-  }, [form.Images]);
+  }, [form.Images, loadedImgs]);
 
   const addNewPackage = (e) => {
     e.preventDefault();
