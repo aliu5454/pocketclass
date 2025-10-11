@@ -95,7 +95,7 @@ export default function MindbodySuccess() {
             groupSize: mbClass.MaxCapacity,
             status: "pending",
             classCreator: user.uid,
-            Images: [mbClass.ClassDescription?.ImageURL] || [],
+            Images: mbClass.ClassDescription?.ImageURL ? [mbClass.ClassDescription.ImageURL] : [],
             updatedAt: new Date().toISOString(),
             About: mbClass.Staff?.Bio || "",
           };
