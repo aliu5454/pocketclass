@@ -11,6 +11,8 @@ import {
   query,
   where,
   getDocs,
+  addDoc,
+  Timestamp,
 } from "firebase/firestore";
 import { db } from "../firebaseConfig";
 import { toast } from "react-toastify";
@@ -146,6 +148,7 @@ const quillFormats = [
 ];
 
 const ClientDetailsPanel = ({ selectedClient, onBack, instructorId }) => {
+  const router = useRouter();
   const [activeTab, setActiveTab] = useState("overview");
   const [notes, setNotes] = useState([]);
   const [newNote, setNewNote] = useState("");
@@ -164,7 +167,6 @@ const ClientDetailsPanel = ({ selectedClient, onBack, instructorId }) => {
   const [isGeneratingTitle, setIsGeneratingTitle] = useState(false);
   const [isSummarizingNote, setIsSummarizingNote] = useState(false);
 
-  const router = useRouter();
   // Helper functions
   useEffect(() => {
     const loadImageResize = async () => {
@@ -258,6 +260,89 @@ const ClientDetailsPanel = ({ selectedClient, onBack, instructorId }) => {
       client.phone ||
       ""
     );
+  };
+
+  // Handle messaging functionality
+  const handleMessageClient = async () => {
+    try {
+      // Try multiple possible fields for student ID
+      const studentId = 
+        selectedClient.studentDetails?.userUid || 
+        selectedClient.userUid ||
+        selectedClient.student_id ||
+        selectedClient.studentId ||
+        selectedClient.id;
+        
+      // Try to get class ID from various sources
+      const classId = 
+        selectedClient.classId || 
+        selectedClient.class_id ||
+        selectedClient.classDetails?.id ||
+        selectedClient.allBookings?.[0]?.classDetails?.id;
+      
+      if (!studentId || !instructorId) {
+        toast.error("Unable to start conversation - missing user information");
+        return;
+      }
+
+      // Check if there's a specific class associated with this client
+      let chatQuery;
+      if (classId) {
+        chatQuery = query(
+          collection(db, "chatrooms"),
+          where("student", "==", studentId),
+          where("instructor", "==", instructorId),
+          where("class", "==", classId)
+        );
+      } else {
+        // For clients without specific class, find any existing conversation
+        chatQuery = query(
+          collection(db, "chatrooms"),
+          where("student", "==", studentId),
+          where("instructor", "==", instructorId)
+        );
+      }
+
+      const querySnapshot = await getDocs(chatQuery);
+
+      if (!querySnapshot.empty) {
+        // Existing chat room found
+        const existingChatRoom = querySnapshot.docs[0];
+        router.push({
+          pathname: "/chat",
+          query: {
+            cid: classId || instructorId,
+            chid: existingChatRoom.id,
+          },
+        });
+      } else {
+        // Create new chat room
+        const newChatRoomData = {
+          instructor: instructorId,
+          student: studentId,
+          messages: [],
+          createdAt: Timestamp.now(),
+          lastMessage: Timestamp.fromDate(new Date(Date.now() - 10 * 60000)),
+        };
+
+        if (classId) {
+          newChatRoomData.class = classId;
+        }
+
+        const chatRoomRef = await addDoc(collection(db, "chatrooms"), newChatRoomData);
+        
+        router.push({
+          pathname: "/chat",
+          query: {
+            cid: classId || instructorId,
+            chid: chatRoomRef.id,
+          },
+        });
+      }
+    } catch (error) {
+      console.error("Error starting conversation:", error);
+      toast.error("Failed to start conversation. Please try again.");
+    }
   };
 
   // Load client notes
@@ -644,10 +729,11 @@ const ClientDetailsPanel = ({ selectedClient, onBack, instructorId }) => {
             Back to Clients
           </button>
         </div>
-
+        
         {/* Client Profile */}
         <div className="p-6 mt-4">
           <div className="text-center mb-6">
+            
             <div className="w-24 h-24 bg-gradient-to-br from-[#E63F2B] to-[#FF6B5A] rounded-full flex items-center justify-center text-white text-2xl font-bold mx-auto mb-4">
               {clientName.charAt(0).toUpperCase()}
             </div>
@@ -658,6 +744,29 @@ const ClientDetailsPanel = ({ selectedClient, onBack, instructorId }) => {
             {clientPhone && (
               <p className="text-gray-500 text-sm">{clientPhone}</p>
             )}
+            {/* Message Button */}
+                <div className="mt-4 pt-4 border-t border-gray-200">
+                  <button
+                    onClick={handleMessageClient}
+                    className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-[#E63F2B] text-white rounded-lg hover:bg-[#D63426] transition-colors font-medium shadow-sm"
+                  >
+                    <svg
+                      className="w-5 h-5"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                      xmlns="http://www.w3.org/2000/svg"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M8 10h.01M12 10h.01M16 10h.01M21 12c0 4.418-4.03 8-9 8-1.524 0-2.95-.356-4.168-.98L3 20l1.48-4.35C3.554 14.74 3 13.415 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
+                      />
+                    </svg>
+                    Message
+                  </button>
+                </div>
           </div>
 
           {/* Statistics Cards */}

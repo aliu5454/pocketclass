@@ -32,6 +32,7 @@ import NewHeader from "../components/NewHeader";
 const Chat = () => {
   const router = useRouter();
   const bottomRef = useRef();
+  const selectedChatRef = useRef();
   const [isLoading, setIsLoading] = useState(false);
   const [isSending, setIsSending] = useState(false);
 
@@ -153,19 +154,26 @@ const Chat = () => {
       const classDetails = await Promise.all(classPromises);
 
       // Attach names and class details to bookings
-      const enrichedBookings = allBookings.map((booking) => ({
-        ...booking,
-        student_name: `${
-          students.find((s) => s?.userUid === booking.student_id)?.firstName || allBookings.find((s) => s?.student_id === booking.student_id)?.student_name ||
-          "Unknown"
-        } ${
-          students.find((s) => s?.userUid === booking.student_id)?.lastName ||
-          ""
-        }`.trim(),
-        class_name:
-          classDetails.find((c) => c?.id === booking.class_id)?.Name ||
-          "Unknown",
-      }));
+      const enrichedBookings = allBookings.map((booking) => {
+        // Try to find student by multiple possible id fields
+        const student = students.find((s) => 
+          s?.userUid === booking.student_id || 
+          s?.id === booking.student_id ||
+          s?.uid === booking.student_id
+        );
+        
+        // Fallback to existing student_name in booking if available
+        const existingStudentName = booking.student_name || allBookings.find((s) => s?.student_id === booking.student_id)?.student_name;
+        
+        const firstName = student?.firstName || existingStudentName?.split(' ')[0] || "Unknown";
+        const lastName = student?.lastName || (existingStudentName?.split(' ').slice(1).join(' ')) || "";
+        
+        return {
+          ...booking,
+          student_name: `${firstName} ${lastName}`.trim(),
+          class_name: classDetails.find((c) => c?.id === booking.class_id)?.Name || "Unknown",
+        };
+      });
 
       setBookings(enrichedBookings);
     } catch (error) {
@@ -195,16 +203,27 @@ const Chat = () => {
       .map((booking) => booking.startTime)
       .filter((time) => time !== undefined);
 
-    const chatRoomQury2 =
-      startTimes.length > 0
-        ? query(
-            collection(db, "chatrooms"),
-            where("startTime", "in", startTimes)
-          )
-        : null;
-
-    const chatroomsSnapshot2 =
-      startTimes.length > 0 ? await getDocs(chatRoomQury2) : { docs: [] };
+    // Handle Firebase IN query limit of 30 values by chunking
+    let chatroomsSnapshot2 = { docs: [] };
+    if (startTimes.length > 0) {
+      const chunkSize = 30;
+      const chunks = [];
+      for (let i = 0; i < startTimes.length; i += chunkSize) {
+        chunks.push(startTimes.slice(i, i + chunkSize));
+      }
+      
+      const allChunkedResults = [];
+      for (const chunk of chunks) {
+        const chatRoomQuery2 = query(
+          collection(db, "chatrooms"),
+          where("startTime", "in", chunk)
+        );
+        const chunkSnapshot = await getDocs(chatRoomQuery2);
+        allChunkedResults.push(...chunkSnapshot.docs);
+      }
+      
+      chatroomsSnapshot2 = { docs: allChunkedResults };
+    }
 
     const chatRoomTempData = chatroomsSnapshot.docs.map((doc) => ({
       id: doc.id,
@@ -224,13 +243,57 @@ const Chat = () => {
     const uniqueChatRooms = [
       ...new Map(chatRoomTempData4.map((item) => [item.id, item])).values(),
     ];
-    setChatRooms(uniqueChatRooms);
+
+    // Enrich chatrooms with user names for better display
+    const enrichedChatRooms = await Promise.all(
+      uniqueChatRooms.map(async (chatroom) => {
+        try {
+          // Fetch student and instructor data
+          const [studentData, instructorData] = await Promise.all([
+            chatroom.student ? getData(chatroom.student, "Users") : null,
+            chatroom.instructor ? getData(chatroom.instructor, "Users") : null,
+          ]);
+
+          return {
+            ...chatroom,
+            studentName: studentData 
+              ? `${studentData.firstName || ''} ${studentData.lastName || ''}`.trim()
+              : 'Unknown Student',
+            instructorName: instructorData 
+              ? `${instructorData.firstName || ''} ${instructorData.lastName || ''}`.trim()
+              : 'Unknown Instructor',
+            studentData,
+            instructorData,
+          };
+        } catch (error) {
+          console.error("Error enriching chatroom:", error);
+          return {
+            ...chatroom,
+            studentName: 'Unknown Student',
+            instructorName: 'Unknown Instructor',
+          };
+        }
+      })
+    );
+
+    setChatRooms(enrichedChatRooms);
   };
 
   useEffect(() => {
     if (user) getChatRooms();
   }, [user, bookings]);
-  useEffect(() => {}, [cid, chid, router.isReady]);
+  
+  // Auto-scroll to selected chat when chid changes
+  useEffect(() => {
+    if (chid && selectedChatRef.current) {
+      setTimeout(() => {
+        selectedChatRef.current?.scrollIntoView({
+          behavior: 'smooth',
+          block: 'center',
+        });
+      }, 100); // Small delay to ensure the chat list is rendered
+    }
+  }, [chid, chatRooms]);
 
   // scroll to bottom
   useEffect(() => {
@@ -663,9 +726,7 @@ const Chat = () => {
               {/* Check if chatroom has any Direct message chat room or not using filter */}
 
               {chatRooms?.filter(
-                (chatroom) =>
-                  !chatroom?.startTime &&
-                  (chatroom?.messages?.length > 0 || chatroom?.id === chid)
+                (chatroom) => !chatroom?.startTime
               ).length > 0 && (
                 <h1 className="text-base  mt-4 text-gray-400 font-semibold mx-4 my-2">
                   Direct Messages
@@ -673,30 +734,29 @@ const Chat = () => {
               )}
             </div>
             {chatRooms?.map((chatroom, index) => {
-              if (
-                !chatroom?.startTime &&
-                (chatroom?.messages?.length > 0 || chatroom?.id === chid)
-              ) {
+              if (!chatroom?.startTime) {
                 const classData = classes.find((c) => c?.id === chatroom.class);
                 const booking = bookings.find(
                   (booking) => booking?.student_id === chatroom.student
                 );
-                return classData?.Name ? (
+                
+                // Always return the chatroom, even if class data is missing
+                return (
                   <div
                     key={index}
+                    ref={chid === chatroom.id ? selectedChatRef : null}
                     onClick={() => {
                       setchid(chatroom.id);
                     }}
                     className={` py-4 border-gray-300 hover:bg-gray-100 ${
-                      chid === chatroom.id ? " bg-gray-100 " : " bg-white"
+                      chid === chatroom.id ? " bg-red-50 " : " bg-white"
                     } border-solid border-b cursor-pointer px-2`}
                   >
                     <h1 className="text-base mx-4 text-black font-semibold overflow-hidden whitespace-nowrap">
-                      {booking?.student_name &&
-                      booking?.instructor_id == user?.uid
-                        ? `${booking?.student_name} - `
-                        : `${classData?.instructorName} - `}
-                      {classData?.Name}
+                      {user?.uid === chatroom.instructor
+                        ? `${chatroom.studentName || booking?.student_name || 'Unknown Student'} - `
+                        : `${chatroom.instructorName || classData?.instructorName || 'Unknown Instructor'} - `}
+                      {classData?.Name || 'Unknown Class'}
                     </h1>
                     <div className="flex flex-col space-y-2 mx-2">
                       <div className="flex items-center justify-between px-2 rounded-lg">
@@ -719,7 +779,7 @@ const Chat = () => {
                       </div>
                     </div>
                   </div>
-                ) : null;
+                );
               }
               return null; // Ensure a valid return for map()
             })}
@@ -727,9 +787,7 @@ const Chat = () => {
           <div>
             <div>
               {chatRooms?.filter(
-                (chatroom) =>
-                  chatroom?.startTime &&
-                  (chatroom?.messages?.length > 0 || chatroom?.id === chid)
+                (chatroom) => chatroom?.startTime
               ).length > 0 && (
                 <h1 className="text-base  mt-4 text-gray-400 font-semibold mx-4 my-2">
                   Group Messages
@@ -737,26 +795,24 @@ const Chat = () => {
               )}
             </div>
             {chatRooms?.map((chatroom, index) => {
-              if (
-                chatroom?.startTime &&
-                (chatroom?.messages?.length > 0 || chatroom?.id === chid)
-              ) {
+              if (chatroom?.startTime) {
                 const classData = classes.find((c) => c?.id === chatroom.class);
-                return classData?.Name ? (
+                return (
                   <div
                     key={index}
+                    ref={chid === chatroom.id ? selectedChatRef : null}
                     onClick={() => {
                       setchid(chatroom.id);
                     }}
                     className={` py-4 border-gray-300 hover:bg-gray-100 ${
-                      chid === chatroom.id ? " bg-gray-100 " : " bg-white"
+                      chid === chatroom.id ? " bg-red-50 " : " bg-white"
                     } border-solid border-b cursor-pointer px-2`}
                   >
                     <h1 className="text-base mx-4 text-black font-semibold overflow-hidden whitespace-nowrap">
                       {moment
                         .utc(chatroom?.startTime)
                         .format("DD/MM/YY, HH:MM")}{" "}
-                      - {classData?.Name}
+                      - {classData?.Name || 'Unknown Class'}
                     </h1>
                     <div className="flex flex-col space-y-2 mx-2">
                       <div className="flex items-center justify-between px-2 rounded-lg">
@@ -779,7 +835,7 @@ const Chat = () => {
                       </div>
                     </div>
                   </div>
-                ) : null;
+                );
               }
               return null;
             })}
