@@ -653,7 +653,7 @@ const NewHeader = ({ activeCategory, handleCategorySelection }) => {
                           isHome ? "z-[990]" : "dm2:z-50 z-[900]"
                         }`}
                       >
-                        <ul>
+                        <ul className="pl-3">
                           {userData?.isInstructor && (
                             <div className="flex justify-between">
                               <div className="flex items-center">
@@ -702,94 +702,53 @@ const NewHeader = ({ activeCategory, handleCategorySelection }) => {
                           <li className="my-2 hover:text-logo-red hover:scale-105 transition transform duration-200 ease-out active:scale-90">
                             <Link href={`/profile/${user.uid}`}>Profile</Link>
                           </li>
-                          <li className="my-2 hover:text-logo-red hover:scale-105 transition transform duration-200 ease-out active:scale-90">
-                            <Link href={`/mybooking?id=${user.uid}`}>
-                              My Booking
-                            </Link>
-                          </li>
-                          <li className="my-2 hover:text-logo-red hover:scale-105 transition transform duration-200 ease-out active:scale-90">
-                            <Link href={`/chat`}>My Messages</Link>
-                          </li>
 
-                          {(!userData?.isInstructor ||
-                            currentView === "student") && (
+                          {/* Student Menu Items */}
+                          {(!userData?.isInstructor || currentView === "student") && (
                             <>
                               <li className="my-2 hover:text-logo-red hover:scale-105 transition transform duration-200 ease-out active:scale-90">
-                                <Link href={`/wallet`}>Wallet</Link>
+                                <Link href={`/mybooking?id=${user.uid}`}>Bookings</Link>
                               </li>
                               <li className="my-2 hover:text-logo-red hover:scale-105 transition transform duration-200 ease-out active:scale-90">
-                                <Link href={`/referrals`}>Refer & Earn</Link>
+                                <Link href={`/chat`}>Messages</Link>
+                              </li>
+                              <li className="my-2 hover:text-logo-red hover:scale-105 transition transform duration-200 ease-out active:scale-90">
+                                <Link href={`/wallet`}>Wallet & Rewards</Link>
                               </li>
                             </>
                           )}
 
-                          {userData?.isInstructor &&
-                            currentView === "instructor" && (
-                              <>
-                                <li className="my-2  hover:text-logo-red hover:scale-105 transition transform duration-200 ease-out active:scale-90">
-                                  <Link href={`/myClass/${user.uid}`}>
-                                    My Classes
-                                  </Link>
+                          {/* Instructor Menu Items */}
+                          {userData?.isInstructor && currentView === "instructor" && (
+                            <>
+                              {userData?.isAdmin && (
+                                <li className="my-2 hover:text-logo-red hover:scale-105 transition transform duration-200 ease-out active:scale-90">
+                                  <Link href="/dashboard">Dashboard</Link>
                                 </li>
-                                <li className="my-2  hover:text-logo-red hover:scale-105 transition transform duration-200 ease-out active:scale-90">
-                                  <Link href={`/automations`}>Automations</Link>
-                                </li>
-                                <li className="my-2  hover:text-logo-red hover:scale-105 transition transform duration-200 ease-out active:scale-90">
-                                  <Link href={`/referrals`}>Referral Program</Link>
-                                </li>
-                                <li>
-                                  <p className="my-2  hover:text-logo-red hover:scale-105 transition transform duration-200 ease-out active:scale-90">
-                                    <Link href={`/myStudents/${user.uid}`}>
-                                      My Clients
-                                    </Link>
-                                  </p>
-                                </li>
-                                <li>
-                                  <p className="my-2  hover:text-logo-red hover:scale-105 transition transform duration-200 ease-out active:scale-90">
-                                    <Link
-                                      href={`/classbookings?id=${user.uid}`}
-                                    >
-                                      Class Bookings
-                                    </Link>
-                                  </p>
-                                </li>
-                                <li>
-                                  <p className="my-2 hover:text-logo-red hover:scale-105 transition transform duration-200 ease-out active:scale-90">
-                                    <Link href={`/myStudents/${user.uid}`}>
-                                      My Clients
-                                    </Link>
-                                  </p>
-                                </li>
-                                <li>
-                                  <p className="my-2 hover:text-logo-red hover:scale-105 transition transform duration-200 ease-out active:scale-90">
-                                    <Link
-                                      href={`/classbookings?id=${user.uid}`}
-                                    >
-                                      Class Bookings
-                                    </Link>
-                                  </p>
-                                </li>
-                                <li>
-                                  <p className="my-2 block dm1:hidden hover:text-logo-red hover:scale-105 transition transform duration-200 ease-out active:scale-90">
-                                    <Link href={`/createClass`}>
-                                      Create Class
-                                    </Link>
-                                  </p>
-                                </li>
-                                <li>
-                                  <p className="my-2 hover:text-logo-red hover:scale-105 transition transform duration-200 ease-out active:scale-90">
-                                    <Link href="/schedule">
-                                      Manage Schedule
-                                    </Link>
-                                  </p>
-                                </li>
-                                <li>
-                                  <p className="my-2 hover:text-logo-red hover:scale-105 transition transform duration-200 ease-out active:scale-90">
-                                    <Link href="/withdraw">My Wallet</Link>
-                                  </p>
-                                </li>
-                              </>
-                            )}
+                              )}
+                              <li className="my-2 hover:text-logo-red hover:scale-105 transition transform duration-200 ease-out active:scale-90">
+                                <Link href={`/myClass/${user.uid}`}>Classes</Link>
+                              </li>
+                              <li className="my-2 hover:text-logo-red hover:scale-105 transition transform duration-200 ease-out active:scale-90">
+                                <Link href={`/chat`}>Messages</Link>
+                              </li>
+                              {/* <li className="my-2 hover:text-logo-red hover:scale-105 transition transform duration-200 ease-out active:scale-90">
+                                <Link href="/schedule">Schedule</Link>
+                              </li> */}
+                              <li className="my-2 hover:text-logo-red hover:scale-105 transition transform duration-200 ease-out active:scale-90">
+                                <Link href="/withdraw">Wallet</Link>
+                              </li>
+                              {/* <li className="my-2 hover:text-logo-red hover:scale-105 transition transform duration-200 ease-out active:scale-90">
+                                <Link href="/vouchers">Vouchers</Link>
+                              </li>
+                              <li className="my-2 hover:text-logo-red hover:scale-105 transition transform duration-200 ease-out active:scale-90">
+                                <Link href={`/automations`}>Automations</Link>
+                              </li>
+                              <li className="my-2 hover:text-logo-red hover:scale-105 transition transform duration-200 ease-out active:scale-90">
+                                <Link href={`/referrals`}>Referral Program</Link>
+                              </li> */}
+                            </>
+                          )}
 
                           {!userData?.isInstructor && (
                             <li className="my-2">
@@ -815,19 +774,11 @@ const NewHeader = ({ activeCategory, handleCategorySelection }) => {
                               </Link>
                             </li>
                           )}
-                          {userData?.isAdmin && (
-                            <li className="my-2 hover:text-logo-red hover:scale-105 transition transform duration-200 ease-out active:scale-90">
-                              <Link href="/vouchers">Vouchers</Link>
-                            </li>
-                          )}
+
                           <li className="my-2 hover:text-logo-red hover:scale-105 transition transform duration-200 ease-out active:scale-90">
                             <Link href="/support">Support</Link>
                           </li>
-                          {userData?.isAdmin && (
-                            <li className="my-2 hover:text-logo-red hover:scale-105 transition transform duration-200 ease-out active:scale-90">
-                              <Link href="/dashboard">Dashboard</Link>
-                            </li>
-                          )}
+
                           <hr className="my-2" />
                           <li
                             className="my-2 hover:text-logo-red hover:scale-105 transition transform duration-200 ease-out active:scale-90 cursor-pointer"
@@ -865,7 +816,7 @@ const NewHeader = ({ activeCategory, handleCategorySelection }) => {
                           isHome ? "z-[990]" : "dm2:z-50 z-[900]"
                         }`}
                       >
-                        <ul>
+                        <ul className="pl-3">
                           <li className="my-2 hover:text-logo-red hover:scale-105 transition transform duration-200 ease-out active:scale-90">
                             <Link
                               href={{
