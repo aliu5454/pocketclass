@@ -9,6 +9,7 @@ import "mapbox-gl/dist/mapbox-gl.css";
 import "@mapbox/mapbox-gl-geocoder/dist/mapbox-gl-geocoder.css";
 import { useFormik } from "formik";
 import { classSchema } from "../Validation/createClass";
+import ClassScheduleCreator from "../components/ClassScheduleCreator";
 
 const MapCoordinates = dynamic(() => import("../components/MapCoordinates"), {
   ssr: false,
@@ -26,6 +27,7 @@ import {
   GeoPoint,
   serverTimestamp,
   updateDoc,
+  setDoc,
 } from "firebase/firestore";
 import { toast, ToastContainer } from "react-toastify";
 import { useAuthState } from "react-firebase-hooks/auth";
@@ -127,6 +129,18 @@ export default function CreateClass() {
   const [uploadedFiles, setUploadedFiles] = useState([]);
   const [classLoading, setClassLoading] = useState(false);
   const [showModal, setShowModal] = useState(false);
+  const [classSchedule, setClassSchedule] = useState({
+    generalAvailability: [
+      { day: "Monday", slots: [] },
+      { day: "Tuesday", slots: [] },
+      { day: "Wednesday", slots: [] },
+      { day: "Thursday", slots: [] },
+      { day: "Friday", slots: [] },
+      { day: "Saturday", slots: [] },
+      { day: "Sunday", slots: [] }
+    ],
+    adjustedAvailability: []
+  });
   const [form, setForm] = useState({
     Name: "",
     Category: "",
@@ -182,63 +196,75 @@ export default function CreateClass() {
   const addClass = async (e) => {
     e.preventDefault();
 
-    if (
-      !form.Name ||
-      !form.Category ||
-      !form.SubCategory ||
-      !form.Price ||
-      !form.Pricing ||
-      !form.Description
-    ) {
-      toast.error("Please fill all fields");
+    // Validate required fields with specific error messages
+    const requiredFields = [
+      { field: 'Name', value: form.Name?.trim(), label: 'Class Name' },
+      { field: 'Category', value: form.Category?.trim(), label: 'Category' },
+      { field: 'SubCategory', value: form.SubCategory?.trim(), label: 'Sub Category' },
+      { field: 'Price', value: form.Price?.toString().trim(), label: 'Price Per Session' },
+      { field: 'Pricing', value: form.Pricing?.trim(), label: 'Pricing Description' },
+      { field: 'Description', value: form.Description?.trim(), label: 'Description' }
+    ];
+
+    const emptyFields = requiredFields.filter(field => !field.value);
+    
+    if (emptyFields.length > 0) {
+      const missingFieldsMessage = `Please fill the following required fields: ${emptyFields.map(f => f.label).join(', ')}`;
+      toast.error(missingFieldsMessage);
       return;
     }
     if (form.Images.length < 1) {
       setImageError("Please upload at least 1 image");
-      toast.error("Please upload at least 1 image");
-      setLoading(false);
+      toast.error("Please upload at least 1 image or video for your class");
       return;
     }
-    if (!form.Address) {
+    if (!form.Address?.trim()) {
       setAddressError("Please select a location on the map");
-      toast.error("Please select a location on the map");
-      setLoading(false);
+      toast.error("Please select a location on the map for your class");
       return;
     }
     const totalSize = form.Images.reduce((acc, file) => acc + file.size, 0);
     if (totalSize > 20 * 1024 * 1024) {
-      // 10MB
+      // 20MB
       setImageError(
         "Total size of all images must be less than or equal to 20MB"
       );
       toast.error(
         "Total size of all images must be less than or equal to 20MB"
       );
-      setLoading(false);
       return;
     }
     let PackagesToBeAdded = packages;
     if (packages.length === 1) {
       if (
-        !packages[0].Name &&
+        !packages[0].Name?.trim() &&
         !packages[0].num_sessions &&
         !packages[0].Price
       ) {
         PackagesToBeAdded = [];
       } else if (
-        !packages[0].Name ||
+        !packages[0].Name?.trim() ||
         !packages[0].num_sessions ||
         !packages[0].Price
       ) {
-        toast.error("Please fill all package fields");
-        setLoading(false);
+        const missingPackageFields = [];
+        if (!packages[0].Name?.trim()) missingPackageFields.push("Package Name");
+        if (!packages[0].num_sessions) missingPackageFields.push("Number of Sessions");
+        if (!packages[0].Price) missingPackageFields.push("Package Price");
+        
+        toast.error(`Please fill all package fields: ${missingPackageFields.join(', ')}`);
         return;
       }
     } else if (packages.length > 0) {
-      for (let pkg of packages) {
-        if (!pkg.Name || !pkg.num_sessions || !pkg.Price) {
-          toast.error("Please fill all package fields");
-          setLoading(false);
+      for (let i = 0; i < packages.length; i++) {
+        const pkg = packages[i];
+        const missingFields = [];
+        if (!pkg.Name?.trim()) missingFields.push("Name");
+        if (!pkg.num_sessions) missingFields.push("Number of Sessions");
+        if (!pkg.Price) missingFields.push("Price");
+        
+        if (missingFields.length > 0) {
+          toast.error(`Package ${i + 1}: Please fill the following fields: ${missingFields.join(', ')}`);
           return;
         }
       }
@@ -278,6 +304,13 @@ export default function CreateClass() {
         Images: imagesURL,
       });
 
+      // Save class schedule if any time slots were added
+      const hasScheduleSlots = classSchedule.generalAvailability.some(day => day.slots.length > 0);
+      if (hasScheduleSlots) {
+        await setDoc(doc(db, "Schedule", addingClass.id), classSchedule);
+        console.log("Class schedule saved successfully");
+      }
+
       // Reset form
       setForm({
         Name: "",
@@ -299,6 +332,18 @@ export default function CreateClass() {
         status: "pending",
         firstFree: false,
       });
+      setClassSchedule({
+        generalAvailability: [
+          { day: "Monday", slots: [] },
+          { day: "Tuesday", slots: [] },
+          { day: "Wednesday", slots: [] },
+          { day: "Thursday", slots: [] },
+          { day: "Friday", slots: [] },
+          { day: "Saturday", slots: [] },
+          { day: "Sunday", slots: [] }
+        ],
+        adjustedAvailability: []
+      });
       setPackages([
         {
           Name: "",
@@ -317,7 +362,12 @@ export default function CreateClass() {
         router.push("/confirmClass/" + addingClass.id);
       }
 
-      toast.success("Class Added");
+      // Show success message with schedule info
+      if (hasScheduleSlots) {
+        toast.success("Class and schedule created successfully!");
+      } else {
+        toast.success("Class created! You can add a schedule later from your dashboard.");
+      }
     } catch (error) {
       console.error("Error adding class:", error);
       toast.error("Failed to add class. Please try again.");
@@ -433,11 +483,10 @@ export default function CreateClass() {
     }
     const totalSize = form.Images.reduce((acc, file) => acc + file.size, 0);
     if (totalSize > 20 * 1024 * 1024) {
-      // 10MB
+      // 20MB
       setImageError(
         "Total size of all images must be less than or equal to 20MB"
       );
-      setLoading(false);
       return;
     }
   }, [form.Images]);
@@ -1109,6 +1158,22 @@ export default function CreateClass() {
                   </div>
                 ))}
             </div>
+
+            {/* Schedule Creation Section */}
+            <div className="mb-8">
+              <div className="bg-gray-50 rounded-lg p-6 border border-gray-200">
+                
+                
+                <ClassScheduleCreator
+                  classId={null} // Will be set after class creation
+                  onScheduleCreated={(schedule) => setClassSchedule(schedule)}
+                  schedule={classSchedule}
+                  setSchedule={setClassSchedule}
+                  isEmbedded={true} // Indicates this is embedded in class creation
+                />
+              </div>
+            </div>
+
             <div className="flex flex-row gap-4 w-full mb-4 max-w-[750px]">
               <button
                 onClick={addClass}

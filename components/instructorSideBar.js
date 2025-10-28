@@ -129,7 +129,7 @@ const InstructorSideBar = () => {
         active: router.pathname === '/chat'
     },
     {
-      name: 'Manage Schedule',
+      name: 'Common Schedule',
       href: '/schedule',
       icon: CalendarIcon,
       active: router.pathname === '/schedule'
