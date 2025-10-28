@@ -78,9 +78,30 @@ export default function Schedule() {
   const [selectedBooking, setSelectedBooking] = useState(null);
   const [selectedSlot, setSelectedSlot] = useState(null);
   const [showPopup, setShowPopup] = useState(false);
+  const [classSchedules, setClassSchedules] = useState({});
+  const [classColors, setClassColors] = useState({});
+
+  // Color palette for different classes
+  const CLASS_COLORS = [
+    "#FF6B6B", "#4ECDC4", "#45B7D1", "#96CEB4", "#FFEAA7", "#DDA0DD", 
+    "#98D8C8", "#F7DC6F", "#BB8FCE", "#85C1E9", "#F8C471", "#82E0AA",
+    "#F1948A", "#AED6F1", "#A9DFBF", "#F9E79F", "#D7BDE2", "#A3E4D7",
+    "#FADBD8", "#D5DBDB"
+  ];
 
   const handleEventClick = (event) => {
-    setSelectedBooking(event);
+    // Enhanced event info for class events
+    if (event.isClassEvent) {
+      const enhancedEvent = {
+        ...event,
+        title: event.className,
+        displayTitle: `${event.className} ${event.isStacked ? `(${event.stackIndex + 1}/${event.totalStacked})` : ''}`,
+        tooltip: event.tooltip + (event.isStacked ? `\n\n📚 Stacked Event: ${event.stackIndex + 1} of ${event.totalStacked} classes at this time` : ''),
+      };
+      setSelectedBooking(enhancedEvent);
+    } else {
+      setSelectedBooking(event);
+    }
   };
 
   // Find Booking if booked on event change
@@ -152,6 +173,32 @@ export default function Schedule() {
       });
 
       setClasses(validClasses);
+      
+      // Assign colors to classes and fetch their schedules
+      const colors = {};
+      const schedules = {};
+      
+      for (let i = 0; i < validClasses.length; i++) {
+        const classItem = validClasses[i];
+        colors[classItem.uid] = CLASS_COLORS[i % CLASS_COLORS.length];
+        
+        // Fetch schedule for each class
+        try {
+          const scheduleDoc = await getDoc(doc(db, "Schedule", classItem.uid));
+          if (scheduleDoc.exists()) {
+            schedules[classItem.uid] = {
+              ...scheduleDoc.data(),
+              className: classItem.Name,
+              instructor: classItem.instructorName || "Unknown Instructor"
+            };
+          }
+        } catch (error) {
+          console.error(`Error fetching schedule for class ${classItem.uid}:`, error);
+        }
+      }
+      
+      setClassColors(colors);
+      setClassSchedules(schedules);
     };
 
     if (user) fetchClasses();
@@ -342,6 +389,8 @@ export default function Schedule() {
     generalAvailability,
     adjustedAvailability,
     bookedSlots,
+    classSchedules,
+    classes,
   ]);
 
   const handleGeneralInputChange = (dayIndex, slotIndex, key, value) => {
@@ -531,7 +580,7 @@ export default function Schedule() {
               }
 
               newEvents.push({
-                title: slot.groupSlot ? "Group Class" : "",
+                title: "", // Empty title - clean visual
                 start: start.toDate(),
                 end: end.toDate(),
                 color: slot.groupSlot ? "#a1d564" : "#d8f5b6",
@@ -542,6 +591,114 @@ export default function Schedule() {
           }
         });
       }
+    });
+
+    // Generate events from class schedules
+    Object.entries(classSchedules).forEach(([classId, scheduleData]) => {
+      const classInfo = classes.find(c => c.uid === classId);
+      if (!classInfo) return;
+      
+      const { generalAvailability: classGeneral = [], adjustedAvailability: classAdjusted = [] } = scheduleData;
+      const classDuration = scheduleData.appointmentDuration || 60;
+      const classColor = classColors[classId] || "#8E8E93";
+      
+      // Create adjusted map for this class
+      const classAdjustedMap = {};
+      const classVacationDates = new Set();
+      
+      classAdjusted.forEach((item) => {
+        if (item.slots.length === 0) {
+          classVacationDates.add(item.date);
+        } else {
+          classAdjustedMap[item.date] = item.slots;
+        }
+      });
+      
+      classGeneral.forEach((day, dayIndex) => {
+        for (let i = 0; i < 12; i++) { // Next 12 weeks
+          const currentDate = moment()
+            .startOf("week")
+            .add(dayIndex + 1 > 6 ? 0 : dayIndex + 1, "days")
+            .add(i, "weeks");
+
+          const formattedDate = currentDate.format("YYYY-MM-DD");
+
+          if (classVacationDates.has(formattedDate)) {
+            continue;
+          }
+
+          const classGeneralSlots = day.slots || [];
+          const classAdjustedSlots = classAdjustedMap[formattedDate] || [];
+          const allClassSlots = [...classGeneralSlots, ...classAdjustedSlots];
+
+          allClassSlots.forEach((slot) => {
+            if (slot.startTime && slot.endTime) {
+              const slotStart = moment(slot.startTime, "HH:mm");
+              const slotEnd = moment(slot.endTime, "HH:mm");
+              let current = slotStart.clone();
+
+              while (current.isBefore(slotEnd)) {
+                const next = current.clone().add(classDuration, "minutes");
+                if (next.isAfter(slotEnd)) break;
+
+                const start = currentDate.clone().set({
+                  hour: current.hours(),
+                  minute: current.minutes(),
+                });
+                const end = currentDate.clone().set({
+                  hour: next.hours(),
+                  minute: next.minutes(),
+                });
+
+                // Check if this slot is booked
+                const isBooked = bookedSlots.some(
+                  (bookedSlot) =>
+                    bookedSlot.classId === classId &&
+                    (moment(bookedSlot.startTime).isSame(start) ||
+                      (moment(bookedSlot.startTime).isBefore(end) &&
+                        moment(bookedSlot.endTime).isAfter(start)))
+                );
+
+                // Find booking info if booked
+                const bookingInfo = bookedSlots.find(
+                  (bookedSlot) =>
+                    bookedSlot.classId === classId &&
+                    moment(bookedSlot.startTime).isSame(start)
+                );
+
+                const eventTitle = ""; // Empty title - info only on hover
+                const tooltipInfo = `🎯 Class: ${classInfo.Name}
+🕒 Time: ${start.format("dddd, MMM Do")} at ${start.format("h:mm A")} - ${end.format("h:mm A")}
+👨‍🏫 Instructor: ${scheduleData.instructor || "Unknown"}
+💰 Price: $${classInfo.oneSessionPrice || classInfo.groupPrice || "N/A"}
+📍 Location: ${classInfo.Location || "Not specified"}
+👥 Max Students: ${classInfo.groupSize || 1}
+📋 Category: ${classInfo.Category || "General"}
+${isBooked ? `� Booked by: ${bookingInfo?.student_name || "Unknown"}` : "🟢 Available for booking"}`;
+
+                newEvents.push({
+                  title: eventTitle,
+                  start: start.toDate(),
+                  end: end.toDate(),
+                  color: isBooked ? "#FF4757" : classColor,
+                  classId: classId,
+                  className: classInfo.Name,
+                  instructor: scheduleData.instructor,
+                  price: classInfo.oneSessionPrice || classInfo.groupPrice,
+                  location: classInfo.Location,
+                  category: classInfo.Category,
+                  groupSize: classInfo.groupSize,
+                  isBooked,
+                  isClassEvent: true,
+                  tooltip: tooltipInfo,
+                });
+
+                current = next;
+              }
+            }
+          });
+        }
+      });
     });
 
     // Render booked slots
@@ -593,8 +750,84 @@ export default function Schedule() {
       });
     });
 
-    // ✅ Set all generated events except vacation ones
-    setEvents(newEvents);
+    // Create stacked events for overlapping time slots
+    const stackedEvents = [];
+    const processedEvents = new Set();
+    
+    newEvents.forEach((event, index) => {
+      if (processedEvents.has(index) || !event.isClassEvent) {
+        stackedEvents.push(event);
+        return;
+      }
+      
+      // Find all overlapping events with this one
+      const overlappingGroup = [event];
+      const overlappingIndices = [index];
+      
+      newEvents.forEach((otherEvent, otherIndex) => {
+        if (otherIndex === index || processedEvents.has(otherIndex) || !otherEvent.isClassEvent) return;
+        
+        const eventStart = moment(event.start);
+        const eventEnd = moment(event.end);
+        const otherStart = moment(otherEvent.start);
+        const otherEnd = moment(otherEvent.end);
+        
+        // Check if events overlap in time
+        if ((eventStart.isBefore(otherEnd) && eventEnd.isAfter(otherStart))) {
+          overlappingGroup.push(otherEvent);
+          overlappingIndices.push(otherIndex);
+        }
+      });
+      
+      // Mark all events in this group as processed
+      overlappingIndices.forEach(idx => processedEvents.add(idx));
+      
+      if (overlappingGroup.length === 1) {
+        // No overlap, add as is
+        stackedEvents.push(event);
+      } else {
+        // Create non-overlapping vertically stacked events
+        const originalStart = moment(event.start);
+        const originalEnd = moment(event.end);
+        const totalDuration = originalEnd.diff(originalStart, 'minutes');
+        
+        // Calculate optimal stacking parameters for small squares
+        const minEventHeight = 8; // Very small minimum height for compact squares
+        const gapMinutes = 2; // Small gap between events
+        const totalGapTime = (overlappingGroup.length - 1) * gapMinutes;
+        const availableTime = totalDuration - totalGapTime;
+        const eventHeight = Math.max(minEventHeight, Math.min(12, Math.floor(availableTime / overlappingGroup.length))); // Max 12 minutes
+        
+        // Sort overlapping events by class name for consistent ordering
+        const sortedGroup = overlappingGroup.sort((a, b) => a.className.localeCompare(b.className));
+        
+        sortedGroup.forEach((overlappingEvent, stackIndex) => {
+          const stackStart = originalStart.clone().add(stackIndex * (eventHeight + gapMinutes), 'minutes');
+          const stackEnd = stackStart.clone().add(eventHeight, 'minutes');
+          
+          // Ensure we don't exceed the original time boundaries
+          const finalEnd = moment.min(stackEnd, originalEnd);
+          
+          // Only add if there's enough time for the event
+          if (stackStart.isBefore(originalEnd)) {
+            stackedEvents.push({
+              ...overlappingEvent,
+              start: stackStart.toDate(),
+              end: finalEnd.toDate(),
+              isStacked: true,
+              stackIndex: stackIndex,
+              totalStacked: overlappingGroup.length,
+              originalStart: originalStart.toDate(),
+              originalEnd: originalEnd.toDate(),
+              stackHeight: eventHeight,
+            });
+          }
+        });
+      }
+    });
+
+    // ✅ Set all generated events with stacked layout
+    setEvents(stackedEvents);
   };
 
   // time slots from 30 minutes to 3 hours slotOptions
@@ -1733,6 +1966,36 @@ export default function Schedule() {
           </div>
         </div>
         <div className="flex-grow p-4">
+          {/* Class Color Legend */}
+          {classes.length > 0 && (
+            <div className="mb-3 p-2 bg-gray-50 rounded border">
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="text-xs font-semibold text-gray-700">
+                  Classes ({classes.length})
+                </h3>
+                <span className="text-xs text-gray-500">Hover for details</span>
+              </div>
+              <div className="flex flex-wrap gap-1">
+                {classes.map((classItem) => (
+                  <div 
+                    key={classItem.uid} 
+                    className="group relative"
+                    title={`${classItem.Name} - $${classItem.oneSessionPrice || classItem.groupPrice || "N/A"}`}
+                  >
+                    <div
+                      className="w-3 h-3 rounded-sm shadow-sm cursor-help border border-white"
+                      style={{ backgroundColor: classColors[classItem.uid] || "#8E8E93" }}
+                    ></div>
+                    {/* Compact tooltip */}
+                    <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-1 px-2 py-1 bg-gray-900 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity z-10 whitespace-nowrap pointer-events-none">
+                      {classItem.Name} - ${classItem.oneSessionPrice || classItem.groupPrice || "N/A"}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+          
           <div className="dm1:mb-0 mb-8">
             <div className="dm:hidden block">{renderStatus()}</div>
             <BigCalendar
@@ -1753,7 +2016,34 @@ export default function Schedule() {
               eventPropGetter={(event) => ({
                 style: {
                   backgroundColor: event.color,
-                  fontSize: "12px",
+                  fontSize: "6px",
+                  borderRadius: "2px",
+                  border: event.isClassEvent 
+                    ? "1px solid rgba(255,255,255,0.6)" 
+                    : "1px solid rgba(255,255,255,0.3)",
+                  opacity: event.isBooked ? 0.85 : 0.9,
+                  color: "transparent", // Hide text for compact squares
+                  cursor: "pointer",
+                  padding: "0",
+                  boxShadow: event.isClassEvent 
+                    ? "0 1px 2px rgba(0,0,0,0.2)" 
+                    : "none",
+                  position: "relative",
+                  minHeight: "8px",
+                  maxHeight: "12px",
+                  minWidth: "8px",
+                  maxWidth: "20px",
+                  width: "18px",
+                  height: "10px",
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  marginBottom: "1px",
+                  marginRight: "1px",
+                  zIndex: event.isStacked ? event.stackIndex + 1 : 1,
+                  overflow: "hidden",
+                  flexShrink: 0,
                 },
               })}
               views={["month", "week", "day"]}
@@ -2294,34 +2584,121 @@ export default function Schedule() {
             <ReactModal
               isOpen={!!selectedBooking}
               onRequestClose={closeModal}
-              className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50"
+              className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50"
               overlayClassName="fixed inset-0 bg-black bg-opacity-50"
             >
-              <div className="bg-white p-6 rounded shadow-lg w-[90%] max-w-md">
-                <h2 className="text-xl font-bold mb-4">Booking Details</h2>
-                <p>
-                  <strong>Title:</strong>{" "}
-                  {selectedBooking.title ? selectedBooking.title : "Not Booked"}
-                </p>
-                <p>
-                  <strong>Start Time:</strong>{" "}
-                  {moment(selectedBooking.start).format("MMMM Do YYYY, h:mm A")}
-                </p>
-                <p>
-                  <strong>End Time:</strong>{" "}
-                  {moment(selectedBooking.end).format("MMMM Do YYYY, h:mm A")}
-                </p>
-                {selectedBooking.tooltip && (
-                  <p className="whitespace-pre">
-                    <strong>Details:</strong> {selectedBooking.tooltip}
-                  </p>
+              <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4 max-h-96 overflow-y-auto shadow-2xl">
+                <div className="flex justify-between items-start mb-4">
+                  <h2 className="text-xl font-bold text-gray-800">
+                    {selectedBooking.isClassEvent ? "📚 Class Details" : "📅 Schedule Details"}
+                  </h2>
+                  <button
+                    onClick={closeModal}
+                    className="text-gray-500 hover:text-gray-700"
+                  >
+                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </div>
+                
+                {selectedBooking.isClassEvent ? (
+                  <div className="space-y-3 text-sm">
+                    <div className="flex items-center space-x-2">
+                      <div
+                        className="w-4 h-4 rounded-full"
+                        style={{ backgroundColor: selectedBooking.color }}
+                      ></div>
+                      <span className="font-semibold text-gray-700">Class:</span>
+                      <span className="font-medium">{selectedBooking.className}</span>
+                    </div>
+                    
+                    <div className="flex items-center space-x-2">
+                      <span className="font-semibold text-gray-700">🕒 Time:</span>
+                      <span>
+                        {moment(selectedBooking.start).format("dddd, MMM Do")} at{" "}
+                        {moment(selectedBooking.start).format("h:mm A")} - {" "}
+                        {moment(selectedBooking.end).format("h:mm A")}
+                      </span>
+                    </div>
+                    
+                    <div className="flex items-center space-x-2">
+                      <span className="font-semibold text-gray-700">👨‍🏫 Instructor:</span>
+                      <span>{selectedBooking.instructor || "Unknown"}</span>
+                    </div>
+                    
+                    <div className="flex items-center space-x-2">
+                      <span className="font-semibold text-gray-700">💰 Price:</span>
+                      <span>${selectedBooking.price || "N/A"}</span>
+                    </div>
+                    
+                    <div className="flex items-center space-x-2">
+                      <span className="font-semibold text-gray-700">📍 Location:</span>
+                      <span>{selectedBooking.location || "Not specified"}</span>
+                    </div>
+                    
+                    <div className="flex items-center space-x-2">
+                      <span className="font-semibold text-gray-700">Status:</span>
+                      <span className={`px-2 py-1 rounded text-xs ${selectedBooking.isBooked ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'}`}>
+                        {selectedBooking.isBooked ? "🔴 BOOKED" : "🟢 AVAILABLE"}
+                      </span>
+                    </div>
+                    
+                    {selectedBooking.isStacked && (
+                      <div className="p-3 bg-blue-50 border border-blue-200 rounded">
+                        <div className="flex items-center space-x-2 mb-1">
+                          <span className="font-semibold text-blue-800">📚 Stacked Event:</span>
+                        </div>
+                        <span className="text-blue-700 text-xs">
+                          This is event {selectedBooking.stackIndex + 1} of {selectedBooking.totalStacked} classes scheduled at this time slot
+                        </span>
+                      </div>
+                    )}
+                    
+                    <div className="mt-4 flex space-x-3">
+                      <button
+                        onClick={closeModal}
+                        className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
+                      >
+                        Close
+                      </button>
+                      {selectedBooking.classId && (
+                        <a
+                          href={`/schedule/${selectedBooking.classId}`}
+                          className="flex-1 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 text-center"
+                        >
+                          Manage Class
+                        </a>
+                      )}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-y-3 text-sm">
+                    <p>
+                      <strong>Title:</strong>{" "}
+                      {selectedBooking.title ? selectedBooking.title : "Not Booked"}
+                    </p>
+                    <p>
+                      <strong>Start Time:</strong>{" "}
+                      {moment(selectedBooking.start).format("MMMM Do YYYY, h:mm A")}
+                    </p>
+                    <p>
+                      <strong>End Time:</strong>{" "}
+                      {moment(selectedBooking.end).format("MMMM Do YYYY, h:mm A")}
+                    </p>
+                    {selectedBooking.tooltip && (
+                      <p className="whitespace-pre-line">
+                        <strong>Details:</strong> {selectedBooking.tooltip}
+                      </p>
+                    )}
+                    <button
+                      onClick={closeModal}
+                      className="mt-4 w-full px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600"
+                    >
+                      Close
+                    </button>
+                  </div>
                 )}
-                <button
-                  onClick={closeModal}
-                  className="mt-4 px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600"
-                >
-                  Close
-                </button>
               </div>
             </ReactModal>
           )}
@@ -2357,6 +2734,103 @@ export default function Schedule() {
         .popup button {
           margin-top: 12px;
           padding: 8px 16px;
+        }
+        
+        /* Compact square event styles */
+        .rbc-event {
+          transition: all 0.2s ease-in-out !important;
+          display: flex !important;
+          flex-direction: column !important;
+          justify-content: center !important;
+          align-items: center !important;
+          margin-bottom: 1px !important;
+          min-height: 8px !important;
+          max-height: 12px !important;
+          min-width: 8px !important;
+          max-width: 95% !important;
+          font-size: 7px !important;
+          padding: 1px !important;
+          border-radius: 2px !important;
+          position: relative !important;
+          z-index: 1 !important;
+          overflow: hidden !important;
+        }
+        
+        .rbc-event:hover {
+          transform: scale(1.3) !important;
+          z-index: 10 !important;
+          box-shadow: 0 2px 6px rgba(0,0,0,0.3) !important;
+        }
+        
+        /* Compact stacked event styles */
+        .rbc-event[style*="minHeight"] {
+          border: 1px solid rgba(255,255,255,0.8) !important;
+          box-shadow: 0 1px 2px rgba(0,0,0,0.2) !important;
+          margin-bottom: 1px !important;
+        }
+        
+        /* Compact event content - no text, just colored squares */
+        .rbc-event-content {
+          padding: 0 !important;
+          overflow: hidden !important;
+          flex: 1 !important;
+          display: flex !important;
+          justify-content: center !important;
+          align-items: center !important;
+          width: 100% !important;
+          height: 100% !important;
+        }
+        
+        /* Compact layout for time slots */
+        .rbc-time-slot {
+          position: relative !important;
+          display: flex !important;
+          flex-direction: column !important;
+          gap: 1px !important;
+          align-items: flex-start !important;
+          padding: 1px !important;
+        }
+        
+        /* Ensure timeslot groups maintain compact layout */
+        .rbc-timeslot-group {
+          display: flex !important;
+          flex-direction: column !important;
+          align-items: flex-start !important;
+        }
+        
+        /* Calendar day cells should stack small squares vertically */
+        .rbc-day-slot .rbc-events-container {
+          display: flex !important;
+          flex-direction: column !important;
+          gap: 1px !important;
+          align-items: flex-start !important;
+          padding: 2px !important;
+          max-width: 100% !important;
+          overflow: hidden !important;
+        }
+        
+        /* Ensure calendar cells don't overflow */
+        .rbc-time-view-resources .rbc-time-gutter,
+        .rbc-time-view .rbc-time-gutter {
+          overflow: visible !important;
+        }
+        
+        .rbc-day-slot {
+          overflow: visible !important;
+          min-height: auto !important;
+        }
+        
+        /* Improved tooltip styling */
+        .rbc-tooltip {
+          background: rgba(0, 0, 0, 0.9) !important;
+          color: white !important;
+          border-radius: 8px !important;
+          padding: 8px 12px !important;
+          font-size: 12px !important;
+          line-height: 1.4 !important;
+          max-width: 300px !important;
+          white-space: pre-line !important;
+          z-index: 1000 !important;
         }
       `}</style>
     </div>

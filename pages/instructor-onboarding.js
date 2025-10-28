@@ -28,7 +28,6 @@ const InstructorOnboarding = () => {
     signup: false,
     profile: false,
     class: false,
-    schedule: false,
     stripe: false
   });
 
@@ -52,18 +51,10 @@ const InstructorOnboarding = () => {
     {
       id: 'class',
       title: 'Create Your First Class',
-      description: 'Set up your class offerings',
+      description: 'Set up your class with its own schedule',
       icon: AcademicCapIcon,
       path: '/createClass',
       completed: completionStatus.class
-    },
-    {
-      id: 'schedule',
-      title: 'Set Your Schedule',
-      description: 'Define your availability',
-      icon: CalendarIcon,
-      path: '/schedule',
-      completed: completionStatus.schedule
     },
     {
       id: 'stripe',
@@ -123,12 +114,11 @@ const InstructorOnboarding = () => {
           signup: true, // User exists
           profile: isProfileComplete(data),
           class: false, // Will be checked separately
-          schedule: false, // Will be checked separately
           stripe: data.payment_enabled || false
         };
         
-        // Check classes and schedule
-        await checkClassesAndSchedule(status);
+        // Check classes
+        await checkClasses(status);
         
         setCompletionStatus(status);
         
@@ -166,7 +156,7 @@ const InstructorOnboarding = () => {
     );
   };
 
-  const checkClassesAndSchedule = async (status) => {
+  const checkClasses = async (status) => {
     try {
       // Check if user has classes
       const classesQuery = query(
@@ -175,14 +165,9 @@ const InstructorOnboarding = () => {
       );
       const classesSnap = await getDocs(classesQuery);
       status.class = classesSnap.docs.length > 0;
-
-      // Check if user has schedule
-      const scheduleRef = doc(db, 'Schedule', user.uid);
-      const scheduleSnap = await getDoc(scheduleRef);
-      status.schedule = scheduleSnap.exists() && scheduleSnap.data();
       
     } catch (error) {
-      console.error('Error checking classes and schedule:', error);
+      console.error('Error checking classes:', error);
     }
   };
 
@@ -197,8 +182,6 @@ const InstructorOnboarding = () => {
         router.push(`/updateProfile/${user.uid}?from=instructor-onboarding`);
       } else if (step.id === 'class') {
         router.push(`/createClass?from=instructor-onboarding`);
-      } else if (step.id === 'schedule') {
-        router.push(`/schedule?from=instructor-onboarding`);
       } else if (step.id === 'stripe') {
         router.push(`/addStripe?from=instructor-onboarding`);
       } else {
@@ -376,16 +359,14 @@ const InstructorOnboarding = () => {
 
           {/* Mobile Steps */}
           <div className="max-w-4xl mx-auto px-6 py-12">
-            <div className="mb-8">
-              <h2 className="text-2xl font-bold text-gray-900 mb-2">
-                Get Started in 5 Simple Steps
-              </h2>
-              <p className="text-gray-600">
-                Complete these steps to start teaching and earning on PocketClass
-              </p>
-            </div>
-
-            <div className="space-y-4">
+              <div className="mb-8">
+                <h2 className="text-2xl font-bold text-gray-900 mb-2">
+                  Get Started in 4 Simple Steps
+                </h2>
+                <p className="text-gray-600">
+                  Complete these steps to start teaching and earning on PocketClass
+                </p>
+              </div>            <div className="space-y-4">
               {renderSteps()}
             </div>
 
@@ -491,7 +472,7 @@ const InstructorOnboarding = () => {
             <div className="p-12">
               <div className="mb-8">
                 <h2 className="text-3xl font-bold text-gray-900 mb-2">
-                  Get Started in 5 Simple Steps
+                  Get Started in 4 Simple Steps
                 </h2>
                 <p className="text-gray-600">
                   Complete these steps to start teaching and earning on PocketClass

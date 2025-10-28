@@ -644,42 +644,24 @@ export default function index({
 
       let scheduleData = null;
 
-      // 1. Try to get Schedule for classId
+      // Get Schedule for classId only - no fallback to instructor schedule
       const classDocRef = doc(db, "Schedule", classId);
       const classSnapshot = await getDoc(classDocRef);
 
       if (classSnapshot.exists()) {
         scheduleData = classSnapshot.data();
-
-        // Merge empty slot days from instructor schedule
-        const instructorDocRef = doc(db, "Schedule", instructorId);
-        const instructorSnapshot = await getDoc(instructorDocRef);
-        if (instructorSnapshot.exists()) {
-          const instructorData = instructorSnapshot.data();
-          const emptySlotAdjustments =
-            instructorData.adjustedAvailability?.filter(
-              (entry) => Array.isArray(entry.slots) && entry.slots.length === 0
-            ) || [];
-
-          // Merge only unique dates (avoid duplicates)
-          const existingDates = new Set(
-            scheduleData.adjustedAvailability?.map((d) => d.date)
-          );
-
-          scheduleData.adjustedAvailability = [
-            ...(scheduleData.adjustedAvailability || []),
-            ...emptySlotAdjustments.filter(
-              (entry) => !existingDates.has(entry.date)
-            ),
-          ];
-        }
+        console.log("Found class-specific schedule:", scheduleData);
       } else {
-        // Fallback to instructor schedule
-        const instructorDocRef = doc(db, "Schedule", instructorId);
-        const instructorSnapshot = await getDoc(instructorDocRef);
-        if (instructorSnapshot.exists()) {
-          scheduleData = instructorSnapshot.data();
-        }
+        // No class schedule found - show helpful message
+        console.log("No schedule found for class:", classId);
+        setSchedule({
+          generalAvailability: [],
+          adjustedAvailability: []
+        });
+        
+        // Show a message to users that this class needs schedule setup
+        toast.info("This class doesn't have a schedule set up yet. Please contact the instructor to set up availability.");
+        return;
       }
 
       if (scheduleData) {
@@ -3839,28 +3821,53 @@ END:VCALENDAR`.trim();
       onSubmit={handleSubmit}
       className="bg-white p-8 rounded shadow-lg w-96 max-h-[80vh] overflow-y-auto relative"
     >
-      {/* Loader overlay when loading */}
-      <div
-        className={`absolute inset-0 flex flex-col items-center justify-center bg-white transition-opacity duration-300 ${
-          loading
-            ? "opacity-100 pointer-events-auto z-10"
-            : "opacity-0 pointer-events-none z-0"
-        }`}
-      >
-        <div className="loader border-4 border-[#E73F2B] border-t-transparent rounded-full w-12 h-12 animate-spin mb-4"></div>
-        <p className="px-8 text-center text-[#E73F2B] font-semibold text-lg">
-          Processing: {currentStep}...
-        </p>
-      </div>
+      {/* No Schedule Message */}
+      {(!schedule.generalAvailability || schedule.generalAvailability.length === 0) && 
+       (!schedule.adjustedAvailability || schedule.adjustedAvailability.length === 0) && (
+        <div className="text-center py-8">
+          <div className="mb-4">
+            <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3a1 1 0 011-1h6a1 1 0 011 1v4M8 7h8M8 7L5 9v12a1 1 0 001 1h12a1 1 0 001-1V9l-3-2" />
+            </svg>
+          </div>
+          <h3 className="text-lg font-medium text-gray-900 mb-2">
+            Schedule Not Available
+          </h3>
+          <p className="text-gray-600 mb-4">
+            This class doesn't have a schedule set up yet. Please contact the instructor to set up availability for booking.
+          </p>
+          <p className="text-sm text-gray-500">
+            Instructors can set up their class schedules in their dashboard.
+          </p>
+        </div>
+      )}
 
-      {/* Payment Form Content */}
-      <div
-        className={`${
-          loading ? "opacity-0 pointer-events-none" : "opacity-100"
-        } transition-opacity duration-300`}
-      >
-        <div className="flex flex-row justify-between text-[#E73F2B] mb-2">
-          <div className="text-base font-semibold text-[#E73F2B]">
+      {/* Show booking form only if schedule exists */}
+      {((schedule.generalAvailability && schedule.generalAvailability.length > 0) || 
+        (schedule.adjustedAvailability && schedule.adjustedAvailability.length > 0)) && (
+        <>
+          {/* Loader overlay when loading */}
+          <div
+            className={`absolute inset-0 flex flex-col items-center justify-center bg-white transition-opacity duration-300 ${
+              loading
+                ? "opacity-100 pointer-events-auto z-10"
+                : "opacity-0 pointer-events-none z-0"
+            }`}
+          >
+            <div className="loader border-4 border-[#E73F2B] border-t-transparent rounded-full w-12 h-12 animate-spin mb-4"></div>
+            <p className="px-8 text-center text-[#E73F2B] font-semibold text-lg">
+              Processing: {currentStep}...
+            </p>
+          </div>
+
+          {/* Payment Form Content */}
+          <div
+            className={`${
+              loading ? "opacity-0 pointer-events-none" : "opacity-100"
+            } transition-opacity duration-300`}
+          >
+            <div className="flex flex-row justify-between text-[#E73F2B] mb-2">
+              <div className="text-base font-semibold text-[#E73F2B]">
             Paying: ${selectedPackage?.num_sessions ? packagePrice : price}
           </div>
           <button
@@ -3899,7 +3906,9 @@ END:VCALENDAR`.trim();
         >
           {loading ? "Processing..." : "Pay"}
         </button>
-      </div>
+          </div>
+        </>
+      )}
     </form>
   );
 };
